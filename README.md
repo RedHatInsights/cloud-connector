@@ -81,6 +81,13 @@ the retained handshake messages.  But it makes it difficult for a client to know
 to start processing messages.
 
 ```
+{
+    "type": "handshake-success",
+    "message_id": "xxx-xx-xxx",
+    "in_response_to": "3a57b1ad-5163-47ee-9e57-3bb6d90bdfff",
+    "version": 1,
+    "sent": "2020-12-04T17:22:24+00:00",
+}
 ```
 
 #### Failure
@@ -88,7 +95,7 @@ to start processing messages.
 If an handshake-error message is received, then the client should disconnect
 and send a new handshake message at a later time.
 
-# FIXME:  This could happen asynchronously due to the retained message processing with a new consumer.
+FIXME:  This could happen asynchronously due to the retained message processing with a new consumer.
 
 ```
 {
@@ -163,6 +170,8 @@ Send a retained disconnect message
 The directive and payload are defined by the application.  The Cloud-Connector will accept the 
 directive and payload from a REST call and pass that data to the connected client.
 
+#### Message processing errors
+
 What if client cannot handle the message?  Can't parse it, can't dispatch it, etc?
 Send back a message-response of type error?
 
@@ -179,10 +188,6 @@ Send back a message-response of type error?
 }
 ```
 
-
-### Ping operation
-
-No, ping for now.
 
 ### Force disconnect
 
