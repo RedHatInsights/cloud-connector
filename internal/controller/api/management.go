@@ -46,7 +46,6 @@ func (s *ManagementServer) Routes() {
 	securedSubRouter.HandleFunc("/{id:[0-9]+}", s.handleConnectionListingByAccount()).Methods(http.MethodGet)
 	securedSubRouter.HandleFunc("/disconnect", s.handleDisconnect()).Methods(http.MethodPost)
 	securedSubRouter.HandleFunc("/status", s.handleConnectionStatus()).Methods(http.MethodPost)
-	securedSubRouter.HandleFunc("/ping", s.handleConnectionPing()).Methods(http.MethodPost)
 }
 
 type connectionID struct {
@@ -56,12 +55,6 @@ type connectionID struct {
 
 type connectionStatusResponse struct {
 	Status       string      `json:"status"`
-	Capabilities interface{} `json:"capabilities,omitempty"`
-}
-
-type connectionPingResponse struct {
-	Status  string      `json:"status"`
-	Payload interface{} `json:"payload"`
 }
 
 func (s *ManagementServer) handleDisconnect() http.HandlerFunc {
@@ -135,77 +128,13 @@ func (s *ManagementServer) handleConnectionStatus() http.HandlerFunc {
 
 		client := s.connectionMgr.GetConnection(req.Context(), connID.Account, connID.NodeID)
 		if client != nil {
-			capabilities, err := client.GetCapabilities(req.Context())
-			if err == nil {
-				// Only report the node as connected if we can get a connection
-				// from the connection registrar and if we can get the capabilities
-				connectionStatus.Status = CONNECTED_STATUS
-				connectionStatus.Capabilities = capabilities
-			} else {
-				logger.WithFields(
-					logrus.Fields{"error": err},
-				).Errorf("Unable to retrieve the capabilities of node %s", connID.NodeID)
-			}
+		    connectionStatus.Status = CONNECTED_STATUS
 		}
 
 		logger.Infof("Connection status for account:%s - node id:%s => %s\n",
 			connID.Account, connID.NodeID, connectionStatus.Status)
 
 		writeJSONResponse(w, http.StatusOK, connectionStatus)
-	}
-}
-
-func (s *ManagementServer) handleConnectionPing() http.HandlerFunc {
-
-	return func(w http.ResponseWriter, req *http.Request) {
-
-		principal, _ := middlewares.GetPrincipal(req.Context())
-		requestId := request_id.GetReqID(req.Context())
-		logger := logger.Log.WithFields(logrus.Fields{
-			"account":    principal.GetAccount(),
-			"request_id": requestId})
-
-		body := http.MaxBytesReader(w, req.Body, 1048576)
-
-		var connID connectionID
-
-		if err := decodeJSON(body, &connID); err != nil {
-			errorResponse := errorResponse{Title: "Unable to process json input",
-				Status: http.StatusBadRequest,
-				Detail: err.Error()}
-			writeJSONResponse(w, errorResponse.Status, errorResponse)
-			return
-		}
-
-		logger.Infof("Submitting ping for account:%s - node id:%s",
-			connID.Account, connID.NodeID)
-
-		pingResponse := connectionPingResponse{Status: DISCONNECTED_STATUS}
-		client := s.connectionMgr.GetConnection(req.Context(), connID.Account, connID.NodeID)
-		if client == nil {
-			writeJSONResponse(w, http.StatusOK, pingResponse)
-			return
-		}
-
-		pingResponse.Status = CONNECTED_STATUS
-		var err error
-		pingResponse.Payload, err = client.Ping(req.Context(), connID.Account, connID.NodeID, []string{connID.NodeID})
-
-		if pingResponse.Payload == nil {
-			pingResponse.Status = DISCONNECTED_STATUS
-			writeJSONResponse(w, http.StatusOK, pingResponse)
-			return
-		}
-
-		if err != nil {
-			errorResponse := errorResponse{Title: "Ping failed",
-				Status: http.StatusBadRequest,
-				Detail: err.Error()}
-			writeJSONResponse(w, errorResponse.Status, errorResponse)
-			return
-		}
-
-		writeJSONResponse(w, http.StatusOK, pingResponse)
 	}
 }
 

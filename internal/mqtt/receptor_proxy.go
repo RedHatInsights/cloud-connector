@@ -19,7 +19,7 @@ type ReceptorMQTTProxy struct {
 	Client   MQTT.Client
 }
 
-func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber string, recipient string, route []string, payload interface{}, directive string) (*uuid.UUID, error) {
+func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber string, recipient string, payload interface{}, directive string) (*uuid.UUID, error) {
 
 	messageID, err := uuid.NewRandom()
 	if err != nil {
@@ -52,14 +52,6 @@ func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber str
 	return &messageID, nil
 }
 
-func (rhp *ReceptorMQTTProxy) Ping(ctx context.Context, accountNumber string, recipient string, route []string) (interface{}, error) {
-	return struct{}{}, nil
-}
-
 func (rhp *ReceptorMQTTProxy) Close(ctx context.Context) error {
 	return nil
-}
-
-func (rhp *ReceptorMQTTProxy) GetCapabilities(ctx context.Context) (interface{}, error) {
-	return struct{}{}, nil
 }

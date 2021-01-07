@@ -31,7 +31,7 @@ type MockClient struct {
 	returnAnError bool
 }
 
-func (mc MockClient) SendMessage(ctx context.Context, account string, recipient string, route []string, payload interface{}, directive string) (*uuid.UUID, error) {
+func (mc MockClient) SendMessage(ctx context.Context, account string, recipient string, payload interface{}, directive string) (*uuid.UUID, error) {
 	if mc.returnAnError {
 		return nil, errors.New("ImaError")
 	}
@@ -39,19 +39,8 @@ func (mc MockClient) SendMessage(ctx context.Context, account string, recipient 
 	return &myUUID, nil
 }
 
-func (mc MockClient) Ping(context.Context, string, string, []string) (interface{}, error) {
-	if mc.returnAnError {
-		return nil, errors.New("ImaErrorToo")
-	}
-	return struct{}{}, nil
-}
-
 func (mc MockClient) Close(context.Context) error {
 	return nil
-}
-
-func (mc MockClient) GetCapabilities(context.Context) (interface{}, error) {
-	return struct{}{}, nil
 }
 
 func init() {
