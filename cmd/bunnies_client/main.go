@@ -122,10 +122,10 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 	//connOpts.SetTLSConfig(&tls.Config{InsecureSkipVerify: true})
 	connOpts.SetTLSConfig(tlsconfig)
 
-    connOpts.SetWill(writeTopic, string(""), byte(0), true)
+	connOpts.SetWill(writeTopic, string(""), byte(0), true)
 
 	//lastWillPayload, err := buildDisconnectMessage(clientID)
-    //connOpts.SetWill(writeTopic, string(lastWillPayload), byte(0), false)
+	//connOpts.SetWill(writeTopic, string(lastWillPayload), byte(0), false)
 
 	//    connOpts.SetDefaultPublishHandler(m)
 
@@ -184,10 +184,10 @@ func onMessageReceived(client MQTT.Client, message MQTT.Message) {
 
 	var connMsg Connector.ConnectorMessage
 
-    if message.Payload() == nil || len(message.Payload()) == 0 {
-        fmt.Println("empty payload")
-        return
-    }
+	if message.Payload() == nil || len(message.Payload()) == 0 {
+		fmt.Println("empty payload")
+		return
+	}
 
 	if err := json.Unmarshal(message.Payload(), &connMsg); err != nil {
 		fmt.Println("unmarshal of message failed, err:", err)

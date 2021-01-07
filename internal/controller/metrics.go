@@ -6,11 +6,11 @@ import (
 )
 
 type Metrics struct {
-	responseKafkaWriterGoRoutineGauge    prometheus.Gauge
-	responseKafkaWriterSuccessCounter    prometheus.Counter
-	responseKafkaWriterFailureCounter    prometheus.Counter
-	messageDirectiveCounter              *prometheus.CounterVec
-	redisConnectionError                 prometheus.Counter
+	responseKafkaWriterGoRoutineGauge prometheus.Gauge
+	responseKafkaWriterSuccessCounter prometheus.Counter
+	responseKafkaWriterFailureCounter prometheus.Counter
+	messageDirectiveCounter           *prometheus.CounterVec
+	redisConnectionError              prometheus.Counter
 }
 
 func NewMetrics() *Metrics {

@@ -116,13 +116,13 @@ func messageHandler(connectionRegistrar controller.ConnectionRegistrar) func(MQT
 
 		var connMsg ConnectorMessage
 
-        fmt.Printf("payload type: %T\n", message.Payload())
-        fmt.Printf("payload type: |%s|\n", message.Payload())
+		fmt.Printf("payload type: %T\n", message.Payload())
+		fmt.Printf("payload type: |%s|\n", message.Payload())
 
-        if message.Payload() == nil || len(message.Payload()) == 0 {
-            fmt.Println("empty payload")
-            return
-        }
+		if message.Payload() == nil || len(message.Payload()) == 0 {
+			fmt.Println("empty payload")
+			return
+		}
 
 		if err := json.Unmarshal(message.Payload(), &connMsg); err != nil {
 			fmt.Println("unmarshal of message failed, err:", err)
@@ -225,25 +225,24 @@ func getAccountNumberFromBop(clientID string) (string, error) {
 	// FIXME: need to lookup the account number for the connected client
 	fmt.Println("FIXME: looking up the connection's account number in BOP")
 
-    /*
-Required
-x-rh-apitoken *
-x-rh-clientid
+	/*
+	Required
+	x-rh-apitoken *
+	x-rh-clientid
 
-Optional
-x-rh-insights-env
+	Optional
+	x-rh-insights-env
 
-Cert auth
-x-rh-certauth-cn
-x-rh-certauth-issuer
-x-rh-insights-certauth-secret
+	Cert auth
+	x-rh-certauth-cn
+	x-rh-certauth-issuer
+	x-rh-insights-certauth-secret
 
-make http GET
+	make http GET
 
 
 
-*/
-
+	*/
 
 	return "010101", nil
 }

@@ -54,7 +54,7 @@ type connectionID struct {
 }
 
 type connectionStatusResponse struct {
-	Status       string      `json:"status"`
+	Status string `json:"status"`
 }
 
 func (s *ManagementServer) handleDisconnect() http.HandlerFunc {
@@ -128,7 +128,7 @@ func (s *ManagementServer) handleConnectionStatus() http.HandlerFunc {
 
 		client := s.connectionMgr.GetConnection(req.Context(), connID.Account, connID.NodeID)
 		if client != nil {
-		    connectionStatus.Status = CONNECTED_STATUS
+			connectionStatus.Status = CONNECTED_STATUS
 		}
 
 		logger.Infof("Connection status for account:%s - node id:%s => %s\n",
