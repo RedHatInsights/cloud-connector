@@ -1,19 +1,9 @@
-TALK TO LINDANI:
-
-- MQTT connection recorder will be a separate pod...that's its only job
-- MQTT message sender will be a separate pod
-- later on we can implement queueing"
-
-- connection checks
-  - level 1 and level 3 connection checks is fine for now
 - do we need a ping that is above the MQTT message but below and application level ping?
   - No ping needed at this point
 - what about different topics for different "types" of connections?  Would that help with the load??
 - change "in" topic to "status"??
   - only watch "status" for connection state
   - watch "in" later on for bi-directional communication
-- do we need the sender and recipient in the messages?
-  - i don't think so...we did in the receptor days because it was not point-to-point
 
 
 # Cloud Connector
@@ -115,18 +105,30 @@ and send a new handshake message at a later time.
 
 ### Connection deregistration
 
+Cloud-Connector needs to know when a client disconnects.  The disconnect can happen
+when the Cloud-Connector is running or not running.
+
 #### Clean/routine disconnection
 
-2 options:
+I am currently thinking the "handshake" message needs to be a retained message.  This will
+allow new connections to be recorded even while the cloud-connector is not running.
+
+We also have to be able to record disconnection events.  The disconnection events can happen
+when the cloud-connector is running and when it is not running.
+
+I think the disconnect events can be handled in 2 ways:
 1)
- - Send an "offline" message
+ - Send an "offline" message (not a retained message)
+   - this will tell a running cloud-connector that the connection closed
  - Remove retained handshake message
- - less processing on a consumer reconnect
- - more difficult in connection state sync
+   - this way a freshly restarted cloud-connector will not know about the previously established connection
+ - this approach should lower the number of retained messages...which should lower
+   the retained message processing required when the cloud-connector is restarted
 2) 
  - Send a retained "offline" message
- - must process all disconnects on conumer reconnect
- - makes connection state sync easier
+ - this approach will mean that each connected and disconnected client will have a
+   retained connection status message that will need to be processed when the
+   cloud-connector is restarted
 
 #### Abnormal disconnection
 
@@ -137,6 +139,7 @@ Send a retained disconnect message
     "type": "offline",
     "message_id": "33390934-7628-49f6-88ea-528ef740c774",
     "version": 1
+    "sent": "2020-12-04T17:22:24+00:00"
 }
 
 ```
@@ -179,7 +182,6 @@ Send back a message-response of type error?
 
 ### Ping operation
 
-Do we need a ping operation??
 No, ping for now.
 
 ### Force disconnect
@@ -194,6 +196,8 @@ and reconnect.
     "message_id": "33390934-7628-49f6-88ea-528ef740c774",
     "version": 1,
     "sent": "2020-12-04T17:19:47+00:00",
-    "reconnect_after": ""  # FIXME: timestamp, never again, etc
+    "payload": {
+      "reconnect_after": ""  # FIXME: timestamp, never again, etc
+    }
 }
 ```
