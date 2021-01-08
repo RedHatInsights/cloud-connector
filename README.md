@@ -82,11 +82,16 @@ to start processing messages.
 
 ```
 {
-    "type": "handshake-success",
+    "type": "handshake-response",
     "message_id": "xxx-xx-xxx",
     "in_response_to": "3a57b1ad-5163-47ee-9e57-3bb6d90bdfff",
     "version": 1,
     "sent": "2020-12-04T17:22:24+00:00",
+    "payload": {
+       "results:": "success",
+       "details": "error detail go here"
+    }
+
 }
 ```
 
@@ -99,12 +104,13 @@ FIXME:  This could happen asynchronously due to the retained message processing 
 
 ```
 {
-    "type": "handshake-error",
+    "type": "handshake-response",
     "message_id": "xxx-xx-xxx",
     "in_response_to": "3a57b1ad-5163-47ee-9e57-3bb6d90bdfff",
     "version": 1,
     "sent": "2020-12-04T17:22:24+00:00",
     "payload": {
+       "results:": "error",
        "details": "error detail go here"
     }
 }
