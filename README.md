@@ -1,6 +1,8 @@
+# Questions / Thoughts
+
 - do we need a ping that is above the MQTT message but below and application level ping?
   - No ping needed at this point
-- what about different topics for different "types" of connections?  Would that help with the load??
+- what about different topics for different "types" (host, proxy, etc) of connections?  Would that help with the load??
 - change "in" topic to "status"??
   - only watch "status" for connection state
   - watch "in" later on for bi-directional communication
@@ -130,6 +132,7 @@ We also have to be able to record disconnection events.  The disconnection event
 when the cloud-connector is running and when it is not running.
 
 I think the disconnect events can be handled in 2 ways:
+
 1.
  * Send an "offline" message (not a retained message)
    * this will tell a running cloud-connector that the connection closed
@@ -137,7 +140,7 @@ I think the disconnect events can be handled in 2 ways:
    * this way a freshly restarted cloud-connector will not know about the previously established connection
  * this approach should lower the number of retained messages...which should lower
    the retained message processing required when the cloud-connector is restarted
-2. 
+2.
  * Send a retained "offline" message
  * this approach will mean that each connected and disconnected client will have a
    retained connection status message that will need to be processed when the
