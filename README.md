@@ -18,8 +18,8 @@ Each connected client will have unique topics for publishing and subscribing.
 Actual topic string subject to change.
 
 Connected-Client topics:
-Subscribe: redhat/insights/out/$clientID
-Publish: redhat/insights/in/$clientID
+* Subscribe: redhat/insights/out/$clientID
+* Publish: redhat/insights/in/$clientID
 
 
 ### Connection registration
@@ -28,7 +28,7 @@ A handshake message will need to be published in order to register a
 connection with the cloud-connector.  The handshake message will be different 
 if the connection is for a single host or for a proxy connection.
 
-_The handshake message must be a retained message._
+_The handshake message must be a **retained** message._
 
 #### Host connection registration
 
@@ -130,16 +130,16 @@ We also have to be able to record disconnection events.  The disconnection event
 when the cloud-connector is running and when it is not running.
 
 I think the disconnect events can be handled in 2 ways:
-1)
- - Send an "offline" message (not a retained message)
-   - this will tell a running cloud-connector that the connection closed
- - Remove retained handshake message
-   - this way a freshly restarted cloud-connector will not know about the previously established connection
- - this approach should lower the number of retained messages...which should lower
+1.
+ * Send an "offline" message (not a retained message)
+   * this will tell a running cloud-connector that the connection closed
+ * Remove retained handshake message
+   * this way a freshly restarted cloud-connector will not know about the previously established connection
+ * this approach should lower the number of retained messages...which should lower
    the retained message processing required when the cloud-connector is restarted
-2) 
- - Send a retained "offline" message
- - this approach will mean that each connected and disconnected client will have a
+2. 
+ * Send a retained "offline" message
+ * this approach will mean that each connected and disconnected client will have a
    retained connection status message that will need to be processed when the
    cloud-connector is restarted
 
