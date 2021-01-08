@@ -2,9 +2,11 @@
 
 - do we need a ping that is above the MQTT message but below and application level ping?
   - No ping needed at this point
-- what about different topics for different "types" (host, proxy, etc) of connections?  Would that help with the load??
-- change "in" topic to "status"??
-  - only watch "status" for connection state
+- what about different topics for different "types" (host, proxy, etc) of connections?
+  - Would that help with the load??  Probably not a huge amount of help...
+  - We could segment off "host" connection recorders and "proxy" connection recorders though...
+- what about sending sending the "handshake" messages to a "status" topic?
+  - only watch "status" for connection state changes
   - watch "in" later on for bi-directional communication
 
 
@@ -91,7 +93,7 @@ to start processing messages.
     "sent": "2020-12-04T17:22:24+00:00",
     "payload": {
        "results:": "success",
-       "details": "error detail go here"
+       "details": ""
     }
 
 }
@@ -182,16 +184,18 @@ directive and payload from a REST call and pass that data to the connected clien
 #### Message processing errors
 
 What if client cannot handle the message?  Can't parse it, can't dispatch it, etc?
-Send back a message-response of type error?
+Send back a message-response of type error?  The cloud-connector cannot do much with the error
+besides log it.
 
 ```
 {
-    "type": "message-error",
+    "type": "message-response",
     "message_id": "xxx-xx-xxx",
     "in_response_to": "33390934-7628-49f6-88ea-528ef740c774",
     "version": 1,
     "sent": "2020-12-04T17:19:47+00:00",
     "payload": {
+      "result":  "error",
       "details": "error details"
     }
 }
