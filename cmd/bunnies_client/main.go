@@ -98,8 +98,8 @@ var m MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
 func startProducer(certFile string, keyFile string, broker string, i int) {
 	tlsconfig, clientID := NewTLSConfig(certFile, keyFile)
 
-	readTopic := fmt.Sprintf("redhat/insights/%s/out", clientID)
-	writeTopic := fmt.Sprintf("redhat/insights/%s/in", clientID)
+	readTopic := fmt.Sprintf("redhat/insights/out/%s", clientID)
+	writeTopic := fmt.Sprintf("redhat/insights/in/%s", clientID)
 	fmt.Println("consumer topic: ", readTopic)
 
 	connOpts := MQTT.NewClientOptions()
@@ -156,12 +156,11 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 		"1234",
 		"5678",
 	}
-	handshakePayload := Connector.HostHandshake{Type: "host", CanonicalFacts: cf}
+	handshakePayload := Connector.HostHandshakePayload{CanonicalFacts: cf}
 
-	connMsg := Connector.ConnectorMessage{
-		MessageType: "handshake",
+	connMsg := Connector.HandshakeMessage{
+		MessageType: "host-handshake",
 		MessageID:   "1234",
-		ClientID:    clientID,
 		Version:     1,
 		Payload:     handshakePayload,
 	}
@@ -266,7 +265,6 @@ func buildDisconnectMessage(clientID string) ([]byte, error) {
 	connMsg := Connector.ConnectorMessage{
 		MessageType: "disconnect",
 		MessageID:   "4321",
-		ClientID:    clientID,
 		Version:     1,
 	}
 
