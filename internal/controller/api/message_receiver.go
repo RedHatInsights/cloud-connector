@@ -13,21 +13,21 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type JobReceiver struct {
+type MessageReceiver struct {
 	connectionMgr controller.ConnectionLocator
 	router        *mux.Router
 	config        *config.Config
 }
 
-func NewJobReceiver(cm controller.ConnectionLocator, r *mux.Router, cfg *config.Config) *JobReceiver {
-	return &JobReceiver{
+func NewMessageReceiver(cm controller.ConnectionLocator, r *mux.Router, cfg *config.Config) *MessageReceiver {
+	return &MessageReceiver{
 		connectionMgr: cm,
 		router:        r,
 		config:        cfg,
 	}
 }
 
-func (jr *JobReceiver) Routes() {
+func (jr *MessageReceiver) Routes() {
 	mmw := &middlewares.MetricsMiddleware{}
 	amw := &middlewares.AuthMiddleware{Secrets: jr.config.ServiceToServiceCredentials}
 
@@ -50,7 +50,7 @@ type messageResponse struct {
 	JobID string `json:"id"`
 }
 
-func (jr *JobReceiver) handleJob() http.HandlerFunc {
+func (jr *MessageReceiver) handleJob() http.HandlerFunc {
 
 	return func(w http.ResponseWriter, req *http.Request) {
 

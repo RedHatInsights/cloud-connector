@@ -55,7 +55,7 @@ func main() {
 	mgmtServer := api.NewManagementServer(localConnectionManager, apiMux, cfg)
 	mgmtServer.Routes()
 
-	jr := api.NewJobReceiver(localConnectionManager, apiMux, cfg)
+	jr := api.NewMessageReceiver(localConnectionManager, apiMux, cfg)
 	jr.Routes()
 
 	apiSrv := utils.StartHTTPServer(*mgmtAddr, "management", apiMux)

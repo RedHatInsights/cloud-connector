@@ -48,10 +48,10 @@ func init() {
 	logger.InitLogger()
 }
 
-var _ = Describe("JobReceiver", func() {
+var _ = Describe("MessageReceiver", func() {
 
 	var (
-		jr                  *JobReceiver
+		jr                  *MessageReceiver
 		validIdentityHeader string
 	)
 
@@ -63,7 +63,7 @@ var _ = Describe("JobReceiver", func() {
 		errorMC := MockClient{returnAnError: true}
 		cm.Register(context.TODO(), "1234", "error-client", errorMC)
 		cfg := config.GetConfig()
-		jr = NewJobReceiver(cm, apiMux, cfg)
+		jr = NewMessageReceiver(cm, apiMux, cfg)
 		jr.Routes()
 
 		identity := `{ "identity": {"account_number": "540155", "type": "User", "internal": { "org_id": "1979710" } } }`
