@@ -36,17 +36,17 @@ func (jr *JobReceiver) Routes() {
 		mmw.RecordHTTPMetrics,
 		amw.Authenticate)
 
-	securedSubRouter.HandleFunc("/job", jr.handleJob()).Methods(http.MethodPost)
+	securedSubRouter.HandleFunc("/message", jr.handleJob()).Methods(http.MethodPost)
 }
 
-type jobRequest struct {
+type messageRequest struct {
 	Account   string      `json:"account" validate:"required"`
 	Recipient string      `json:"recipient" validate:"required"`
 	Payload   interface{} `json:"payload" validate:"required"`
 	Directive string      `json:"directive" validate:"required"`
 }
 
-type jobResponse struct {
+type messageResponse struct {
 	JobID string `json:"id"`
 }
 
@@ -60,11 +60,11 @@ func (jr *JobReceiver) handleJob() http.HandlerFunc {
 			"account":    principal.GetAccount(),
 			"request_id": requestId})
 
-		var jobRequest jobRequest
+		var msgRequest messageRequest
 
 		body := http.MaxBytesReader(w, req.Body, 1048576)
 
-		if err := decodeJSON(body, &jobRequest); err != nil {
+		if err := decodeJSON(body, &msgRequest); err != nil {
 			errMsg := "Unable to process json input"
 			logger.WithFields(logrus.Fields{"error": err}).Debug(errMsg)
 			errorResponse := errorResponse{Title: errMsg,
@@ -75,19 +75,19 @@ func (jr *JobReceiver) handleJob() http.HandlerFunc {
 		}
 
 		var client controller.Receptor
-		client = jr.connectionMgr.GetConnection(req.Context(), jobRequest.Account, jobRequest.Recipient)
+		client = jr.connectionMgr.GetConnection(req.Context(), msgRequest.Account, msgRequest.Recipient)
 		if client == nil {
 			writeConnectionFailureResponse(logger, w)
 			return
 		}
 
-		logger = logger.WithFields(logrus.Fields{"recipient": jobRequest.Recipient,
-			"directive": jobRequest.Directive})
+		logger = logger.WithFields(logrus.Fields{"recipient": msgRequest.Recipient,
+			"directive": msgRequest.Directive})
 		logger.Info("Sending a message")
 
-		jobID, err := client.SendMessage(req.Context(), jobRequest.Account, jobRequest.Recipient,
-			jobRequest.Payload,
-			jobRequest.Directive)
+		jobID, err := client.SendMessage(req.Context(), msgRequest.Account, msgRequest.Recipient,
+			msgRequest.Payload,
+			msgRequest.Directive)
 
 		if err == controller.ErrDisconnectedNode {
 			writeConnectionFailureResponse(logger, w)
@@ -105,9 +105,9 @@ func (jr *JobReceiver) handleJob() http.HandlerFunc {
 
 		logger.WithFields(logrus.Fields{"message_id": jobID}).Info("Message sent")
 
-		jobResponse := jobResponse{jobID.String()}
+		msgResponse := messageResponse{jobID.String()}
 
-		writeJSONResponse(w, http.StatusCreated, jobResponse)
+		writeJSONResponse(w, http.StatusCreated, msgResponse)
 	}
 }
 

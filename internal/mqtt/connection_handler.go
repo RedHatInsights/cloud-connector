@@ -226,19 +226,19 @@ func getAccountNumberFromBop(clientID string) (string, error) {
 	fmt.Println("FIXME: looking up the connection's account number in BOP")
 
 	/*
-	Required
-	x-rh-apitoken *
-	x-rh-clientid
+		Required
+		x-rh-apitoken *
+		x-rh-clientid
 
-	Optional
-	x-rh-insights-env
+		Optional
+		x-rh-insights-env
 
-	Cert auth
-	x-rh-certauth-cn
-	x-rh-certauth-issuer
-	x-rh-insights-certauth-secret
+		Cert auth
+		x-rh-certauth-cn
+		x-rh-certauth-issuer
+		x-rh-insights-certauth-secret
 
-	make http GET
+		make http GET
 
 
 

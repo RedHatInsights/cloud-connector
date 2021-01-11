@@ -25,6 +25,7 @@ const (
 	TOKEN_HEADER_CLIENT_NAME  = "x-rh-receptor-controller-client-id"
 	TOKEN_HEADER_ACCOUNT_NAME = "x-rh-receptor-controller-account"
 	TOKEN_HEADER_PSK_NAME     = "x-rh-receptor-controller-psk"
+	MESSAGE_ENDPOINT          = "/message"
 )
 
 type MockClient struct {
@@ -75,7 +76,7 @@ var _ = Describe("JobReceiver", func() {
 
 				postBody := "{\"account\": \"1234\", \"recipient\": \"345\", \"payload\": [\"678\"], \"directive\": \"fred:flintstone\"}"
 
-				req, err := http.NewRequest("POST", "/job", strings.NewReader(postBody))
+				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
 				Expect(err).NotTo(HaveOccurred())
 
 				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
@@ -95,7 +96,7 @@ var _ = Describe("JobReceiver", func() {
 
 				postBody := "{\"account\": \"1234\", \"recipient\": \"error-client\", \"payload\": [\"678\"], \"directive\": \"fred:flintstone\"}"
 
-				req, err := http.NewRequest("POST", "/job", strings.NewReader(postBody))
+				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
 				Expect(err).NotTo(HaveOccurred())
 
 				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
@@ -117,7 +118,7 @@ var _ = Describe("JobReceiver", func() {
 
 				postBody := "{\"account\": \"1234-not-here\", \"recipient\": \"345\", \"payload\": [\"678\"], \"directive\": \"fred:flintstone\"}"
 
-				req, err := http.NewRequest("POST", "/job", strings.NewReader(postBody))
+				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
 				Expect(err).NotTo(HaveOccurred())
 
 				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
@@ -133,7 +134,7 @@ var _ = Describe("JobReceiver", func() {
 
 				postBody := "{\"account\": \"\", \"recipient\": \"345\", \"payload\": [\"678\"], \"directive\": \"fred:flintstone\"}"
 
-				req, err := http.NewRequest("POST", "/job", strings.NewReader(postBody))
+				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
 				Expect(err).NotTo(HaveOccurred())
 
 				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
@@ -149,7 +150,7 @@ var _ = Describe("JobReceiver", func() {
 
 				postBody := "{\"account\" = \"1234-bad-json\", \"recipient\": \"345\", \"payload\": [\"678\"], \"directive\": \"fred:flintstone}"
 
-				req, err := http.NewRequest("POST", "/job", strings.NewReader(postBody))
+				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
 				Expect(err).NotTo(HaveOccurred())
 
 				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
@@ -165,7 +166,7 @@ var _ = Describe("JobReceiver", func() {
 
 				postBody := "account: 1234-string-value"
 
-				req, err := http.NewRequest("POST", "/job", strings.NewReader(postBody))
+				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
 				Expect(err).NotTo(HaveOccurred())
 
 				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
@@ -181,7 +182,7 @@ var _ = Describe("JobReceiver", func() {
 
 				postBody := "{\"account\": \"1234\", \"recipient\": \"345\", \"payload\": [\"678\"]}"
 
-				req, err := http.NewRequest("POST", "/job", strings.NewReader(postBody))
+				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
 				Expect(err).NotTo(HaveOccurred())
 
 				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
@@ -197,7 +198,7 @@ var _ = Describe("JobReceiver", func() {
 
 				postBody := "{\"account\": \"1234\", \"recipient\": \"345\", \"payload\": [\"678\"], \"directive\": \"fred:flintstone\", \"extra\": \"field\"}"
 
-				req, err := http.NewRequest("POST", "/job", strings.NewReader(postBody))
+				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
 				Expect(err).NotTo(HaveOccurred())
 
 				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
@@ -216,7 +217,7 @@ var _ = Describe("JobReceiver", func() {
 
 				postBody := "{\"account\": \"1234\", \"recipient\": \"345\", \"payload\": [\"678\"], \"directive\": \"fred:flintstone\"}"
 
-				req, err := http.NewRequest("POST", "/job", strings.NewReader(postBody))
+				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
 				Expect(err).NotTo(HaveOccurred())
 
 				rr := httptest.NewRecorder()
@@ -234,7 +235,7 @@ var _ = Describe("JobReceiver", func() {
 
 				postBody := "{\"account\": \"1234\", \"recipient\": \"345\", \"payload\": [\"678\"], \"directive\": \"fred:flintstone\"}"
 
-				req, err := http.NewRequest("POST", "/job", strings.NewReader(postBody))
+				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
 				Expect(err).NotTo(HaveOccurred())
 
 				req.Header.Add(TOKEN_HEADER_CLIENT_NAME, "test_client_1")
@@ -259,7 +260,7 @@ var _ = Describe("JobReceiver", func() {
 
 				postBody := "{\"account\": \"1234\", \"recipient\": \"345\", \"payload\": [\"678\"], \"directive\": \"fred:flintstone\"}"
 
-				req, err := http.NewRequest("POST", "/job", strings.NewReader(postBody))
+				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
 				Expect(err).NotTo(HaveOccurred())
 
 				req.Header.Add(TOKEN_HEADER_CLIENT_NAME, "test_client_1")
@@ -280,7 +281,7 @@ var _ = Describe("JobReceiver", func() {
 
 				postBody := "{\"account\": \"1234\", \"recipient\": \"345\", \"payload\": [\"678\"], \"directive\": \"fred:flintstone\"}"
 
-				req, err := http.NewRequest("POST", "/job", strings.NewReader(postBody))
+				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
 				Expect(err).NotTo(HaveOccurred())
 
 				req.Header.Add(TOKEN_HEADER_CLIENT_NAME, "test_client_nil")
