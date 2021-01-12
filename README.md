@@ -18,31 +18,99 @@ the customer's environment.
 
 ## Protocol
 
-Each connected client will have unique topics for publishing and subscribing. 
-Actual topic string subject to change.
+### Topics ###
 
-Connected-Client topics:
-* Subscribe: redhat/insights/out/$clientID
-* Publish: redhat/insights/in/$clientID
+For every *Client*, a pair of topics exist to enable the *Client* and the
+*Server* to communicate with each other. A second pair of topics exist that
+enable instructions to be dispatched to worker processes on the client.
+
+#### Control Topics ####
+
+| **Topic**                                  | **Client** | **Server** |
+| ------------------------------------------ | ---------- | ---------- |
+| `${prefix}/${client_uuid}/client/dispatch` | subscribe  | publish    |
+| `${prefix}/${client_uuid}/client/status`   | publish    | subscribe  |
+
+The *Client* subscribes to the `${prefix}/${client_uuid}/client/dispatch`
+topic. Any messages it receives on that topic that by definition require a
+reply are published on the `${prefix}/${client_uuid}/client/status` topic.
+Conversely, the *Server* subscribes to the `${prefix}/${client_uuid}/client/status`
+topic. Any messages it receives on that topic that by definition require a
+reply are published on the `${prefix}/${client_uuid}/client/dispatch` topic.
+
+Either the *Client* or the *Server* may initiate a message to the other by
+publishing a message on its respective "publish" topic.
+
+#### Payload Topics ####
+
+As the _Control Topics_ are meant as a means by which the *Client* and
+*Server* can communicate with each other, the _Payload Topics_ are a vector
+by which the *Server* can dispatch messages destined for worker processes of
+the *Client*.
+
+| **Topic**                                   | **Client** | **Server** |
+| ------------------------------------------- | ---------- | ---------- |
+| `${prefix}/${client_uuid}/payload/dispatch` | subscribe  | publish    |
+| `${prefix}/${client_uuid}/payload/status`   | publish    | subscribe  |
+
+### Messages ###
+
+All MQTT messages contain JSON as their payload.
+
+#### Control Messages ####
+
+All control messages include the follow fields as an "envelope". Any
+message-specific fields should be included in the `content` object.
+
+| **Field**     | **Type**         | **Optional** | **Example**                              |
+| ------------- | ---------------- | ------------ | ---------------------------------------- |
+| `type`        | string           | no           | `"client-handshake"`                     |
+| `message_id`  | string(uuid)     | no           | `"b5953dee-5e91-4f88-8cdc-962cbe290cdc"` |
+| `response_to` | string(uuid)     | yes          | `"7260552e-81ed-49db-a6fe-290929dfccf9"` |
+| `version`     | integer          | no           | `1`                                      |
+| `sent`        | string(ISO-8601) | no           | `"2021-01-12T14:58:13+00:00"`            |
+| `content`     | object           | yes          | `{}`                                     |
+
+##### Connection Status #####
+
+A `ConnectionStatus` message is initiated by the *Client*. It is published as a
+retained message when the client initializes itself at startup. When a client is
+shutting down, it will clear this retained message by publishing a new, empty
+retained message.
+
+The `content` field of a `ConnectionStatus` message must contain two fields:
+
+| **Field**         | **Type**  | **Optional** |
+| ----------------- | --------- | ------------ |
+| `canonical_facts` | object    | no           |
+| `dispatchers`     | object    | no           |
 
 
-### Connection registration
+The `canonical_facts` object must include the following fields:
 
-A handshake message will need to be published in order to register a
-connection with the cloud-connector.  The handshake message will be different 
-if the connection is for a single host or for a proxy connection.
+| **Field**                 | **Type**      | **Optional** | **Example**                                 |
+| ------------------------- | ------------- | ------------ | ------------------------------------------- |
+| `insights_id`             | string(uuid)  | no           | `"3a57b1ad-5163-47ee-9e57-3bb6d90bdfff"`    |
+| `machine_id`              | string(uuid)  | no           | `"3fb0c7be-89cb-4f19-84b7-94448f40f769"`    |
+| `bios_uuid`               | string(uuid)  | no           | `"3fb0c7be-89cb-4f19-84b7-94448f40f769"`    |
+| `subscription_manager_id` | string(uuid)  | no           | `"63a12856-a262-4e1e-b562-c099a735ca76"`    |
+| `ip_addresses`            | array(string) | no           | `["192.168.122.162"]`                       |
+| `mac_addresses`           | array(string) | no           | `["52:54:00:66:ea:9a","00:00:00:00:00:00"]` |
+| `fqdn`                    | string        | no           | `"ic-rhel8-dev-thelio"`                     |
 
-_The handshake message must be a **retained** message._
+The `dispatchers` object includes any number of objects where the field name is
+the routable name of the dispatch destination, and the value is an object of
+arbitrary key-value pairs, as reported by the worker process.
 
-#### Host connection registration
+A complete example of a `ConnectionStatus` message:
 
 ```
 {
-    "type": "host-handshake",
+    "type": "connection-status",
     "message_id": "3a57b1ad-5163-47ee-9e57-3bb6d90bdfff",
     "version": 1,
     "sent": "2020-12-04T17:22:24+00:00",
-    "payload": {
+    "content": {
         "canonical_facts": {
             "insights_id": "cabb61b6-e61d-4d70-b475-01f5c009e93c",
             "machine_id": "3fb0c7be-89cb-4f19-84b7-94448f40f769",
@@ -51,171 +119,164 @@ _The handshake message must be a **retained** message._
             "ip_addresses": ["192.168.122.162"],
             "mac_addresses": ["52:54:00:66:ea:9a","00:00:00:00:00:00"],
             "fqdn": "ic-rhel8-dev-thelio"
+        },
+        "dispatchers": {
+            "playbook": {
+                "ansible-runner-version": "1.2.3"
+            },
+            "echo": {}.
         }
     }
 }
-
 ```
 
-#### Proxy connection registration
+##### Command #####
+
+A `Command` message is initiated by the *Server*. It is published when the
+server needs to order a *Client* to perform a specific operation. No reply is
+expected.
+
+| **Field**   | **Type**     | **Optional** | **Example**   |
+| ----------- | ------------ | ------------ | ------------- |
+| `command`   | string(enum) | no           | `"reconnect"` |
+| `arguments` | object       | yes          | `{}`          |
+
+`command` must be one of the following values:
+
+| **Command** | **Arguments**  |
+| ----------- | -------------- |
+| `reconnect` | `{"delay": 5}` |
+| `ping`      |                |
+
+A complete example of a `Command` message:
 
 ```
 {
-    "type": "proxy-handshake",
+    "type": "command",
     "message_id": "3a57b1ad-5163-47ee-9e57-3bb6d90bdfff",
     "version": 1,
     "sent": "2020-12-04T17:22:24+00:00",
-    "payload": {
-        "catalog_service_facts": {
-          "source_type": "<string>",
-          "application_type": "<string>"
+    "content": {
+        "command": "reconnect",
+        "arguments": {
+            "delay": 5
         }
     }
 }
 ```
 
-### Connection registration response
+##### Event #####
 
-FIXME:  Should this be a type="handshake-response" ??
+An `Event` message is initiated by the *Client*. It is published when prescribed
+events are occurring in the *Client*. No reply is expected.
 
-#### Success
+`content` must be one of the following values:
 
-FIXME:  Do not send anything on success?  This makes it easier in the case of processing 
-the retained handshake messages.  But it makes it difficult for a client to know when 
-to start processing messages.
+| **Event**    |
+| ------------ |
+| `disconnect` |
+| `pong`       |
+
+A complete example of an `Event` message:
 
 ```
 {
-    "type": "handshake-response",
-    "message_id": "xxx-xx-xxx",
-    "in_response_to": "3a57b1ad-5163-47ee-9e57-3bb6d90bdfff",
+    "type": "event",
+    "message_id": "3a57b1ad-5163-47ee-9e57-3bb6d90bdfff",
+    "response_to": "7260552e-81ed-49db-a6fe-290929dfccf9",
     "version": 1,
     "sent": "2020-12-04T17:22:24+00:00",
-    "payload": {
-       "results:": "success",
-       "details": ""
-    }
-
+    "content": "disconnect"
 }
 ```
 
-#### Failure
+#### Payload Messages ####
 
-If an handshake-error message is received, then the client should disconnect
-and send a new handshake message at a later time.
+All payload messages include the follow fields as an "envelope". Any
+message-specific fields should be included in the `content` object.
 
-FIXME:  This could happen asynchronously due to the retained message processing with a new consumer.
+| **Field**       | **Type**         | **Optional** | **Example**                              |
+| --------------- | ---------------- | ------------ | ---------------------------------------- |
+| `type`          | string           | no           | `"payload-dispatch"`                     |
+| `message_id`    | string(uuid)     | no           | `"b5953dee-5e91-4f88-8cdc-962cbe290cdc"` |
+| `response_to`   | string(uuid)     | yes          | `"b6e219d2-44a5-4d9b-a7da-57f1aacefcf3"` |
+| `version`       | integer          | no           | `1`                                      |
+| `sent`          | string(ISO-8601) | no           | `"2021-01-12T14:58:13+00:00"`            |
+| `directive`     | string           | no           | `"playbook"`                             |
+| `content`       |                  | yes          | `{}`                                     |
+
+##### PayloadDispatch #####
+
+A `PayloadDispatch` message is initiated by the *Server*. It is published when
+a cloud application wishes to dispatch a message to a worker process managed by
+the *Client*. A `PayloadResponse` message is expected as a reply.
+
+A complete example of a payload message:
 
 ```
 {
-    "type": "handshake-response",
-    "message_id": "xxx-xx-xxx",
-    "in_response_to": "3a57b1ad-5163-47ee-9e57-3bb6d90bdfff",
+    "type": "payload-dispatch",
+    "message_id": "a6a7d866-7de0-409a-84e0-3c56c4171bb7",
     "version": 1,
-    "sent": "2020-12-04T17:22:24+00:00",
-    "payload": {
-       "results:": "error",
-       "details": "error detail go here"
+    "sent": "2021-01-12T15:30:08+00:00",
+    "directive": "playbook",
+    "content": "https://cloud.redhat.com/api/v1/remediations/1234/playbook"
+}
+```
+
+```
+{
+    "type": "payload-dispatch",
+    "message_id": "a6a7d866-7de0-409a-84e0-3c56c4171bb7",
+    "version": 1,
+    "sent": "2021-01-12T15:30:08+00:00",
+    "directive": "echo",
+    "content": "Hello world!"
+}
+```
+
+##### PayloadResponse #####
+
+A `PayloadResponse` message is initiated by the *Client* in response to
+receiving a `PayloadDispatch` message. No reply is expected.
+
+| **Field**     | **Type**     | **Optional** | **Example**                        |
+| ------------- | ------------ | ------------ | ---------------------------------- |
+| `result`      | string(enum) | no           | `rejected`                         |
+| `message`     | string       | yes          | "error: no such file or directory" |
+
+`result` must be one of the following values:
+
+| **Result** |
+| ---------- |
+| `accepted` |
+| `rejected` |
+
+```
+{
+    "type": "payload-response",
+    "directive": "",
+    "message_id": "a6a7d866-7de0-409a-84e0-3c56c4171bb7",
+    "response_to": "b6e219d2-44a5-4d9b-a7da-57f1aacefcf3",
+    "version": 1,
+    "sent": "2021-01-12T15:30:08+00:00",
+    "content": {
+        "result": "accepted"
     }
 }
 ```
 
-### Connection deregistration
-
-Cloud-Connector needs to know when a client disconnects.  The disconnect can happen
-when the Cloud-Connector is running or not running.
-
-#### Clean/routine disconnection
-
-I am currently thinking the "handshake" message needs to be a retained message.  This will
-allow new connections to be recorded even while the cloud-connector is not running.
-
-We also have to be able to record disconnection events.  The disconnection events can happen
-when the cloud-connector is running and when it is not running.
-
-I think the disconnect events can be handled in 2 ways:
-
-1.
- * Send an "offline" message (not a retained message)
-   * this will tell a running cloud-connector that the connection closed
- * Remove retained handshake message
-   * this way a freshly restarted cloud-connector will not know about the previously established connection
- * this approach should lower the number of retained messages...which should lower
-   the retained message processing required when the cloud-connector is restarted
-2.
- * Send a retained "offline" message
- * this approach will mean that each connected and disconnected client will have a
-   retained connection status message that will need to be processed when the
-   cloud-connector is restarted
-
-#### Abnormal disconnection
-
-Send a retained disconnect message
-
 ```
 {
-    "type": "offline",
-    "message_id": "33390934-7628-49f6-88ea-528ef740c774",
-    "version": 1
-    "sent": "2020-12-04T17:22:24+00:00"
-}
-
-```
-
-
-### Message
-
-```
-{
-    "type": "message",
-    "message_id": "33390934-7628-49f6-88ea-528ef740c774",
-    "version": 1,
-    "sent": "2020-12-04T17:19:47+00:00",
-    "directive": "<user defined string>",  // rhc:work, remediations:fifi, catalog:ping
-    "payload": {
-      <user defined payload>
-    }
-}
-```
-
-The directive and payload are defined by the application.  The Cloud-Connector will accept the 
-directive and payload from a REST call and pass that data to the connected client.
-
-#### Message processing errors
-
-What if client cannot handle the message?  Can't parse it, can't dispatch it, etc?
-Send back a message-response of type error?  The cloud-connector cannot do much with the error
-besides log it.
-
-```
-{
-    "type": "message-response",
-    "message_id": "xxx-xx-xxx",
-    "in_response_to": "33390934-7628-49f6-88ea-528ef740c774",
-    "version": 1,
-    "sent": "2020-12-04T17:19:47+00:00",
-    "payload": {
-      "result":  "error",
-      "details": "error details"
-    }
-}
-```
-
-
-### Force disconnect
-
-The Cloud-Connector can send a force-disconnect message to the client.   Upon receiving 
-the force-disconnect message, the client should disconnect (see the disconnect messages above) 
-and reconnect.
-
-```
-{
-    "type": "force-disconnect",
-    "message_id": "33390934-7628-49f6-88ea-528ef740c774",
-    "version": 1,
-    "sent": "2020-12-04T17:19:47+00:00",
-    "payload": {
-      "reconnect_after": ""  # FIXME: timestamp, never again, etc
+    "type": "payload-response",
+    "directive": "",
+    "message_id": "a6a7d866-7de0-409a-84e0-3c56c4171bb7",
+    "response_to": "b6e219d2-44a5-4d9b-a7da-57f1aacefcf3",
+    "version": 1,
+    "sent": "2021-01-12T15:30:08+00:00",
+    "content": {
+        "result": "rejected",
+        "message": "error: no such file or directory"
     }
 }
 ```
