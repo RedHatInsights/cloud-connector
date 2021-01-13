@@ -26,17 +26,17 @@ enable instructions to be dispatched to worker processes on the client.
 
 #### Control Topics ####
 
-| **Topic**                                  | **Client** | **Server** |
-| ------------------------------------------ | ---------- | ---------- |
-| `${prefix}/${client_uuid}/client/dispatch` | subscribe  | publish    |
-| `${prefix}/${client_uuid}/client/status`   | publish    | subscribe  |
+| **Topic**                              | **Client** | **Server** |
+| -------------------------------------- | ---------- | ---------- |
+| `${prefix}/${client_uuid}/control/in`  | subscribe  | publish    |
+| `${prefix}/${client_uuid}/control/out` | publish    | subscribe  |
 
-The *Client* subscribes to the `${prefix}/${client_uuid}/client/dispatch`
+The *Client* subscribes to the `${prefix}/${client_uuid}/control/in`
 topic. Any messages it receives on that topic that by definition require a
-reply are published on the `${prefix}/${client_uuid}/client/status` topic.
-Conversely, the *Server* subscribes to the `${prefix}/${client_uuid}/client/status`
+reply are published on the `${prefix}/${client_uuid}/control/out` topic.
+Conversely, the *Server* subscribes to the `${prefix}/${client_uuid}/control/out`
 topic. Any messages it receives on that topic that by definition require a
-reply are published on the `${prefix}/${client_uuid}/client/dispatch` topic.
+reply are published on the `${prefix}/${client_uuid}/control/in` topic.
 
 Either the *Client* or the *Server* may initiate a message to the other by
 publishing a message on its respective "publish" topic.
@@ -48,10 +48,10 @@ As the _Control Topics_ are meant as a means by which the *Client* and
 by which the *Server* can dispatch messages destined for worker processes of
 the *Client*.
 
-| **Topic**                                   | **Client** | **Server** |
-| ------------------------------------------- | ---------- | ---------- |
-| `${prefix}/${client_uuid}/payload/dispatch` | subscribe  | publish    |
-| `${prefix}/${client_uuid}/payload/status`   | publish    | subscribe  |
+| **Topic**                           | **Client** | **Server** |
+| ------------------------------------| ---------- | ---------- |
+| `${prefix}/${client_uuid}/data/in`  | subscribe  | publish    |
+| `${prefix}/${client_uuid}/data/out` | publish    | subscribe  |
 
 ### Messages ###
 
@@ -80,11 +80,19 @@ retained message.
 
 The `content` field of a `ConnectionStatus` message must contain two fields:
 
-| **Field**         | **Type**  | **Optional** |
-| ----------------- | --------- | ------------ |
-| `canonical_facts` | object    | no           |
-| `dispatchers`     | object    | no           |
+| **Field**         | **Type**     | **Optional** |
+| ----------------- | ------------ | ------------ |
+| `canonical_facts` | object       | no           |
+| `dispatchers`     | object       | no           |
+| `state`           | string(enum) | no           |
 
+
+`state` must be one of the following values:
+
+| **State** |
+| --------- |
+| `online`  |
+| `offline` |
 
 The `canonical_facts` object must include the following fields:
 
@@ -125,7 +133,22 @@ A complete example of a `ConnectionStatus` message:
                 "ansible-runner-version": "1.2.3"
             },
             "echo": {}.
-        }
+        },
+        "state": "online"
+    }
+}
+```
+
+A complete example of an offline `ConnectionStatus` message:
+
+```
+{
+    "type": "connection-status",
+    "message_id": "3a57b1ad-5163-47ee-9e57-3bb6d90bdfff",
+    "version": 1,
+    "sent": "2020-12-04T17:22:24+00:00",
+    "content": {
+        "state": "offline"
     }
 }
 ```
@@ -143,10 +166,11 @@ expected.
 
 `command` must be one of the following values:
 
-| **Command** | **Arguments**  |
-| ----------- | -------------- |
-| `reconnect` | `{"delay": 5}` |
-| `ping`      |                |
+| **Command**  | **Arguments**  |
+| ------------ | -------------- |
+| `reconnect`  | `{"delay": 5}` |
+| `ping`       |                |
+| `disconnect` |                |
 
 A complete example of a `Command` message:
 
@@ -190,9 +214,9 @@ A complete example of an `Event` message:
 }
 ```
 
-#### Payload Messages ####
+#### Data Messages ####
 
-All payload messages include the follow fields as an "envelope". Any
+All data messages include the follow fields as an "envelope". Any
 message-specific fields should be included in the `content` object.
 
 | **Field**       | **Type**         | **Optional** | **Example**                              |
