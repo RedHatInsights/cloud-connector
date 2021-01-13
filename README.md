@@ -229,17 +229,18 @@ message-specific fields should be included in the `content` object.
 | `directive`     | string           | no           | `"playbook"`                             |
 | `content`       |                  | yes          | `{}`                                     |
 
-##### PayloadDispatch #####
+##### Data #####
 
-A `PayloadDispatch` message is initiated by the *Server*. It is published when
-a cloud application wishes to dispatch a message to a worker process managed by
-the *Client*. A `PayloadResponse` message is expected as a reply.
+A `Data` message is initiated by either the *Client* or the *Server*. The
+*Server* publishes it when data needs to be delivered to a worker on the
+*Client*. The *Client* publishes a `Data` message when it needs to report about
+a previously received `Data` message.
 
-A complete example of a payload message:
+A complete example of a data message as published by the *Server*:
 
 ```
 {
-    "type": "payload-dispatch",
+    "type": "data",
     "message_id": "a6a7d866-7de0-409a-84e0-3c56c4171bb7",
     "version": 1,
     "sent": "2021-01-12T15:30:08+00:00",
@@ -248,9 +249,10 @@ A complete example of a payload message:
 }
 ```
 
+A second complete example of a data message as published by the *Server*:
 ```
 {
-    "type": "payload-dispatch",
+    "type": "data",
     "message_id": "a6a7d866-7de0-409a-84e0-3c56c4171bb7",
     "version": 1,
     "sent": "2021-01-12T15:30:08+00:00",
@@ -259,48 +261,27 @@ A complete example of a payload message:
 }
 ```
 
-##### PayloadResponse #####
-
-A `PayloadResponse` message is initiated by the *Client* in response to
-receiving a `PayloadDispatch` message. No reply is expected.
-
-| **Field**     | **Type**     | **Optional** | **Example**                        |
-| ------------- | ------------ | ------------ | ---------------------------------- |
-| `result`      | string(enum) | no           | `rejected`                         |
-| `message`     | string       | yes          | "error: no such file or directory" |
-
-`result` must be one of the following values:
-
-| **Result** |
-| ---------- |
-| `accepted` |
-| `rejected` |
-
+Two complete examples of data messages as published by the *Client*:
 ```
 {
-    "type": "payload-response",
-    "directive": "",
+    "type": "data",
     "message_id": "a6a7d866-7de0-409a-84e0-3c56c4171bb7",
     "response_to": "b6e219d2-44a5-4d9b-a7da-57f1aacefcf3",
     "version": 1,
     "sent": "2021-01-12T15:30:08+00:00",
-    "content": {
-        "result": "accepted"
-    }
+    "directive": "",
+    "content": "accepted"
 }
 ```
 
 ```
 {
-    "type": "payload-response",
-    "directive": "",
+    "type": "data",
     "message_id": "a6a7d866-7de0-409a-84e0-3c56c4171bb7",
     "response_to": "b6e219d2-44a5-4d9b-a7da-57f1aacefcf3",
     "version": 1,
     "sent": "2021-01-12T15:30:08+00:00",
-    "content": {
-        "result": "rejected",
-        "message": "error: no such file or directory"
-    }
+    "directive": "",
+    "content": "rejected"
 }
 ```
