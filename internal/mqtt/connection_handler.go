@@ -114,7 +114,7 @@ func messageHandler(connectionRegistrar controller.ConnectionRegistrar) func(MQT
 			return
 		}
 
-		var connMsg ConnectorMessage
+		var connMsg ControlMessage
 
 		fmt.Printf("payload type: %T\n", message.Payload())
 		fmt.Printf("payload type: |%s|\n", message.Payload())
@@ -132,12 +132,8 @@ func messageHandler(connectionRegistrar controller.ConnectionRegistrar) func(MQT
 		fmt.Println("Got a connection:", connMsg)
 
 		switch connMsg.MessageType {
-		case "host-handshake":
-			handleHostHandshake(client, clientID, connMsg, connectionRegistrar)
-		case "proxy-handshake":
-			handleProxyHandshake(client, clientID, connMsg, connectionRegistrar)
-		case "disconnect":
-			handleDisconnect(client, clientID, connMsg, connectionRegistrar)
+		case "connection-status":
+			handleControlMessage(client, clientID, connMsg, connectionRegistrar)
 		case "processing_error":
 			handleProcessingError(connMsg)
 		default:
@@ -146,7 +142,7 @@ func messageHandler(connectionRegistrar controller.ConnectionRegistrar) func(MQT
 	}
 }
 
-func handleHostHandshake(client MQTT.Client, clientID string, msg ConnectorMessage, connectionRegistrar controller.ConnectionRegistrar) error {
+func handleControlMessage(client MQTT.Client, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
 
 	account, err := getAccountNumberFromBop(clientID)
 
@@ -154,71 +150,56 @@ func handleHostHandshake(client MQTT.Client, clientID string, msg ConnectorMessa
 		return err
 	}
 
-	handshakePayload := msg.Payload.(map[string]interface{})
+	handshakePayload := msg.Content.(map[string]interface{})
 
-	canonicalFacts, gotCanonicalFacts := handshakePayload["canonical_facts"]
+	connectionState, gotConnectionState := handshakePayload["state"]
 
-	if gotCanonicalFacts == false {
-		fmt.Println("FIXME: error!  hangup")
-		return errors.New("Invalid handshake")
+	if gotConnectionState == false {
+		// FIXME: Close down the connection
+		return errors.New("Invalid connection state")
 	}
 
-	registerConnectionInInventory(account, clientID, canonicalFacts)
+	if connectionState == "online" {
+		canonicalFacts, gotCanonicalFacts := handshakePayload["canonical_facts"]
 
-	connectionEvent(account, clientID, msg.Payload)
+		if gotCanonicalFacts == false {
+			fmt.Println("FIXME: error!  hangup")
+			return errors.New("Invalid handshake")
+		}
 
-	proxy := ReceptorMQTTProxy{ClientID: clientID, Client: client}
+		registerConnectionInInventory(account, clientID, canonicalFacts)
 
-	connectionRegistrar.Register(context.Background(), account, clientID, &proxy)
-	// FIXME: check for error, but ignore duplicate registration errors
+		connectionEvent(account, clientID, msg.Content)
+
+		proxy := ReceptorMQTTProxy{ClientID: clientID, Client: client}
+
+		connectionRegistrar.Register(context.Background(), account, clientID, &proxy)
+		// FIXME: check for error, but ignore duplicate registration errors
+	} else if connectionState == "offline" {
+		handleDisconnect(client, account, clientID, msg, connectionRegistrar)
+	} else {
+		return errors.New("Invalid connection state")
+	}
 
 	return nil
 }
 
-func handleProxyHandshake(client MQTT.Client, clientID string, msg ConnectorMessage, connectionRegistrar controller.ConnectionRegistrar) error {
-	account, err := getAccountNumberFromBop(clientID)
-
-	if err != nil {
-		return err
-	}
-
-	handshakePayload := msg.Payload.(map[string]interface{})
-
-	catalogServiceFacts, gotCatalogServiceFacts := handshakePayload["catalog_service_facts"]
-
-	if gotCatalogServiceFacts == false {
-		fmt.Println("FIXME: error!  hangup")
-		return errors.New("Invalid handshake")
-	}
-
-	registerConnectionInSources(account, clientID, catalogServiceFacts)
-
-	connectionEvent(account, clientID, msg.Payload)
-
-	proxy := ReceptorMQTTProxy{ClientID: clientID, Client: client}
-
-	connectionRegistrar.Register(context.Background(), account, clientID, &proxy)
-	// FIXME: check for error, but ignore duplicate registration errors
+func registerCatalogWithSources(client MQTT.Client, account string, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
 
 	return nil
 }
 
-func handleDisconnect(client MQTT.Client, clientID string, msg ConnectorMessage, connectionRegistrar controller.ConnectionRegistrar) {
-
-	account, err := getAccountNumberFromBop(clientID)
-
-	if err != nil {
-		fmt.Println("Couldn't determine account number...ignoring connection")
-		// FIXME: Disconnect client??  How??
-		return
-	}
+func handleDisconnect(client MQTT.Client, account string, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) {
 
 	connectionRegistrar.Unregister(context.Background(), account, clientID)
 
 	disconnectionEvent(account, clientID)
+
+	clientTopic := fmt.Sprintf("redhat/insights/in/%s", clientID)
+	client.Publish(clientTopic, byte(0), true, "")
 }
 
-func handleProcessingError(connMsg ConnectorMessage) {
+func handleProcessingError(connMsg ControlMessage) {
 	fmt.Println("PROCESSING ERROR")
 }
 

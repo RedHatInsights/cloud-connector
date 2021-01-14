@@ -122,7 +122,21 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 	//connOpts.SetTLSConfig(&tls.Config{InsecureSkipVerify: true})
 	connOpts.SetTLSConfig(tlsconfig)
 
-	connOpts.SetWill(writeTopic, string(""), byte(0), true)
+	connectionStatusMsgPayload := Connector.ConnectionStatusMessageContent{ConnectionState: "offline"}
+	lastWillMsg := Connector.ControlMessage{
+		MessageType: "connection-status",
+		MessageID:   "5678",
+		Version:     1,
+		Content:     connectionStatusMsgPayload,
+	}
+	payload, err := json.Marshal(lastWillMsg)
+
+	if err != nil {
+		fmt.Println("marshal of message failed, err:", err)
+		panic(err)
+	}
+
+	connOpts.SetWill(writeTopic, string(payload), byte(0), true)
 
 	//lastWillPayload, err := buildDisconnectMessage(clientID)
 	//connOpts.SetWill(writeTopic, string(lastWillPayload), byte(0), false)
@@ -156,16 +170,15 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 		"1234",
 		"5678",
 	}
-	handshakePayload := Connector.HostHandshakePayload{CanonicalFacts: cf}
-
-	connMsg := Connector.HandshakeMessage{
-		MessageType: "host-handshake",
+	connectionStatusPayload := Connector.ConnectionStatusMessageContent{CanonicalFacts: cf, ConnectionState: "online"}
+	connMsg := Connector.ControlMessage{
+		MessageType: "connection-status",
 		MessageID:   "1234",
 		Version:     1,
-		Payload:     handshakePayload,
+		Content:     connectionStatusPayload,
 	}
 
-	payload, err := json.Marshal(connMsg)
+	payload, err = json.Marshal(connMsg)
 
 	if err != nil {
 		fmt.Println("marshal of message failed, err:", err)
@@ -181,7 +194,7 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 func onMessageReceived(client MQTT.Client, message MQTT.Message) {
 	fmt.Printf("Received message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
 
-	var connMsg Connector.ConnectorMessage
+	var connMsg Connector.ControlMessage
 
 	if message.Payload() == nil || len(message.Payload()) == 0 {
 		fmt.Println("empty payload")
@@ -197,10 +210,10 @@ func onMessageReceived(client MQTT.Client, message MQTT.Message) {
 
 	switch connMsg.MessageType {
 	case "work":
-		fmt.Println("payload: ", connMsg.Payload)
-		fmt.Printf("type(payload): %T", connMsg.Payload)
+		fmt.Println("payload: ", connMsg.Content)
+		fmt.Printf("type(payload): %T", connMsg.Content)
 
-		payloadBytes := []byte(connMsg.Payload.(string))
+		payloadBytes := []byte(connMsg.Content.(string))
 		var workPayload map[string]interface{}
 		if err := json.Unmarshal(payloadBytes, &workPayload); err != nil {
 			fmt.Println("FIXME: Unable to parse work payload")
@@ -262,7 +275,7 @@ func onMessageReceived(client MQTT.Client, message MQTT.Message) {
 }
 
 func buildDisconnectMessage(clientID string) ([]byte, error) {
-	connMsg := Connector.ConnectorMessage{
+	connMsg := Connector.ControlMessage{
 		MessageType: "disconnect",
 		MessageID:   "4321",
 		Version:     1,

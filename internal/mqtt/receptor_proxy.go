@@ -31,11 +31,11 @@ func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber str
 	topic := fmt.Sprintf("redhat/insights/%s/out", rhp.ClientID)
 	fmt.Println("topic: ", topic)
 
-	message := ConnectorMessage{
-		MessageType: "message",
+	message := DataMessage{
+		MessageType: "data",
 		MessageID:   messageID.String(),
 		Version:     1,
-		Payload:     payload,
+		Content:     payload,
 	}
 
 	messageBytes, err := json.Marshal(message)

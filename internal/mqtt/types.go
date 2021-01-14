@@ -1,19 +1,27 @@
 package mqtt
 
-type HandshakeMessage struct {
-	MessageType string      `json:"type"`       // handshake
+type ControlMessage struct {
+	MessageType string      `json:"type"`
 	MessageID   string      `json:"message_id"` // uuid
 	Version     int         `json:"version"`
-	Payload     interface{} `json:"payload"`
+	Sent        string      `json:"sent"`
+	Content     interface{} `json:"content"`
 }
 
-type HostHandshakePayload struct {
-	CanonicalFacts CanonicalFacts `json:"canonical_facts"`
+type ConnectionStatusMessageContent struct {
+	CanonicalFacts  CanonicalFacts `json:"canonical_facts"`
+	Dispatchers     Dispatchers    `json:"dispatchers"`
+	ConnectionState string         `json:"state"`
 }
 
-type ProxyHandshakePayload struct {
-	CatalogServiceFacts CatalogServiceFacts `json:"catalog_service_facts"`
+type Dispatchers map[string]string
+
+type CommandMessageContent struct {
+	Command   string      `json:"command"`
+	Arguments interface{} `json:"arguments"`
 }
+
+type EventMessageContent string // FIXME:  interface{} ??
 
 type CanonicalFacts struct {
 	InsightsID string `json:"insights_id"`
@@ -21,14 +29,15 @@ type CanonicalFacts struct {
 }
 
 type CatalogServiceFacts struct {
-	SourtcesType    string `json:"sources_type"`
+	SourcesType     string `json:"sources_type"`
 	ApplicationType string `json:"application_type"`
 }
 
-type ConnectorMessage struct {
-	MessageType string      `json:"type"`       // handshake, handshake_response
+type DataMessage struct {
+	MessageType string      `json:"type"`
 	MessageID   string      `json:"message_id"` // uuid
 	Version     int         `json:"version"`
+	Sent        string      `json:"sent"`
 	Directive   string      `json:"directive"`
-	Payload     interface{} `json:"payload"`
+	Content     interface{} `json:"content"`
 }
