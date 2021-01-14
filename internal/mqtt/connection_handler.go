@@ -243,7 +243,7 @@ func registerConnectionInSources(account string, clientID string, catalogService
 }
 
 func handleEvent(client MQTT.Client, clientID string, msg ControlMessage) {
-	fmt.Println("FIXME: Got an event: %+v", msg.Content)
+	fmt.Printf("FIXME: Got an event: %+v\n", msg.Content)
 }
 
 func connectionEvent(account string, clientID string, canonicalFacts interface{}) {
