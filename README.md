@@ -1,15 +1,3 @@
-# Questions / Thoughts
-
-- do we need a ping that is above the MQTT message but below and application level ping?
-  - No ping needed at this point
-- what about different topics for different "types" (host, proxy, etc) of connections?
-  - Would that help with the load??  Probably not a huge amount of help...
-  - We could segment off "host" connection recorders and "proxy" connection recorders though...
-- what about sending sending the "handshake" messages to a "status" topic?
-  - only watch "status" for connection state changes
-  - watch "in" later on for bi-directional communication
-
-
 # Cloud Connector
 
 The Cloud Connector service is designed to receive messages from internal
