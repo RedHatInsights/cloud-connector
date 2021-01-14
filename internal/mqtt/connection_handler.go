@@ -134,8 +134,8 @@ func messageHandler(connectionRegistrar controller.ConnectionRegistrar) func(MQT
 		switch connMsg.MessageType {
 		case "connection-status":
 			handleControlMessage(client, clientID, connMsg, connectionRegistrar)
-		case "processing_error":
-			handleProcessingError(connMsg)
+		case "event":
+			handleEvent(client, clientID, connMsg)
 		default:
 			fmt.Println("Invalid message type!")
 		}
@@ -160,23 +160,9 @@ func handleControlMessage(client MQTT.Client, clientID string, msg ControlMessag
 	}
 
 	if connectionState == "online" {
-		canonicalFacts, gotCanonicalFacts := handshakePayload["canonical_facts"]
-
-		if gotCanonicalFacts == false {
-			fmt.Println("FIXME: error!  hangup")
-			return errors.New("Invalid handshake")
-		}
-
-		registerConnectionInInventory(account, clientID, canonicalFacts)
-
-		connectionEvent(account, clientID, msg.Content)
-
-		proxy := ReceptorMQTTProxy{ClientID: clientID, Client: client}
-
-		connectionRegistrar.Register(context.Background(), account, clientID, &proxy)
-		// FIXME: check for error, but ignore duplicate registration errors
+		handleOnlineMessage(client, account, clientID, msg, connectionRegistrar)
 	} else if connectionState == "offline" {
-		handleDisconnect(client, account, clientID, msg, connectionRegistrar)
+		handleOfflineMessage(client, account, clientID, msg, connectionRegistrar)
 	} else {
 		return errors.New("Invalid connection state")
 	}
@@ -184,23 +170,43 @@ func handleControlMessage(client MQTT.Client, clientID string, msg ControlMessag
 	return nil
 }
 
-func registerCatalogWithSources(client MQTT.Client, account string, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
+func handleOnlineMessage(client MQTT.Client, account string, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
+
+	handshakePayload := msg.Content.(map[string]interface{}) // FIXME:
+
+	canonicalFacts, gotCanonicalFacts := handshakePayload["canonical_facts"]
+
+	if gotCanonicalFacts == false {
+		fmt.Println("FIXME: error!  hangup")
+		return errors.New("Invalid handshake")
+	}
+
+	registerConnectionInInventory(account, clientID, canonicalFacts)
+
+	connectionEvent(account, clientID, msg.Content)
+
+	proxy := ReceptorMQTTProxy{ClientID: clientID, Client: client}
+
+	connectionRegistrar.Register(context.Background(), account, clientID, &proxy)
+	// FIXME: check for error, but ignore duplicate registration errors
 
 	return nil
 }
 
-func handleDisconnect(client MQTT.Client, account string, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) {
+func handleOfflineMessage(client MQTT.Client, account string, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) {
 
 	connectionRegistrar.Unregister(context.Background(), account, clientID)
 
 	disconnectionEvent(account, clientID)
 
+	// FIXME:
 	clientTopic := fmt.Sprintf("redhat/insights/in/%s", clientID)
 	client.Publish(clientTopic, byte(0), true, "")
 }
 
-func handleProcessingError(connMsg ControlMessage) {
-	fmt.Println("PROCESSING ERROR")
+func registerCatalogWithSources(client MQTT.Client, account string, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
+
+	return nil
 }
 
 func getAccountNumberFromBop(clientID string) (string, error) {
@@ -248,6 +254,10 @@ func registerConnectionInInventory(account string, clientID string, canonicalFac
 
 func registerConnectionInSources(account string, clientID string, catalogServiceFacts interface{}) {
 	fmt.Println("FIXME: adding entry to sources - ", account, clientID, catalogServiceFacts)
+}
+
+func handleEvent(client MQTT.Client, clientID string, msg ControlMessage) {
+	fmt.Println("FIXME: Got an event: %+v", msg.Content)
 }
 
 func connectionEvent(account string, clientID string, canonicalFacts interface{}) {
