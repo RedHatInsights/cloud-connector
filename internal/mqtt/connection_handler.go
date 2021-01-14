@@ -68,23 +68,15 @@ func NewConnectionRegistrar(brokerUri string, certFilePath string, certKeyPath s
 	startSubscriber(brokerUri, certFilePath, certKeyPath, connectionRegistrar)
 }
 
-var m MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
-	fmt.Printf("rec TOPIC: %s MSG:%s\n", msg.Topic(), msg.Payload())
-}
-
 func startSubscriber(brokerUri string, certFilePath string, keyFilePath string, connectionRegistrar controller.ConnectionRegistrar) {
 
 	tlsconfig := NewTLSConfig(certFilePath, keyFilePath)
 
 	connOpts := MQTT.NewClientOptions()
+
 	connOpts.AddBroker(brokerUri)
 
 	connOpts.SetTLSConfig(tlsconfig)
-
-	//lastWill := fmt.Sprintf("{'client': '%s'}", clientID)
-	//connOpts.SetWill(ACCOUNT_TOPIC+"/leaving", lastWill, 0, false)
-
-	connOpts.SetDefaultPublishHandler(m)
 
 	recordConnection := messageHandler(connectionRegistrar)
 
@@ -116,11 +108,8 @@ func messageHandler(connectionRegistrar controller.ConnectionRegistrar) func(MQT
 
 		var connMsg ControlMessage
 
-		fmt.Printf("payload type: %T\n", message.Payload())
-		fmt.Printf("payload type: |%s|\n", message.Payload())
-
 		if message.Payload() == nil || len(message.Payload()) == 0 {
-			fmt.Println("empty payload")
+			fmt.Printf("client %s sent an empty payload\n", clientID)
 			return
 		}
 
