@@ -21,6 +21,15 @@ var Log *logrus.Logger
 var logLevel logrus.Level
 var initializeLogger sync.Once
 
+func buildFormatter(format string) logrus.Formatter {
+	switch strings.ToUpper(format) {
+	case "TEXT":
+		return &logrus.TextFormatter{}
+	default:
+		return NewCloudwatchFormatter()
+	}
+}
+
 // NewCloudwatchFormatter creates a new log formatter
 func NewCloudwatchFormatter() *CustomCloudwatch {
 	f := &CustomCloudwatch{}
@@ -88,6 +97,7 @@ func InitLogger() {
 		logconfig.SetDefault("LOG_GROUP", "platform-dev")
 		logconfig.SetDefault("AWS_REGION", "us-east-1")
 		logconfig.SetDefault("LOG_STREAM", hostname)
+		logconfig.SetDefault("LOG_FORMAT", "text")
 		logconfig.SetEnvPrefix("RECEPTOR_CONTROLLER")
 		logconfig.AutomaticEnv()
 		key := logconfig.GetString("CW_AWS_ACCESS_KEY_ID")
@@ -95,6 +105,7 @@ func InitLogger() {
 		region := logconfig.GetString("AWS_REGION")
 		group := logconfig.GetString("LOG_GROUP")
 		stream := logconfig.GetString("LOG_STREAM")
+		format := logconfig.GetString("LOG_FORMAT")
 
 		switch strings.ToUpper(logconfig.GetString("LOG_LEVEL")) {
 		case "TRACE":
@@ -110,8 +121,7 @@ func InitLogger() {
 			logLevel = logrus.FatalLevel
 		}
 
-		formatter := NewCloudwatchFormatter()
-		//formatter := &logrus.TextFormatter{}
+		formatter := buildFormatter(format)
 
 		Log = &logrus.Logger{
 			Out:          os.Stdout,

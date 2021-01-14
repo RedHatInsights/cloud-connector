@@ -41,9 +41,6 @@ func NewTLSConfig(certFilePath string, keyFilePath string) *tls.Config {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(cert.Leaf)
-	fmt.Println(cert.Leaf.Subject.ToRDNSequence())
-	fmt.Println(cert.Leaf.Subject.CommonName)
 
 	// Create tls.Config with desired tls properties
 	return &tls.Config{
