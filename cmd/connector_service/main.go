@@ -44,7 +44,10 @@ func main() {
 
 	localConnectionManager := controller.NewLocalConnectionManager()
 
-	mqtt.NewConnectionRegistrar(*broker, *certFile, *keyFile, localConnectionManager)
+	err = mqtt.NewConnectionRegistrar(*broker, *certFile, *keyFile, localConnectionManager)
+	if err != nil {
+		logger.Log.Fatal("Failed to connect to MQTT broker: ", err)
+	}
 
 	apiMux := mux.NewRouter()
 	apiMux.Use(request_id.ConfiguredRequestID("x-rh-insights-request-id"))

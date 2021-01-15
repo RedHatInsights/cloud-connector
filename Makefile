@@ -9,7 +9,7 @@ COVERAGE_HTML=coverage.html
 .PHONY: test clean deps coverage 
 
 build:
-	CGO_ENABLED=0 go build -o $(CONNECTOR_SERVICE_BINARY) cmd/connector_service/main.go
+	go build -o $(CONNECTOR_SERVICE_BINARY) cmd/connector_service/main.go
 	go build -o $(CONNECTED_CLIENT_BINARY) cmd/bunnies_client/main.go
 
 deps:

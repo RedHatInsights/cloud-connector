@@ -167,8 +167,13 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 	*/
 
 	cf := Connector.CanonicalFacts{
-		"1234",
-		"5678",
+		InsightsID:            "1234",
+		MachineID:             "5678",
+		BiosID:                "1234",
+		SubscriptionManagerID: "3245",
+		IpAddresses:           []string{"192.168.68.101"},
+		MacAddresses:          []string{"54.54.45.45.62.26"},
+		Fqdn:                  "fred.flintstone.com",
 	}
 	connectionStatusPayload := Connector.ConnectionStatusMessageContent{CanonicalFacts: cf, ConnectionState: "online"}
 	connMsg := Connector.ControlMessage{

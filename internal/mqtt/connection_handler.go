@@ -19,7 +19,7 @@ import (
 
 const CONNECTION_STATUS_TOPIC = "redhat/insights/in/+"
 
-func NewTLSConfig(certFilePath string, keyFilePath string) *tls.Config {
+func NewTLSConfig(certFilePath string, keyFilePath string) (*tls.Config, error) {
 	// Import trusted certificates from CAfile.pem.
 	// Alternatively, manually add CA certificates to
 	// default openssl CA bundle.
@@ -34,17 +34,17 @@ func NewTLSConfig(certFilePath string, keyFilePath string) *tls.Config {
 	// Import client certificate/key pair
 	cert, err := tls.LoadX509KeyPair(certFilePath, keyFilePath)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	// Just to print out the client certificate..
 	cert.Leaf, err = x509.ParseCertificate(cert.Certificate[0])
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	// Create tls.Config with desired tls properties
-	return &tls.Config{
+	tlsConfig := &tls.Config{
 		// RootCAs = certs used to verify server cert.
 		//RootCAs: certpool,
 		// ClientAuth = whether to request cert from server.
@@ -59,16 +59,17 @@ func NewTLSConfig(certFilePath string, keyFilePath string) *tls.Config {
 		// Certificates = list of certs client sends to server.
 		Certificates: []tls.Certificate{cert},
 	}
+
+	return tlsConfig, nil
 }
 
-func NewConnectionRegistrar(brokerUri string, certFilePath string, certKeyPath string, connectionRegistrar controller.ConnectionRegistrar) {
+func NewConnectionRegistrar(brokerUri string, certFilePath string, certKeyPath string, connectionRegistrar controller.ConnectionRegistrar) error {
 
-	startSubscriber(brokerUri, certFilePath, certKeyPath, connectionRegistrar)
-}
-
-func startSubscriber(brokerUri string, certFilePath string, keyFilePath string, connectionRegistrar controller.ConnectionRegistrar) {
-
-	tlsconfig := NewTLSConfig(certFilePath, keyFilePath)
+	tlsconfig, err := NewTLSConfig(certFilePath, certKeyPath)
+	if err != nil {
+		logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to config TLS for the MQTT broker connection")
+		return err
+	}
 
 	connOpts := MQTT.NewClientOptions()
 
@@ -81,21 +82,19 @@ func startSubscriber(brokerUri string, certFilePath string, keyFilePath string, 
 	connOpts.OnConnect = func(c MQTT.Client) {
 		logger.Log.Info("Subscribing to topic: ", CONNECTION_STATUS_TOPIC)
 		if token := c.Subscribe(CONNECTION_STATUS_TOPIC, 0, recordConnection); token.Wait() && token.Error() != nil {
-			logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Error("Subscribing to topic failed")
-			// FIXME:
-			panic(token.Error())
+			logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Fatal("Subscribing to topic failed")
 		}
 	}
 
 	client := MQTT.NewClient(connOpts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Error("Unable to connect to MQTT broker")
-
-		// FIXME:
-		panic(token.Error())
+		return token.Error()
 	}
 
 	logger.Log.Info("Connected to broker: ", brokerUri)
+
+	return nil
 }
 
 func controlMessageHandler(connectionRegistrar controller.ConnectionRegistrar) func(MQTT.Client, MQTT.Message) {
@@ -128,16 +127,16 @@ func controlMessageHandler(connectionRegistrar controller.ConnectionRegistrar) f
 
 		switch connMsg.MessageType {
 		case "connection-status":
-			handleControlMessage(client, clientID, connMsg, connectionRegistrar)
+			handleConnectionStatusMessage(client, clientID, connMsg, connectionRegistrar)
 		case "event":
-			handleEvent(client, clientID, connMsg)
+			handleEventMessage(client, clientID, connMsg)
 		default:
 			logger.Debug("Received an invalid message type:", connMsg.MessageType)
 		}
 	}
 }
 
-func handleControlMessage(client MQTT.Client, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
+func handleConnectionStatusMessage(client MQTT.Client, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
 
 	account, err := getAccountNumberFromBop(clientID)
 
@@ -251,7 +250,7 @@ func registerConnectionInSources(account string, clientID string, catalogService
 	fmt.Println("FIXME: adding entry to sources - ", account, clientID, catalogServiceFacts)
 }
 
-func handleEvent(client MQTT.Client, clientID string, msg ControlMessage) {
+func handleEventMessage(client MQTT.Client, clientID string, msg ControlMessage) {
 	fmt.Printf("FIXME: Got an event: %+v\n", msg.Content)
 }
 

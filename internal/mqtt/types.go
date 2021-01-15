@@ -24,8 +24,13 @@ type CommandMessageContent struct {
 type EventMessageContent string // FIXME:  interface{} ??
 
 type CanonicalFacts struct {
-	InsightsID string `json:"insights_id"`
-	MachineID  string `json:"machine_id"`
+	InsightsID            string   `json:"insights_id"`
+	MachineID             string   `json:"machine_id"`
+	BiosID                string   `json:"bios_uuid"`
+	SubscriptionManagerID string   `json:"subscription_manager_id"`
+	IpAddresses           []string `json:"ip_addresses"`
+	MacAddresses          []string `json:"mac_addresses"`
+	Fqdn                  string   `json:"fqdn"`
 }
 
 type CatalogServiceFacts struct {
