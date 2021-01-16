@@ -101,7 +101,6 @@ func controlMessageHandler(connectionRegistrar controller.ConnectionRegistrar) f
 	return func(client MQTT.Client, message MQTT.Message) {
 		logger.Log.Debugf("Received message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
 
-		//verify the MQTT topic
 		clientID, err := verifyTopic(message.Topic())
 		if err != nil {
 			logger.Log.WithFields(logrus.Fields{"error": err}).Error("Failed to verify topic")
@@ -110,28 +109,28 @@ func controlMessageHandler(connectionRegistrar controller.ConnectionRegistrar) f
 
 		logger := logger.Log.WithFields(logrus.Fields{"clientID": clientID})
 
-		var connMsg ControlMessage
-
 		if message.Payload() == nil || len(message.Payload()) == 0 {
-			// FIXME: This will happen when a retained message is removed
-			logger.Debugf("client sent an empty payload\n")
+			// This will happen when a retained message is removed
+			logger.Debugf("client sent an empty payload\n") // FIXME:  Remove me later on...
 			return
 		}
 
-		if err := json.Unmarshal(message.Payload(), &connMsg); err != nil {
+		var controlMsg ControlMessage
+
+		if err := json.Unmarshal(message.Payload(), &controlMsg); err != nil {
 			logger.WithFields(logrus.Fields{"error": err}).Error("Failed to unmarshal control message")
 			return
 		}
 
-		logger.Debug("Got a connection:", connMsg)
+		logger.Debug("Got a control message:", controlMsg)
 
-		switch connMsg.MessageType {
+		switch controlMsg.MessageType {
 		case "connection-status":
-			handleConnectionStatusMessage(client, clientID, connMsg, connectionRegistrar)
+			handleConnectionStatusMessage(client, clientID, controlMsg, connectionRegistrar)
 		case "event":
-			handleEventMessage(client, clientID, connMsg)
+			handleEventMessage(client, clientID, controlMsg)
 		default:
-			logger.Debug("Received an invalid message type:", connMsg.MessageType)
+			logger.Debug("Received an invalid message type:", controlMsg.MessageType)
 		}
 	}
 }
@@ -154,9 +153,9 @@ func handleConnectionStatusMessage(client MQTT.Client, clientID string, msg Cont
 	}
 
 	if connectionState == "online" {
-		handleOnlineMessage(client, account, clientID, msg, connectionRegistrar)
+		return handleOnlineMessage(client, account, clientID, msg, connectionRegistrar)
 	} else if connectionState == "offline" {
-		handleOfflineMessage(client, account, clientID, msg, connectionRegistrar)
+		return handleOfflineMessage(client, account, clientID, msg, connectionRegistrar)
 	} else {
 		return errors.New("Invalid connection state")
 	}
@@ -187,7 +186,7 @@ func handleOnlineMessage(client MQTT.Client, account string, clientID string, ms
 	return nil
 }
 
-func handleOfflineMessage(client MQTT.Client, account string, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) {
+func handleOfflineMessage(client MQTT.Client, account string, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
 
 	connectionRegistrar.Unregister(context.Background(), account, clientID)
 
@@ -196,6 +195,8 @@ func handleOfflineMessage(client MQTT.Client, account string, clientID string, m
 	// FIXME:
 	clientTopic := fmt.Sprintf("redhat/insights/in/%s", clientID)
 	client.Publish(clientTopic, byte(0), true, "")
+
+	return nil
 }
 
 func registerCatalogWithSources(client MQTT.Client, account string, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
@@ -250,8 +251,9 @@ func registerConnectionInSources(account string, clientID string, catalogService
 	fmt.Println("FIXME: adding entry to sources - ", account, clientID, catalogServiceFacts)
 }
 
-func handleEventMessage(client MQTT.Client, clientID string, msg ControlMessage) {
+func handleEventMessage(client MQTT.Client, clientID string, msg ControlMessage) error {
 	fmt.Printf("FIXME: Got an event: %+v\n", msg.Content)
+	return nil
 }
 
 func connectionEvent(account string, clientID string, canonicalFacts interface{}) {
