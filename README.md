@@ -215,6 +215,7 @@ message-specific fields should be included in the `content` object.
 | `version`       | integer          | no           | `1`                                      |
 | `sent`          | string(ISO-8601) | no           | `"2021-01-12T14:58:13+00:00"`            |
 | `directive`     | string           | no           | `"playbook"`                             |
+| `metadata`      | object           | yes          | `{}`                                     |
 | `content`       |                  | yes          | `{}`                                     |
 
 ##### Data #####
@@ -233,6 +234,9 @@ A complete example of a data message as published by the *Server*:
     "version": 1,
     "sent": "2021-01-12T15:30:08+00:00",
     "directive": "playbook",
+    "metadata": {
+        "return_url": "https://cloud.redhat.com/api/v1/ingres/upload"
+    },
     "content": "https://cloud.redhat.com/api/v1/remediations/1234/playbook"
 }
 ```
