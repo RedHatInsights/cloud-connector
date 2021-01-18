@@ -12,6 +12,7 @@ import (
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
+	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
 	"github.com/sirupsen/logrus"
@@ -68,7 +69,12 @@ func NewTLSConfig(certFilePath string, keyFilePath string) (*tls.Config, error) 
 	return tlsConfig, nil
 }
 
-func NewConnectionRegistrar(brokerUri string, certFilePath string, certKeyPath string, connectionRegistrar controller.ConnectionRegistrar) error {
+type ConnectionRegistrar struct {
+	connectionRegistrar controller.ConnectionRegistrar
+	accountResolver     controller.AccountIdResolver
+}
+
+func NewConnectionRegistrar(brokerUri string, certFilePath string, certKeyPath string, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver) error {
 
 	tlsconfig, err := NewTLSConfig(certFilePath, certKeyPath)
 	if err != nil {
@@ -82,7 +88,7 @@ func NewConnectionRegistrar(brokerUri string, certFilePath string, certKeyPath s
 
 	connOpts.SetTLSConfig(tlsconfig)
 
-	recordConnection := controlMessageHandler(connectionRegistrar)
+	recordConnection := controlMessageHandler(connectionRegistrar, accountResolver)
 
 	connOpts.OnConnect = func(c MQTT.Client) {
 		topic := CONTROL_MESSAGE_INCOMING_TOPIC
@@ -103,7 +109,7 @@ func NewConnectionRegistrar(brokerUri string, certFilePath string, certKeyPath s
 	return nil
 }
 
-func controlMessageHandler(connectionRegistrar controller.ConnectionRegistrar) func(MQTT.Client, MQTT.Message) {
+func controlMessageHandler(connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver) func(MQTT.Client, MQTT.Message) {
 	return func(client MQTT.Client, message MQTT.Message) {
 		logger.Log.Debugf("Received message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
 
@@ -132,7 +138,7 @@ func controlMessageHandler(connectionRegistrar controller.ConnectionRegistrar) f
 
 		switch controlMsg.MessageType {
 		case "connection-status":
-			handleConnectionStatusMessage(client, clientID, controlMsg, connectionRegistrar)
+			handleConnectionStatusMessage(client, clientID, controlMsg, connectionRegistrar, accountResolver)
 		case "event":
 			handleEventMessage(client, clientID, controlMsg)
 		default:
@@ -141,19 +147,20 @@ func controlMessageHandler(connectionRegistrar controller.ConnectionRegistrar) f
 	}
 }
 
-func handleConnectionStatusMessage(client MQTT.Client, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
+func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver) error {
 
 	// FIXME: pass the logger around
 	logger := logger.Log.WithFields(logrus.Fields{"clientID": clientID})
 
 	logger.Debug("handling connection status control message")
 
-	account, err := getAccountNumberFromBop(clientID)
-
+	account, err := accountResolver.MapClientIdToAccountId(context.Background(), clientID)
 	if err != nil {
 		// FIXME:  tell the client to disconnect
 		return err
 	}
+
+	logger = logger.WithFields(logrus.Fields{"account": account})
 
 	handshakePayload := msg.Content.(map[string]interface{})
 
@@ -175,10 +182,10 @@ func handleConnectionStatusMessage(client MQTT.Client, clientID string, msg Cont
 	return nil
 }
 
-func handleOnlineMessage(client MQTT.Client, account string, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
+func handleOnlineMessage(client MQTT.Client, account domain.AccountID, clientID domain.ClientID, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
 
 	// FIXME: pass the logger around
-	logger := logger.Log.WithFields(logrus.Fields{"clientID": clientID})
+	logger := logger.Log.WithFields(logrus.Fields{"clientID": clientID, "account": account})
 
 	logger.Debug("handling online connection-status message")
 
@@ -199,25 +206,26 @@ func handleOnlineMessage(client MQTT.Client, account string, clientID string, ms
 
 	connectionEvent(account, clientID, msg.Content)
 
-	proxy := ReceptorMQTTProxy{ClientID: clientID, Client: client}
+	proxy := ReceptorMQTTProxy{ClientID: string(clientID), Client: client}
 
-	connectionRegistrar.Register(context.Background(), account, clientID, &proxy)
+	connectionRegistrar.Register(context.Background(), string(account), string(clientID), &proxy)
 	// FIXME: check for error, but ignore duplicate registration errors
 
 	return nil
 }
 
-func handleOfflineMessage(client MQTT.Client, account string, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
+func handleOfflineMessage(client MQTT.Client, account domain.AccountID, clientID domain.ClientID, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
 
 	// FIXME: pass the logger around
-	logger := logger.Log.WithFields(logrus.Fields{"clientID": clientID})
+	logger := logger.Log.WithFields(logrus.Fields{"clientID": clientID, "account": account})
 
 	logger.Debug("handling offline connection-status message")
 
-	connectionRegistrar.Unregister(context.Background(), account, clientID)
+	connectionRegistrar.Unregister(context.Background(), string(account), string(clientID))
 
 	disconnectionEvent(account, clientID)
 
+	logger.Debug("Removing client's retained connection-status message")
 	// FIXME:
 	clientTopic := fmt.Sprintf("redhat/insights/%s/control/out", clientID)
 	client.Publish(clientTopic, byte(0), true, "")
@@ -225,33 +233,7 @@ func handleOfflineMessage(client MQTT.Client, account string, clientID string, m
 	return nil
 }
 
-func getAccountNumberFromBop(clientID string) (string, error) {
-	// FIXME: need to lookup the account number for the connected client
-	fmt.Println("FIXME: looking up the connection's account number in BOP")
-
-	/*
-		Required
-		x-rh-apitoken *
-		x-rh-clientid
-
-		Optional
-		x-rh-insights-env
-
-		Cert auth
-		x-rh-certauth-cn
-		x-rh-certauth-issuer
-		x-rh-insights-certauth-secret
-
-		make http GET
-
-
-
-	*/
-
-	return "010101", nil
-}
-
-func verifyTopic(topic string) (string, error) {
+func verifyTopic(topic string) (domain.ClientID, error) {
 	items := strings.Split(topic, "/")
 	if len(items) != 5 {
 		return "", errors.New("MQTT topic requires 4 sections: redhat, insights, <clientID>, control, in")
@@ -262,28 +244,28 @@ func verifyTopic(topic string) (string, error) {
 		return "", errors.New("MQTT topic needs to be redhat/insights/<clientID>/control/out")
 	}
 
-	return items[2], nil
+	return domain.ClientID(items[2]), nil
 }
 
-func registerConnectionInInventory(account string, clientID string, canonicalFacts interface{}) error {
+func registerConnectionInInventory(account domain.AccountID, clientID domain.ClientID, canonicalFacts interface{}) error {
 	fmt.Println("FIXME: send inventory kafka message - ", account, clientID, canonicalFacts)
 	return nil
 }
 
-func registerConnectionInSources(account string, clientID string, catalogServiceFacts interface{}) error {
+func registerConnectionInSources(account domain.AccountID, clientID domain.ClientID, catalogServiceFacts interface{}) error {
 	fmt.Println("FIXME: adding entry to sources - ", account, clientID, catalogServiceFacts)
 	return nil
 }
 
-func handleEventMessage(client MQTT.Client, clientID string, msg ControlMessage) error {
+func handleEventMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage) error {
 	fmt.Printf("FIXME: Got an event: %+v\n", msg.Content)
 	return nil
 }
 
-func connectionEvent(account string, clientID string, canonicalFacts interface{}) {
+func connectionEvent(account domain.AccountID, clientID domain.ClientID, canonicalFacts interface{}) {
 	fmt.Println("FIXME: send new connection kafka message")
 }
 
-func disconnectionEvent(account string, clientID string) {
+func disconnectionEvent(account domain.AccountID, clientID domain.ClientID) {
 	fmt.Println("FIXME: send lost connection kafka message")
 }
