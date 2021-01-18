@@ -93,7 +93,7 @@ func InitLogger() {
 		hostname, _ := os.Hostname()
 
 		logconfig := viper.New()
-		logconfig.SetDefault("LOG_LEVEL", "INFO")
+		logconfig.SetDefault("LOG_LEVEL", "DEBUG")
 		logconfig.SetDefault("LOG_GROUP", "platform-dev")
 		logconfig.SetDefault("AWS_REGION", "us-east-1")
 		logconfig.SetDefault("LOG_STREAM", hostname)

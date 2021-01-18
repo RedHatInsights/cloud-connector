@@ -17,7 +17,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const CONNECTION_STATUS_TOPIC = "redhat/insights/in/+"
+const (
+	CONTROL_MESSAGE_INCOMING_TOPIC string = "redhat/insights/+/control/out"
+	CONTROL_MESSAGE_OUTGOING_TOPIC string = "redhat/insights/%s/control/in"
+	DATA_MESSAGE_INCOMING_TOPIC    string = "redhat/insights/+/data/out"
+	DATA_MESSAGE_OUTGOING_TOPIC    string = "redhat/insights/%s/data/in"
+)
 
 func NewTLSConfig(certFilePath string, keyFilePath string) (*tls.Config, error) {
 	// Import trusted certificates from CAfile.pem.
@@ -80,9 +85,10 @@ func NewConnectionRegistrar(brokerUri string, certFilePath string, certKeyPath s
 	recordConnection := controlMessageHandler(connectionRegistrar)
 
 	connOpts.OnConnect = func(c MQTT.Client) {
-		logger.Log.Info("Subscribing to topic: ", CONNECTION_STATUS_TOPIC)
-		if token := c.Subscribe(CONNECTION_STATUS_TOPIC, 0, recordConnection); token.Wait() && token.Error() != nil {
-			logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Fatal("Subscribing to topic failed")
+		topic := CONTROL_MESSAGE_INCOMING_TOPIC
+		logger.Log.Info("Subscribing to topic: ", topic)
+		if token := c.Subscribe(topic, 0, recordConnection); token.Wait() && token.Error() != nil {
+			logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Fatalf("Subscribing to topic (%s) failed", topic)
 		}
 	}
 
@@ -137,9 +143,15 @@ func controlMessageHandler(connectionRegistrar controller.ConnectionRegistrar) f
 
 func handleConnectionStatusMessage(client MQTT.Client, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
 
+	// FIXME: pass the logger around
+	logger := logger.Log.WithFields(logrus.Fields{"clientID": clientID})
+
+	logger.Debug("handling connection status control message")
+
 	account, err := getAccountNumberFromBop(clientID)
 
 	if err != nil {
+		// FIXME:  tell the client to disconnect
 		return err
 	}
 
@@ -165,6 +177,11 @@ func handleConnectionStatusMessage(client MQTT.Client, clientID string, msg Cont
 
 func handleOnlineMessage(client MQTT.Client, account string, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
 
+	// FIXME: pass the logger around
+	logger := logger.Log.WithFields(logrus.Fields{"clientID": clientID})
+
+	logger.Debug("handling online connection-status message")
+
 	handshakePayload := msg.Content.(map[string]interface{}) // FIXME:
 
 	canonicalFacts, gotCanonicalFacts := handshakePayload["canonical_facts"]
@@ -174,7 +191,11 @@ func handleOnlineMessage(client MQTT.Client, account string, clientID string, ms
 		return errors.New("Invalid handshake")
 	}
 
-	registerConnectionInInventory(account, clientID, canonicalFacts)
+	err := registerConnectionInInventory(account, clientID, canonicalFacts)
+	if err != nil {
+		// FIXME:  If we cannot "register" the connection with inventory, then send a disconnect message
+		return err
+	}
 
 	connectionEvent(account, clientID, msg.Content)
 
@@ -188,18 +209,18 @@ func handleOnlineMessage(client MQTT.Client, account string, clientID string, ms
 
 func handleOfflineMessage(client MQTT.Client, account string, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
 
+	// FIXME: pass the logger around
+	logger := logger.Log.WithFields(logrus.Fields{"clientID": clientID})
+
+	logger.Debug("handling offline connection-status message")
+
 	connectionRegistrar.Unregister(context.Background(), account, clientID)
 
 	disconnectionEvent(account, clientID)
 
 	// FIXME:
-	clientTopic := fmt.Sprintf("redhat/insights/in/%s", clientID)
+	clientTopic := fmt.Sprintf("redhat/insights/%s/control/out", clientID)
 	client.Publish(clientTopic, byte(0), true, "")
-
-	return nil
-}
-
-func registerCatalogWithSources(client MQTT.Client, account string, clientID string, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
 
 	return nil
 }
@@ -232,23 +253,26 @@ func getAccountNumberFromBop(clientID string) (string, error) {
 
 func verifyTopic(topic string) (string, error) {
 	items := strings.Split(topic, "/")
-	if len(items) != 4 {
-		return "", errors.New("MQTT topic requires 4 sections: redhat, insights, <clientID>, in")
+	if len(items) != 5 {
+		return "", errors.New("MQTT topic requires 4 sections: redhat, insights, <clientID>, control, in")
 	}
 
-	if items[0] != "redhat" || items[1] != "insights" || items[2] != "in" {
-		return "", errors.New("MQTT topic needs to be redhat/insights/<clientID>/in")
+	if items[0] != "redhat" || items[1] != "insights" || items[4] != "out" {
+		fmt.Println("topic: ", topic)
+		return "", errors.New("MQTT topic needs to be redhat/insights/<clientID>/control/out")
 	}
 
-	return items[3], nil
+	return items[2], nil
 }
 
-func registerConnectionInInventory(account string, clientID string, canonicalFacts interface{}) {
+func registerConnectionInInventory(account string, clientID string, canonicalFacts interface{}) error {
 	fmt.Println("FIXME: send inventory kafka message - ", account, clientID, canonicalFacts)
+	return nil
 }
 
-func registerConnectionInSources(account string, clientID string, catalogServiceFacts interface{}) {
+func registerConnectionInSources(account string, clientID string, catalogServiceFacts interface{}) error {
 	fmt.Println("FIXME: adding entry to sources - ", account, clientID, catalogServiceFacts)
+	return nil
 }
 
 func handleEventMessage(client MQTT.Client, clientID string, msg ControlMessage) error {

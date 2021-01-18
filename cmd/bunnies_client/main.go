@@ -98,9 +98,9 @@ var m MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
 func startProducer(certFile string, keyFile string, broker string, i int) {
 	tlsconfig, clientID := NewTLSConfig(certFile, keyFile)
 
-	readTopic := fmt.Sprintf("redhat/insights/out/%s", clientID)
-	writeTopic := fmt.Sprintf("redhat/insights/in/%s", clientID)
-	fmt.Println("consumer topic: ", readTopic)
+	controlReadTopic := fmt.Sprintf("redhat/insights/%s/control/in", clientID)
+	controlWriteTopic := fmt.Sprintf("redhat/insights/%s/control/out", clientID)
+	fmt.Println("control consumer topic: ", controlReadTopic)
 
 	connOpts := MQTT.NewClientOptions()
 	connOpts.AddBroker(broker)
@@ -136,7 +136,7 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 		panic(err)
 	}
 
-	connOpts.SetWill(writeTopic, string(payload), byte(0), true)
+	connOpts.SetWill(controlWriteTopic, string(payload), byte(0), true)
 
 	//lastWillPayload, err := buildDisconnectMessage(clientID)
 	//connOpts.SetWill(writeTopic, string(lastWillPayload), byte(0), false)
@@ -144,8 +144,8 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 	//    connOpts.SetDefaultPublishHandler(m)
 
 	connOpts.OnConnect = func(c MQTT.Client) {
-		fmt.Println("*** OnConnect - subscribing to topic:", readTopic)
-		if token := c.Subscribe(readTopic, 0, onMessageReceived); token.Wait() && token.Error() != nil {
+		fmt.Println("*** OnConnect - subscribing to topic:", controlReadTopic)
+		if token := c.Subscribe(controlReadTopic, 0, onMessageReceived); token.Wait() && token.Error() != nil {
 			panic(token.Error())
 		}
 	}
@@ -190,8 +190,8 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 		panic(err)
 	}
 
-	fmt.Println("publishing to topic:", writeTopic)
-	client.Publish(writeTopic, byte(0), true, payload)
+	fmt.Println("publishing to topic:", controlWriteTopic)
+	client.Publish(controlWriteTopic, byte(0), true, payload)
 	fmt.Printf("Published message %s... Sleeping...\n", payload)
 	time.Sleep(time.Second * 10)
 }
