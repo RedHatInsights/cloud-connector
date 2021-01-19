@@ -45,8 +45,9 @@ func main() {
 	localConnectionManager := controller.NewLocalConnectionManager()
 	//accountResolver := &controller.BOPAccountIdResolver{}
 	accountResolver := &controller.ConfigurableAccountIdResolver{}
+	connectedClientRecorder := &controller.InventoryBasedConnectedClientRecorder{}
 
-	err = mqtt.NewConnectionRegistrar(*broker, *certFile, *keyFile, localConnectionManager, accountResolver)
+	err = mqtt.NewConnectionRegistrar(*broker, *certFile, *keyFile, localConnectionManager, accountResolver, connectedClientRecorder)
 	if err != nil {
 		logger.Log.Fatal("Failed to connect to MQTT broker: ", err)
 	}
