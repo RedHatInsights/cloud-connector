@@ -175,7 +175,16 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 		MacAddresses:          []string{"54.54.45.45.62.26"},
 		Fqdn:                  "fred.flintstone.com",
 	}
-	connectionStatusPayload := Connector.ConnectionStatusMessageContent{CanonicalFacts: cf, ConnectionState: "online"}
+
+	dispatchers := make(Connector.Dispatchers)
+	dispatchers["playbook"] = make(map[string]string)
+	dispatchers["playbook"]["ansible-runner-version"] = "1.2.3"
+	dispatchers["echo"] = make(map[string]string)
+
+	connectionStatusPayload := Connector.ConnectionStatusMessageContent{
+		CanonicalFacts:  cf,
+		Dispatchers:     dispatchers,
+		ConnectionState: "online"}
 	connMsg := Connector.ControlMessage{
 		MessageType: "connection-status",
 		MessageID:   "1234",

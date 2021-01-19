@@ -2,7 +2,7 @@ package mqtt
 
 type ControlMessage struct {
 	MessageType string      `json:"type"`
-	MessageID   string      `json:"message_id"` // uuid
+	MessageID   string      `json:"message_id"`
 	Version     int         `json:"version"`
 	Sent        string      `json:"sent"`
 	Content     interface{} `json:"content"`
@@ -14,11 +14,20 @@ type ConnectionStatusMessageContent struct {
 	ConnectionState string         `json:"state"`
 }
 
-type Dispatchers map[string]string
+type Dispatchers map[string]map[string]string
 
 type CommandMessageContent struct {
 	Command   string      `json:"command"`
 	Arguments interface{} `json:"arguments"`
+}
+
+type EventMessage struct {
+	MessageType string `json:"type"`
+	MessageID   string `json:"message_id"`
+	ResponseTo  string `json:"response_to"`
+	Version     int    `json:"version"`
+	Sent        string `json:"sent"`
+	Content     string `json:"content"`
 }
 
 type EventMessageContent string // FIXME:  interface{} ??
@@ -40,9 +49,11 @@ type CatalogServiceFacts struct {
 
 type DataMessage struct {
 	MessageType string      `json:"type"`
-	MessageID   string      `json:"message_id"` // uuid
+	MessageID   string      `json:"message_id"`
+	ResponseTo  string      `json:"response_to"`
 	Version     int         `json:"version"`
 	Sent        string      `json:"sent"`
 	Directive   string      `json:"directive"`
+	Metadata    interface{} `json:"metadata"`
 	Content     interface{} `json:"content"`
 }
