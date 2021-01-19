@@ -1,5 +1,5 @@
 CONNECTOR_SERVICE_BINARY=connector_service
-CONNECTED_CLIENT_BINARY=bunnies_client
+CONNECTED_CLIENT_BINARY=test_client
 
 DOCKER_COMPOSE_CFG=docker-compose.yml
 
@@ -10,7 +10,7 @@ COVERAGE_HTML=coverage.html
 
 build:
 	go build -o $(CONNECTOR_SERVICE_BINARY) cmd/connector_service/main.go
-	go build -o $(CONNECTED_CLIENT_BINARY) cmd/bunnies_client/main.go
+	go build -o $(CONNECTED_CLIENT_BINARY) cmd/test_client/main.go
 
 deps:
 	go get -u golang.org/x/lint/golint
