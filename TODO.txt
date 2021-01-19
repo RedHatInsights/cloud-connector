@@ -1,0 +1,24 @@
+- BOP integration
+  - this might be 3scale
+- improve/implement CF parsing
+- register with inventory
+  - wrap this in an interface...even if its just a method
+- register with sources
+  - wrap this in an interface...even if its just a method
+- build a listener factory
+  - pass TLSConfig into listener factory
+  - pass MQTT client instance into listener factory
+  - pass function pointer to listener's main entry point
+- build a data message listener
+  - allow the data message listener and control message listener to be decoupled (run on different pods)
+- make verifyTopic generic
+- build topic builder for control message listener
+
+
+- Components
+  - client id to account resolver
+    - call BOP or 3scale
+  - inventory
+    - send message over kafka
+  - sources
+    - multiple POSTs to sources
