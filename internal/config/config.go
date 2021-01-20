@@ -11,6 +11,10 @@ import (
 const (
 	ENV_PREFIX = "CLOUD_CONNECTOR"
 
+	URL_APP_NAME                   = "URL_App_Name"
+	URL_PATH_PREFIX                = "URL_Path_Prefix"
+	URL_BASE_PATH                  = "URL_Base_Path"
+	OPENAPI_SPEC_FILE_PATH         = "OpenAPI_Spec_File_Path"
 	HTTP_SHUTDOWN_TIMEOUT          = "HTTP_Shutdown_Timeout"
 	SERVICE_TO_SERVICE_CREDENTIALS = "Service_To_Service_Credentials"
 	PROFILE                        = "Enable_Profile"
@@ -24,6 +28,10 @@ const (
 )
 
 type Config struct {
+	UrlAppName                  string
+	UrlPathPrefix               string
+	UrlBasePath                 string
+	OpenApiSpecFilePath         string
 	HttpShutdownTimeout         time.Duration
 	ServiceToServiceCredentials map[string]interface{}
 	Profile                     bool
@@ -37,6 +45,10 @@ type Config struct {
 
 func (c Config) String() string {
 	var b strings.Builder
+	fmt.Fprintf(&b, "%s: %s\n", URL_PATH_PREFIX, c.UrlPathPrefix)
+	fmt.Fprintf(&b, "%s: %s\n", URL_APP_NAME, c.UrlAppName)
+	fmt.Fprintf(&b, "%s: %s\n", URL_BASE_PATH, c.UrlBasePath)
+	fmt.Fprintf(&b, "%s: %s\n", OPENAPI_SPEC_FILE_PATH, c.OpenApiSpecFilePath)
 	fmt.Fprintf(&b, "%s: %s\n", HTTP_SHUTDOWN_TIMEOUT, c.HttpShutdownTimeout)
 	fmt.Fprintf(&b, "%s: %t\n", PROFILE, c.Profile)
 	fmt.Fprintf(&b, "%s: %s\n", BROKERS, c.KafkaBrokers)
@@ -51,6 +63,9 @@ func (c Config) String() string {
 func GetConfig() *Config {
 	options := viper.New()
 
+	options.SetDefault(URL_PATH_PREFIX, "api")
+	options.SetDefault(URL_APP_NAME, "cloud-connector")
+	options.SetDefault(OPENAPI_SPEC_FILE_PATH, "/opt/app-root/src/api/api.spec.file")
 	options.SetDefault(HTTP_SHUTDOWN_TIMEOUT, 2)
 	options.SetDefault(SERVICE_TO_SERVICE_CREDENTIALS, "")
 	options.SetDefault(PROFILE, false)
@@ -64,6 +79,10 @@ func GetConfig() *Config {
 	options.AutomaticEnv()
 
 	return &Config{
+		UrlPathPrefix:               options.GetString(URL_PATH_PREFIX),
+		UrlAppName:                  options.GetString(URL_APP_NAME),
+		UrlBasePath:                 buildUrlBasePath(options.GetString(URL_PATH_PREFIX), options.GetString(URL_APP_NAME)),
+		OpenApiSpecFilePath:         options.GetString(OPENAPI_SPEC_FILE_PATH),
 		HttpShutdownTimeout:         options.GetDuration(HTTP_SHUTDOWN_TIMEOUT) * time.Second,
 		ServiceToServiceCredentials: options.GetStringMap(SERVICE_TO_SERVICE_CREDENTIALS),
 		Profile:                     options.GetBool(PROFILE),
@@ -74,4 +93,8 @@ func GetConfig() *Config {
 		KafkaResponsesBatchBytes:    options.GetInt(RESPONSES_BATCH_BYTES),
 		KafkaGroupID:                options.GetString(JOBS_GROUP_ID),
 	}
+}
+
+func buildUrlBasePath(pathPrefix string, appName string) string {
+	return fmt.Sprintf("/%s/%s/v1", pathPrefix, appName)
 }

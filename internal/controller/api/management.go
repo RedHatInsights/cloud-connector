@@ -23,13 +23,15 @@ type ManagementServer struct {
 	connectionMgr controller.ConnectionLocator
 	router        *mux.Router
 	config        *config.Config
+	urlPrefix     string
 }
 
-func NewManagementServer(cm controller.ConnectionLocator, r *mux.Router, cfg *config.Config) *ManagementServer {
+func NewManagementServer(cm controller.ConnectionLocator, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
 	return &ManagementServer{
 		connectionMgr: cm,
 		router:        r,
 		config:        cfg,
+		urlPrefix:     urlPrefix,
 	}
 }
 
@@ -37,7 +39,9 @@ func (s *ManagementServer) Routes() {
 	mmw := &middlewares.MetricsMiddleware{}
 	amw := &middlewares.AuthMiddleware{Secrets: s.config.ServiceToServiceCredentials}
 
-	securedSubRouter := s.router.PathPrefix("/connection").Subrouter()
+	pathPrefix := fmt.Sprintf("%s/connection", s.urlPrefix)
+
+	securedSubRouter := s.router.PathPrefix(pathPrefix).Subrouter()
 	securedSubRouter.Use(logger.AccessLoggerMiddleware,
 		mmw.RecordHTTPMetrics,
 		amw.Authenticate)

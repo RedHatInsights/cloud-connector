@@ -10,18 +10,21 @@ import (
 
 type ApiSpecServer struct {
 	router       *mux.Router
+	urlPrefix    string
 	specFileName string
 }
 
-func NewApiSpecServer(r *mux.Router, f string) *ApiSpecServer {
+func NewApiSpecServer(r *mux.Router, urlPrefix string, f string) *ApiSpecServer {
 	return &ApiSpecServer{
 		router:       r,
+		urlPrefix:    urlPrefix,
 		specFileName: f,
 	}
 }
 
 func (s *ApiSpecServer) Routes() {
-	s.router.HandleFunc("/openapi.json", s.handleApiSpec()).Methods(http.MethodGet)
+	subRouter := s.router.PathPrefix(s.urlPrefix).Subrouter()
+	subRouter.HandleFunc("/openapi.json", s.handleApiSpec()).Methods(http.MethodGet)
 }
 
 func (s *ApiSpecServer) handleApiSpec() http.HandlerFunc {

@@ -17,13 +17,15 @@ type MessageReceiver struct {
 	connectionMgr controller.ConnectionLocator
 	router        *mux.Router
 	config        *config.Config
+	urlPrefix     string
 }
 
-func NewMessageReceiver(cm controller.ConnectionLocator, r *mux.Router, cfg *config.Config) *MessageReceiver {
+func NewMessageReceiver(cm controller.ConnectionLocator, r *mux.Router, urlPrefix string, cfg *config.Config) *MessageReceiver {
 	return &MessageReceiver{
 		connectionMgr: cm,
 		router:        r,
 		config:        cfg,
+		urlPrefix:     urlPrefix,
 	}
 }
 
@@ -31,7 +33,7 @@ func (jr *MessageReceiver) Routes() {
 	mmw := &middlewares.MetricsMiddleware{}
 	amw := &middlewares.AuthMiddleware{Secrets: jr.config.ServiceToServiceCredentials}
 
-	securedSubRouter := jr.router.PathPrefix("/").Subrouter()
+	securedSubRouter := jr.router.PathPrefix(jr.urlPrefix).Subrouter()
 	securedSubRouter.Use(logger.AccessLoggerMiddleware,
 		mmw.RecordHTTPMetrics,
 		amw.Authenticate)
