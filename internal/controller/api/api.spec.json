@@ -2,14 +2,14 @@
   "openapi": "3.0.0",
   "servers": [
     {
-      "description": "Local Receptor-Controller API",
-      "url": "/api/receptor-controller/v1/"
+      "description": "Cloud-Connector API",
+      "url": "/api/cloud-connector/v1/"
     }
   ],
   "info": {
-    "description": "Receptor-Controller Service",
+    "description": "Cloud-Connector Service",
     "version": "1.0.0",
-    "title": "Receptor-Controller"
+    "title": "Cloud-Connector Service"
   },
   "tags": [
     {
@@ -18,7 +18,7 @@
     }
   ],
   "paths": {
-    "/job": {
+    "/message": {
       "post": {
         "tags": [
           "api"
@@ -38,7 +38,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/JobRequest"
+                "$ref": "#/components/schemas/MessageRequest"
               }
             }
           }
@@ -49,13 +49,13 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JobResponse"
+                  "$ref": "#/components/schemas/MessageResponse"
                 }
               }
             }
           },
           "404": {
-            "description": "No connection to the target receptor node"
+            "description": "No connection to the target connected client"
           }
         }
       }
@@ -169,7 +169,7 @@
         "tags": [
           "api"
         ],
-        "summary": "Send a ping request to a receptor node",
+        "summary": "Send a ping request to a connected client",
         "security": [
           {
             "ApiKeyAuth": []
@@ -227,24 +227,24 @@
       "PSKAuthClientID": {
         "type": "apiKey",
         "in": "header",
-        "name": "x-rh-receptor-controller-client-id",
+        "name": "x-rh-cloud-connector-client-id",
         "description": "Name of the service that is making the request"
       },
       "PSKAuthKey": {
         "type": "apiKey",
         "in": "header",
-        "name": "x-rh-receptor-controller-psk",
+        "name": "x-rh-cloud-connector-psk",
         "description": "Key supplied by the platform infrastructure team"
       },
       "PSKAuthAccount": {
         "type": "apiKey",
         "in": "header",
-        "name": "x-rh-receptor-controller-account",
+        "name": "x-rh-cloud-connector-account",
         "description": "Account the request is being made on behalf of"
       }
     },
     "schemas": {
-      "JobResponse": {
+      "MessageResponse": {
         "type": "object",
         "properties": {
           "id": {
@@ -253,7 +253,7 @@
           }
         }
       },
-      "JobRequest": {
+      "MessageRequest": {
         "type": "object",
         "properties": {
           "account": {
@@ -263,6 +263,9 @@
             "type": "string"
           },
           "payload": {
+            "type": "object"
+          },
+          "matadata": {
             "type": "object"
           },
           "directive": {

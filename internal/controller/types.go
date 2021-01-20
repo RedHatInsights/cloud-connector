@@ -13,6 +13,6 @@ var (
 )
 
 type Receptor interface {
-	SendMessage(context.Context, string, string, interface{}, string) (*uuid.UUID, error)
+	SendMessage(context.Context, string, string, string, interface{}, interface{}) (*uuid.UUID, error)
 	Close(context.Context) error
 }

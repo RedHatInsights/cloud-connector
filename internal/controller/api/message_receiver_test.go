@@ -32,7 +32,7 @@ type MockClient struct {
 	returnAnError bool
 }
 
-func (mc MockClient) SendMessage(ctx context.Context, account string, recipient string, payload interface{}, directive string) (*uuid.UUID, error) {
+func (mc MockClient) SendMessage(ctx context.Context, account string, recipient string, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
 	if mc.returnAnError {
 		return nil, errors.New("ImaError")
 	}
