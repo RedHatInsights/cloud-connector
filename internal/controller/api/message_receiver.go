@@ -43,6 +43,7 @@ type messageRequest struct {
 	Account   string      `json:"account" validate:"required"`
 	Recipient string      `json:"recipient" validate:"required"`
 	Payload   interface{} `json:"payload" validate:"required"`
+	Metadata  interface{} `json:"metadata"`
 	Directive string      `json:"directive" validate:"required"`
 }
 
@@ -86,8 +87,9 @@ func (jr *MessageReceiver) handleJob() http.HandlerFunc {
 		logger.Info("Sending a message")
 
 		jobID, err := client.SendMessage(req.Context(), msgRequest.Account, msgRequest.Recipient,
-			msgRequest.Payload,
-			msgRequest.Directive)
+			msgRequest.Directive,
+			msgRequest.Metadata,
+			msgRequest.Payload)
 
 		if err == controller.ErrDisconnectedNode {
 			writeConnectionFailureResponse(logger, w)

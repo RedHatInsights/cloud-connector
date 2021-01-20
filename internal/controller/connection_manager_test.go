@@ -19,7 +19,7 @@ type MockReceptor struct {
 	NodeID string
 }
 
-func (mr *MockReceptor) SendMessage(context.Context, string, string, interface{}, string) (*uuid.UUID, error) {
+func (mr *MockReceptor) SendMessage(context.Context, string, string, string, interface{}, interface{}) (*uuid.UUID, error) {
 	return nil, nil
 }
 
