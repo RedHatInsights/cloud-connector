@@ -21,9 +21,9 @@ import (
 )
 
 const (
-	CONNECTION_LIST_ENDPOINT       = "/connection"
-	CONNECTION_STATUS_ENDPOINT     = "/connection/status"
-	CONNECTION_DISCONNECT_ENDPOINT = "/connection/disconnect"
+	CONNECTION_LIST_ENDPOINT       = URL_BASE_PATH + "/connection"
+	CONNECTION_STATUS_ENDPOINT     = URL_BASE_PATH + "/connection/status"
+	CONNECTION_DISCONNECT_ENDPOINT = URL_BASE_PATH + "/connection/disconnect"
 
 	CONNECTED_ACCOUNT_NUMBER = "1234"
 	CONNECTED_NODE_ID        = "345"
@@ -52,7 +52,7 @@ var _ = Describe("Management", func() {
 		mc := MockClient{}
 		cm.Register(context.TODO(), CONNECTED_ACCOUNT_NUMBER, CONNECTED_NODE_ID, mc)
 		cfg := config.GetConfig()
-		ms = NewManagementServer(cm, apiMux, cfg)
+		ms = NewManagementServer(cm, apiMux, URL_BASE_PATH, cfg)
 		ms.Routes()
 
 		identity := `{ "identity": {"account_number": "540155", "type": "User", "internal": { "org_id": "1979710" } } }`

@@ -25,7 +25,8 @@ const (
 	TOKEN_HEADER_CLIENT_NAME  = "x-rh-receptor-controller-client-id"
 	TOKEN_HEADER_ACCOUNT_NAME = "x-rh-receptor-controller-account"
 	TOKEN_HEADER_PSK_NAME     = "x-rh-receptor-controller-psk"
-	MESSAGE_ENDPOINT          = "/message"
+	URL_BASE_PATH             = "/api/cloud-connector/api/v1"
+	MESSAGE_ENDPOINT          = URL_BASE_PATH + "/message"
 )
 
 type MockClient struct {
@@ -63,7 +64,7 @@ var _ = Describe("MessageReceiver", func() {
 		errorMC := MockClient{returnAnError: true}
 		cm.Register(context.TODO(), "1234", "error-client", errorMC)
 		cfg := config.GetConfig()
-		jr = NewMessageReceiver(cm, apiMux, cfg)
+		jr = NewMessageReceiver(cm, apiMux, URL_BASE_PATH, cfg)
 		jr.Routes()
 
 		identity := `{ "identity": {"account_number": "540155", "type": "User", "internal": { "org_id": "1979710" } } }`

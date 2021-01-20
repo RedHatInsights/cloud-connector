@@ -55,13 +55,16 @@ func main() {
 	apiMux := mux.NewRouter()
 	apiMux.Use(request_id.ConfiguredRequestID("x-rh-insights-request-id"))
 
+	apiSpecServer := api.NewApiSpecServer(apiMux, cfg.UrlBasePath, cfg.OpenApiSpecFilePath)
+	apiSpecServer.Routes()
+
 	monitoringServer := api.NewMonitoringServer(apiMux, cfg)
 	monitoringServer.Routes()
 
-	mgmtServer := api.NewManagementServer(localConnectionManager, apiMux, cfg)
+	mgmtServer := api.NewManagementServer(localConnectionManager, apiMux, cfg.UrlBasePath, cfg)
 	mgmtServer.Routes()
 
-	jr := api.NewMessageReceiver(localConnectionManager, apiMux, cfg)
+	jr := api.NewMessageReceiver(localConnectionManager, apiMux, cfg.UrlBasePath, cfg)
 	jr.Routes()
 
 	apiSrv := utils.StartHTTPServer(*mgmtAddr, "management", apiMux)
