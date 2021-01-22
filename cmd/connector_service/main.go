@@ -43,8 +43,12 @@ func main() {
 	}
 
 	localConnectionManager := controller.NewLocalConnectionManager()
-	//accountResolver := &controller.BOPAccountIdResolver{}
-	accountResolver := &controller.ConfigurableAccountIdResolver{}
+
+	accountResolver, err := controller.NewAccountIdResolver(cfg.ClientIdToAccountIdImpl, cfg)
+	if err != nil {
+		logger.Log.Fatal("Failed to create Account ID Resolver: ", err)
+	}
+
 	connectedClientRecorder := &controller.InventoryBasedConnectedClientRecorder{}
 
 	err = mqtt.NewConnectionRegistrar(*broker, *certFile, *keyFile, localConnectionManager, accountResolver, connectedClientRecorder)
