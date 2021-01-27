@@ -191,6 +191,7 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 		MessageType: "connection-status",
 		MessageID:   "1234",
 		Version:     1,
+		Sent:        time.Now(),
 		Content:     connectionStatusPayload,
 	}
 

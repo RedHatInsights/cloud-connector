@@ -18,13 +18,16 @@ const (
 	HTTP_SHUTDOWN_TIMEOUT                      = "HTTP_Shutdown_Timeout"
 	SERVICE_TO_SERVICE_CREDENTIALS             = "Service_To_Service_Credentials"
 	PROFILE                                    = "Enable_Profile"
-	BROKERS                                    = "Kafka_Brokers"
-	JOBS_TOPIC                                 = "Kafka_Jobs_Topic"
-	JOBS_GROUP_ID                              = "Kafka_Jobs_Group_Id"
-	RESPONSES_TOPIC                            = "Kafka_Responses_Topic"
-	RESPONSES_BATCH_SIZE                       = "Kafka_Responses_Batch_Size"
-	RESPONSES_BATCH_BYTES                      = "Kafka_Responses_Batch_Bytes"
-	DEFAULT_BROKER_ADDRESS                     = "kafka:29092"
+	MQTT_BROKER_ADDRESS                        = "MQTT_Broker_Address"
+	MQTT_BROKER_TLS_CERT_FILE                  = "MQTT_Broker_Tls_Cert_File"
+	MQTT_BROKER_TLS_KEY_FILE                   = "MQTT_Broker_Tls_Key_File"
+	MQTT_BROKER_TLS_CA_CERT_FILE               = "MQTT_Broker_Tls_CA_Cert_File"
+	MQTT_BROKER_TLS_SKIP_VERIFY                = "MQTT_Broker_Tls_Skip_Verify"
+	MQTT_BROKER_JWT_GENERATOR_IMPL             = "MQTT_Broker_JWT_Generator_Impl"
+	MQTT_BROKER_JWT_FILE                       = "MQTT_Broker_JWT_File"
+	DEFAULT_MQTT_BROKER_ADDRESS                = "ssl://localhost:8883"
+	KAFKA_BROKERS                              = "Kafka_Brokers"
+	DEFAULT_KAFKA_BROKER_ADDRESS               = "kafka:29092"
 	CLIENT_ID_TO_ACCOUNT_ID_IMPL               = "Client_Id_To_Account_Id_Impl"
 	CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE        = "Client_Id_To_Account_Id_Config_File"
 	CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID = "Client_Id_To_Account_Id_Default_Account_Id"
@@ -38,12 +41,14 @@ type Config struct {
 	HttpShutdownTimeout                 time.Duration
 	ServiceToServiceCredentials         map[string]interface{}
 	Profile                             bool
+	MqttBrokerAddress                   string
+	MqttBrokerTlsCertFile               string
+	MqttBrokerTlsKeyFile                string
+	MqttBrokerTlsCACertFile             string
+	MqttBrokerTlsSkipVerify             bool
+	MqttBrokerJwtGeneratorImpl          string
+	MqttBrokerJwtFile                   string
 	KafkaBrokers                        []string
-	KafkaJobsTopic                      string
-	KafkaResponsesTopic                 string
-	KafkaResponsesBatchSize             int
-	KafkaResponsesBatchBytes            int
-	KafkaGroupID                        string
 	ClientIdToAccountIdImpl             string
 	ClientIdToAccountIdConfigFile       string
 	ClientIdToAccountIdDefaultAccountId string
@@ -57,12 +62,14 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", OPENAPI_SPEC_FILE_PATH, c.OpenApiSpecFilePath)
 	fmt.Fprintf(&b, "%s: %s\n", HTTP_SHUTDOWN_TIMEOUT, c.HttpShutdownTimeout)
 	fmt.Fprintf(&b, "%s: %t\n", PROFILE, c.Profile)
-	fmt.Fprintf(&b, "%s: %s\n", BROKERS, c.KafkaBrokers)
-	fmt.Fprintf(&b, "%s: %s\n", JOBS_TOPIC, c.KafkaJobsTopic)
-	fmt.Fprintf(&b, "%s: %s\n", RESPONSES_TOPIC, c.KafkaResponsesTopic)
-	fmt.Fprintf(&b, "%s: %d\n", RESPONSES_BATCH_SIZE, c.KafkaResponsesBatchSize)
-	fmt.Fprintf(&b, "%s: %d\n", RESPONSES_BATCH_BYTES, c.KafkaResponsesBatchBytes)
-	fmt.Fprintf(&b, "%s: %s\n", JOBS_GROUP_ID, c.KafkaGroupID)
+	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_ADDRESS, c.MqttBrokerAddress)
+	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_TLS_CERT_FILE, c.MqttBrokerTlsCertFile)
+	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_TLS_KEY_FILE, c.MqttBrokerTlsKeyFile)
+	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_TLS_CA_CERT_FILE, c.MqttBrokerTlsCACertFile)
+	fmt.Fprintf(&b, "%s: %v\n", MQTT_BROKER_TLS_SKIP_VERIFY, c.MqttBrokerTlsSkipVerify)
+	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_JWT_GENERATOR_IMPL, c.MqttBrokerJwtGeneratorImpl)
+	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_JWT_FILE, c.MqttBrokerJwtFile)
+	fmt.Fprintf(&b, "%s: %s\n", KAFKA_BROKERS, c.KafkaBrokers)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_IMPL, c.ClientIdToAccountIdImpl)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE, c.ClientIdToAccountIdConfigFile)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID, c.ClientIdToAccountIdDefaultAccountId)
@@ -79,13 +86,11 @@ func GetConfig() *Config {
 	options.SetDefault(HTTP_SHUTDOWN_TIMEOUT, 2)
 	options.SetDefault(SERVICE_TO_SERVICE_CREDENTIALS, "")
 	options.SetDefault(PROFILE, false)
-	options.SetDefault(BROKERS, []string{DEFAULT_BROKER_ADDRESS})
-	options.SetDefault(JOBS_TOPIC, "platform.receptor-controller.jobs")
-	options.SetDefault(RESPONSES_TOPIC, "platform.receptor-controller.responses")
-	options.SetDefault(RESPONSES_BATCH_SIZE, 100)
-	options.SetDefault(RESPONSES_BATCH_BYTES, 1048576)
-	options.SetDefault(JOBS_GROUP_ID, "cloud-connector-consumer")
-
+	options.SetDefault(KAFKA_BROKERS, []string{DEFAULT_KAFKA_BROKER_ADDRESS})
+	options.SetDefault(MQTT_BROKER_ADDRESS, DEFAULT_MQTT_BROKER_ADDRESS)
+	options.SetDefault(MQTT_BROKER_TLS_SKIP_VERIFY, false)
+	options.SetDefault(MQTT_BROKER_JWT_GENERATOR_IMPL, "jwt_file_reader")
+	options.SetDefault(MQTT_BROKER_JWT_FILE, "cloud-connector-mqtt-jwt.txt")
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_IMPL, "config_file_based")
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE, "client_id_to_account_id_map.json")
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID, "111000")
@@ -101,12 +106,14 @@ func GetConfig() *Config {
 		HttpShutdownTimeout:                 options.GetDuration(HTTP_SHUTDOWN_TIMEOUT) * time.Second,
 		ServiceToServiceCredentials:         options.GetStringMap(SERVICE_TO_SERVICE_CREDENTIALS),
 		Profile:                             options.GetBool(PROFILE),
-		KafkaBrokers:                        options.GetStringSlice(BROKERS),
-		KafkaJobsTopic:                      options.GetString(JOBS_TOPIC),
-		KafkaResponsesTopic:                 options.GetString(RESPONSES_TOPIC),
-		KafkaResponsesBatchSize:             options.GetInt(RESPONSES_BATCH_SIZE),
-		KafkaResponsesBatchBytes:            options.GetInt(RESPONSES_BATCH_BYTES),
-		KafkaGroupID:                        options.GetString(JOBS_GROUP_ID),
+		KafkaBrokers:                        options.GetStringSlice(KAFKA_BROKERS),
+		MqttBrokerAddress:                   options.GetString(MQTT_BROKER_ADDRESS),
+		MqttBrokerTlsCertFile:               options.GetString(MQTT_BROKER_TLS_CERT_FILE),
+		MqttBrokerTlsKeyFile:                options.GetString(MQTT_BROKER_TLS_KEY_FILE),
+		MqttBrokerTlsCACertFile:             options.GetString(MQTT_BROKER_TLS_CA_CERT_FILE),
+		MqttBrokerTlsSkipVerify:             options.GetBool(MQTT_BROKER_TLS_SKIP_VERIFY),
+		MqttBrokerJwtGeneratorImpl:          options.GetString(MQTT_BROKER_JWT_GENERATOR_IMPL),
+		MqttBrokerJwtFile:                   options.GetString(MQTT_BROKER_JWT_FILE),
 		ClientIdToAccountIdImpl:             options.GetString(CLIENT_ID_TO_ACCOUNT_ID_IMPL),
 		ClientIdToAccountIdConfigFile:       options.GetString(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE),
 		ClientIdToAccountIdDefaultAccountId: options.GetString(CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID),

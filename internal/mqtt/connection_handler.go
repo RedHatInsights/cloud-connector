@@ -3,17 +3,19 @@ package mqtt
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 
+	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/jwt_utils"
 
 	"github.com/sirupsen/logrus"
 )
@@ -25,77 +27,55 @@ const (
 	DATA_MESSAGE_OUTGOING_TOPIC    string = "redhat/insights/%s/data/in"
 )
 
-func NewTLSConfig(certFilePath string, keyFilePath string) (*tls.Config, error) {
-	// Import trusted certificates from CAfile.pem.
-	// Alternatively, manually add CA certificates to
-	// default openssl CA bundle.
-	/*
-	   certpool := x509.NewCertPool()
-	   pemCerts, err := ioutil.ReadFile("samplecerts/CAfile.pem")
-	   if err == nil {
-	       certpool.AppendCertsFromPEM(pemCerts)
-	   }
-	*/
+type SubscriberMap map[string]MQTT.MessageHandler
 
-	// Import client certificate/key pair
-	cert, err := tls.LoadX509KeyPair(certFilePath, keyFilePath)
+func buildBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config) ([]MqttClientOptionsFunc, error) {
+
+	u, err := url.Parse(brokerUrl)
 	if err != nil {
+		logger.Log.WithFields(logrus.Fields{"error": err}).Fatalf("Unable to determine protocol for MQTT connection")
 		return nil, err
 	}
 
-	// Just to print out the client certificate..
-	cert.Leaf, err = x509.ParseCertificate(cert.Certificate[0])
-	if err != nil {
-		return nil, err
+	brokerConfigFuncs := []MqttClientOptionsFunc{}
+
+	if tlsConfig != nil {
+		brokerConfigFuncs = append(brokerConfigFuncs, WithTlsConfig(tlsConfig))
 	}
 
-	// Create tls.Config with desired tls properties
-	tlsConfig := &tls.Config{
-		// RootCAs = certs used to verify server cert.
-		//RootCAs: certpool,
-		// ClientAuth = whether to request cert from server.
-		// Since the server is set up for SSL, this happens
-		// anyways.
-		//ClientAuth: tls.NoClientCert,
-		// ClientCAs = certs used to validate client cert.
-		//ClientCAs: nil,
-		// InsecureSkipVerify = verify that cert contents
-		// match server. IP matches what is in cert etc.
-		InsecureSkipVerify: true,
-		// Certificates = list of certs client sends to server.
-		Certificates: []tls.Certificate{cert},
+	if u.Scheme == "wss" {
+		jwtGenerator, err := jwt_utils.NewJwtGenerator(cfg.MqttBrokerJwtGeneratorImpl, cfg)
+		if err != nil {
+			logger.Log.WithFields(logrus.Fields{"error": err}).Fatalf("Unable to instantiate a JWT generator")
+			return nil, err
+		}
+
+		brokerConfigFuncs = append(brokerConfigFuncs, WithJwtAsHttpHeader(jwtGenerator))
 	}
 
-	return tlsConfig, nil
+	return brokerConfigFuncs, nil
 }
 
-type ConnectionRegistrar struct {
-	connectionRegistrar     controller.ConnectionRegistrar
-	accountResolver         controller.AccountIdResolver
-	connectedClientRecorder controller.ConnectedClientRecorder
-}
+func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config, subscribers SubscriberMap) error {
 
-func NewConnectionRegistrar(brokerUri string, certFilePath string, certKeyPath string, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder) error {
-
-	tlsconfig, err := NewTLSConfig(certFilePath, certKeyPath)
+	brokerConfigFuncs, err := buildBrokerConfigFuncList(brokerUrl, tlsConfig, cfg)
 	if err != nil {
-		logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to config TLS for the MQTT broker connection")
+		logger.Log.WithFields(logrus.Fields{"error": err}).Fatalf("MQTT Broker configuration error")
 		return err
 	}
 
-	connOpts := MQTT.NewClientOptions()
-
-	connOpts.AddBroker(brokerUri)
-
-	connOpts.SetTLSConfig(tlsconfig)
-
-	recordConnection := controlMessageHandler(connectionRegistrar, accountResolver, connectedClientRecorder)
+	connOpts, err := NewBrokerOptions(brokerUrl, brokerConfigFuncs...)
+	if err != nil {
+		logger.Log.WithFields(logrus.Fields{"error": err}).Fatalf("Unable to build MQTT ClientOptions")
+		return err
+	}
 
 	connOpts.OnConnect = func(c MQTT.Client) {
-		topic := CONTROL_MESSAGE_INCOMING_TOPIC
-		logger.Log.Info("Subscribing to topic: ", topic)
-		if token := c.Subscribe(topic, 0, recordConnection); token.Wait() && token.Error() != nil {
-			logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Fatalf("Subscribing to topic (%s) failed", topic)
+		for topic, entryPoint := range subscribers {
+			logger.Log.Info("Subscribing to topic: ", topic)
+			if token := c.Subscribe(topic, 2, entryPoint); token.Wait() && token.Error() != nil {
+				logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Fatalf("Subscribing to topic (%s) failed", topic)
+			}
 		}
 	}
 
@@ -105,12 +85,12 @@ func NewConnectionRegistrar(brokerUri string, certFilePath string, certKeyPath s
 		return token.Error()
 	}
 
-	logger.Log.Info("Connected to broker: ", brokerUri)
+	logger.Log.Info("Connected to broker: ", brokerUrl)
 
 	return nil
 }
 
-func controlMessageHandler(connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder) func(MQTT.Client, MQTT.Message) {
+func ControlMessageHandler(connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder) func(MQTT.Client, MQTT.Message) {
 	return func(client MQTT.Client, message MQTT.Message) {
 		logger.Log.Debugf("Received message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
 
@@ -264,4 +244,10 @@ func connectionEvent(account domain.AccountID, clientID domain.ClientID, canonic
 
 func disconnectionEvent(account domain.AccountID, clientID domain.ClientID) {
 	fmt.Println("FIXME: send lost connection kafka message")
+}
+
+func DataMessageHandler() func(MQTT.Client, MQTT.Message) {
+	return func(client MQTT.Client, message MQTT.Message) {
+		logger.Log.Debugf("Received message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
+	}
 }
