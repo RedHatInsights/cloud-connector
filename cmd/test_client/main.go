@@ -17,6 +17,7 @@ import (
 
 	Connector "github.com/RedHatInsights/cloud-connector/internal/mqtt"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
+	"github.com/google/uuid"
 )
 
 func NewTLSConfig(certFile string, keyFile string) (*tls.Config, string) {
@@ -224,6 +225,40 @@ func onMessageReceived(client MQTT.Client, message MQTT.Message) {
 	fmt.Println("Got a message:", connMsg)
 
 	switch connMsg.MessageType {
+	case "command":
+		fmt.Println("Got a command message")
+		commandPayload := connMsg.Content.(map[string]interface{})
+
+		if commandPayload["command"] == "ping" {
+			fmt.Println("Got a ping command")
+
+			messageID, _ := uuid.NewRandom()
+
+			pongMessage := Connector.EventMessage{
+				MessageType: "event",
+				MessageID:   messageID.String(),
+				Version:     1,
+				Sent:        time.Now(),
+				Content:     "pong",
+			}
+
+			messageBytes, err := json.Marshal(pongMessage)
+			if err != nil {
+				fmt.Println("ERROR marshalling pong message: ", err)
+				return
+			}
+
+			topic := "redhat/insights/client-1/control/out"
+			fmt.Println("sending pong response on ", topic)
+			t := client.Publish(topic, byte(0), false, messageBytes)
+			go func() {
+				_ = t.Wait() // Can also use '<-t.Done()' in releases > 1.2.0
+				if t.Error() != nil {
+					fmt.Println("public error:", t.Error())
+				}
+			}()
+		}
+
 	case "work":
 		fmt.Println("payload: ", connMsg.Content)
 		fmt.Printf("type(payload): %T", connMsg.Content)

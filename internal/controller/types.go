@@ -14,5 +14,6 @@ var (
 
 type Receptor interface {
 	SendMessage(context.Context, string, string, string, interface{}, interface{}) (*uuid.UUID, error)
+	Ping(context.Context, string, string) error
 	Close(context.Context) error
 }
