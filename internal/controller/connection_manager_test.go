@@ -23,6 +23,10 @@ func (mr *MockReceptor) SendMessage(context.Context, string, string, string, int
 	return nil, nil
 }
 
+func (mr *MockReceptor) Ping(context.Context, string, string) (error) {
+	return nil
+}
+
 func (mr *MockReceptor) Close(context.Context) error {
 	return nil
 }

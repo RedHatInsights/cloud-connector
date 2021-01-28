@@ -41,6 +41,13 @@ func (mc MockClient) SendMessage(ctx context.Context, account string, recipient 
 	return &myUUID, nil
 }
 
+func (mc MockClient) Ping(ctx context.Context, account string, recipient string) (error) {
+	if mc.returnAnError {
+		return errors.New("ImaError")
+	}
+	return nil
+}
+
 func (mc MockClient) Close(context.Context) error {
 	return nil
 }
