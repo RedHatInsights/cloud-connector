@@ -115,7 +115,7 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 
 	//clientID := fmt.Sprintf("client-%s-%d", hostname, i)
 
-	connOpts.SetClientID(clientID).SetTLSConfig(tlsconfig)
+	connOpts.SetClientID(clientID)
 	//connOpts.SetCleanSession(true)
 	//connOpts.SetUsername(username)
 	//connOpts.SetPassword(username)
@@ -127,6 +127,7 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 		MessageType: "connection-status",
 		MessageID:   "5678",
 		Version:     1,
+		Sent:        time.Now(),
 		Content:     connectionStatusMsgPayload,
 	}
 	payload, err := json.Marshal(lastWillMsg)

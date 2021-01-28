@@ -1,10 +1,14 @@
 package mqtt
 
+import (
+	"time"
+)
+
 type ControlMessage struct {
 	MessageType string      `json:"type"`
 	MessageID   string      `json:"message_id"`
 	Version     int         `json:"version"`
-	Sent        string      `json:"sent"`
+	Sent        time.Time   `json:"sent"`
 	Content     interface{} `json:"content"`
 }
 
@@ -22,12 +26,12 @@ type CommandMessageContent struct {
 }
 
 type EventMessage struct {
-	MessageType string `json:"type"`
-	MessageID   string `json:"message_id"`
-	ResponseTo  string `json:"response_to"`
-	Version     int    `json:"version"`
-	Sent        string `json:"sent"`
-	Content     string `json:"content"`
+	MessageType string    `json:"type"`
+	MessageID   string    `json:"message_id"`
+	ResponseTo  string    `json:"response_to"`
+	Version     int       `json:"version"`
+	Sent        time.Time `json:"sent"`
+	Content     string    `json:"content"`
 }
 
 type EventMessageContent string // FIXME:  interface{} ??
@@ -52,7 +56,7 @@ type DataMessage struct {
 	MessageID   string      `json:"message_id"`
 	ResponseTo  string      `json:"response_to"`
 	Version     int         `json:"version"`
-	Sent        string      `json:"sent"`
+	Sent        time.Time   `json:"sent"`
 	Directive   string      `json:"directive"`
 	Metadata    interface{} `json:"metadata"`
 	Content     interface{} `json:"content"`

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
@@ -35,6 +36,7 @@ func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber str
 		MessageType: "data",
 		MessageID:   messageID.String(),
 		Version:     1,
+		Sent:        time.Now(),
 		Metadata:    metadata,
 		Directive:   directive,
 		Content:     payload,
