@@ -29,7 +29,7 @@ func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber str
 
 	fmt.Println("Sending message to connected client")
 
-	topic := fmt.Sprintf("redhat/insights/%s/out", rhp.ClientID)
+	topic := fmt.Sprintf(DATA_MESSAGE_OUTGOING_TOPIC, rhp.ClientID)
 	fmt.Println("topic: ", topic)
 
 	message := DataMessage{
@@ -53,6 +53,40 @@ func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber str
 	}()
 
 	return &messageID, nil
+}
+
+func (rhp *ReceptorMQTTProxy) Ping(ctx context.Context, accountNumber string, recipient string) error {
+	messageID, err := uuid.NewRandom()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Sending ping message to connected client")
+
+	topic := fmt.Sprintf(CONTROL_MESSAGE_OUTGOING_TOPIC, rhp.ClientID)
+	fmt.Println("topic: ", topic)
+
+	commandMessageContent := CommandMessageContent{Command: "ping"}
+
+	message := ControlMessage{
+		MessageType: "command",
+		MessageID:   messageID.String(),
+		Version:     1,
+		Sent:        time.Now(),
+		Content:     commandMessageContent,
+	}
+
+	messageBytes, err := json.Marshal(message)
+
+	t := rhp.Client.Publish(topic, byte(0), false, messageBytes)
+	go func() {
+		_ = t.Wait() // Can also use '<-t.Done()' in releases > 1.2.0
+		if t.Error() != nil {
+			fmt.Println("public error:", t.Error())
+		}
+	}()
+
+	return nil
 }
 
 func (rhp *ReceptorMQTTProxy) Close(ctx context.Context) error {
