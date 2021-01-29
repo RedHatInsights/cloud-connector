@@ -19,10 +19,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func verifyConfiguration(cfg *config.Config) error {
-	return nil
-}
-
 func logFatalError(msg string, err error) {
 	logger.Log.WithFields(logrus.Fields{"error": err}).Fatal(msg)
 }
@@ -41,11 +37,6 @@ func main() {
 
 	cfg := config.GetConfig()
 	logger.Log.Info("Receptor Controller configuration:\n", cfg)
-
-	err := verifyConfiguration(cfg)
-	if err != nil {
-		logFatalError("Configuration error encountered during startup", err)
-	}
 
 	localConnectionManager := controller.NewLocalConnectionManager()
 
