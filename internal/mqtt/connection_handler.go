@@ -207,7 +207,7 @@ func handleOnlineMessage(client MQTT.Client, account domain.AccountID, clientID 
 
 	connectionEvent(account, clientID, msg.Content)
 
-	proxy := ReceptorMQTTProxy{ClientID: string(clientID), Client: client}
+	proxy := ReceptorMQTTProxy{ClientID: string(clientID), Client: client, Logger: logger}
 
 	connectionRegistrar.Register(context.Background(), string(account), string(clientID), &proxy)
 	// FIXME: check for error, but ignore duplicate registration errors
