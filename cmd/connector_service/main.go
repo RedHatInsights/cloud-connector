@@ -16,10 +16,15 @@ import (
 	"github.com/redhatinsights/platform-go-middlewares/request_id"
 
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 )
 
 func verifyConfiguration(cfg *config.Config) error {
 	return nil
+}
+
+func logFatalError(msg string, err error) {
+	logger.Log.WithFields(logrus.Fields{"error": err}).Fatal(msg)
 }
 
 func main() {
@@ -39,21 +44,21 @@ func main() {
 
 	err := verifyConfiguration(cfg)
 	if err != nil {
-		logger.Log.Fatal("Configuration error encountered during startup: ", err)
+		logFatalError("Configuration error encountered during startup", err)
 	}
 
 	localConnectionManager := controller.NewLocalConnectionManager()
 
 	accountResolver, err := controller.NewAccountIdResolver(cfg.ClientIdToAccountIdImpl, cfg)
 	if err != nil {
-		logger.Log.Fatal("Failed to create Account ID Resolver: ", err)
+		logFatalError("Failed to create Account ID Resolver", err)
 	}
 
 	connectedClientRecorder := &controller.InventoryBasedConnectedClientRecorder{}
 
 	err = mqtt.NewConnectionRegistrar(*broker, *certFile, *keyFile, localConnectionManager, accountResolver, connectedClientRecorder)
 	if err != nil {
-		logger.Log.Fatal("Failed to connect to MQTT broker: ", err)
+		logFatalError("Failed to connect to MQTT broker", err)
 	}
 
 	apiMux := mux.NewRouter()
