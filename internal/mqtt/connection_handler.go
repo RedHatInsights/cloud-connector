@@ -120,7 +120,7 @@ func controlMessageHandler(connectionRegistrar controller.ConnectionRegistrar, a
 			return
 		}
 
-		logger := logger.Log.WithFields(logrus.Fields{"clientID": clientID})
+		logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 
 		if message.Payload() == nil || len(message.Payload()) == 0 {
 			// This will happen when a retained message is removed
@@ -151,7 +151,7 @@ func controlMessageHandler(connectionRegistrar controller.ConnectionRegistrar, a
 func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder) error {
 
 	// FIXME: pass the logger around
-	logger := logger.Log.WithFields(logrus.Fields{"clientID": clientID})
+	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 
 	logger.Debug("handling connection status control message")
 
@@ -186,7 +186,7 @@ func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID,
 func handleOnlineMessage(client MQTT.Client, account domain.AccountID, clientID domain.ClientID, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar, connectedClientRecorder controller.ConnectedClientRecorder) error {
 
 	// FIXME: pass the logger around
-	logger := logger.Log.WithFields(logrus.Fields{"clientID": clientID, "account": account})
+	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID, "account": account})
 
 	logger.Debug("handling online connection-status message")
 
@@ -218,7 +218,7 @@ func handleOnlineMessage(client MQTT.Client, account domain.AccountID, clientID 
 func handleOfflineMessage(client MQTT.Client, account domain.AccountID, clientID domain.ClientID, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
 
 	// FIXME: pass the logger around
-	logger := logger.Log.WithFields(logrus.Fields{"clientID": clientID, "account": account})
+	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID, "account": account})
 
 	logger.Debug("handling offline connection-status message")
 
