@@ -33,10 +33,10 @@ func main() {
 
 	logger.InitLogger()
 
-	logger.Log.Info("Starting Receptor-Controller Job-Receiver service")
+	logger.Log.Info("Starting Cloud-Connector service")
 
 	cfg := config.GetConfig()
-	logger.Log.Info("Receptor Controller configuration:\n", cfg)
+	logger.Log.Info("Cloud-Connector configuration:\n", cfg)
 
 	localConnectionManager := controller.NewLocalConnectionManager()
 
@@ -81,5 +81,5 @@ func main() {
 
 	utils.ShutdownHTTPServer(ctx, "management", apiSrv)
 
-	logger.Log.Info("Receptor-Controller shutting down")
+	logger.Log.Info("Cloud-Connector shutting down")
 }
