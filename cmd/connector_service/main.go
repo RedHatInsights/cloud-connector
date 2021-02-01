@@ -62,9 +62,18 @@ func main() {
 
 	connectedClientRecorder := &controller.InventoryBasedConnectedClientRecorder{}
 
-	subscribers := mqtt.SubscriberMap{
-		"redhat/insights/+/control/out": mqtt.ControlMessageHandler(localConnectionManager, accountResolver, connectedClientRecorder),
-		"redhat/insights/+/data/out":    mqtt.DataMessageHandler()}
+	subscribers := []mqtt.Subscriber{
+		mqtt.Subscriber{
+			Topic:      "redhat/insights/+/control/out",
+			EntryPoint: mqtt.ControlMessageHandler(localConnectionManager, accountResolver, connectedClientRecorder),
+			Qos:        0,
+		},
+		mqtt.Subscriber{
+			Topic:      "redhat/insights/+/data/out",
+			EntryPoint: mqtt.DataMessageHandler(),
+			Qos:        0,
+		},
+	}
 
 	err = mqtt.RegisterSubscribers(cfg.MqttBrokerAddress, tlsConfig, cfg, subscribers)
 	if err != nil {

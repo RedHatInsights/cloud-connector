@@ -27,13 +27,17 @@ const (
 	DATA_MESSAGE_OUTGOING_TOPIC    string = "redhat/insights/%s/data/in"
 )
 
-type SubscriberMap map[string]MQTT.MessageHandler
+type Subscriber struct {
+	Topic      string
+	EntryPoint MQTT.MessageHandler
+	Qos        byte
+}
 
 func buildBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config) ([]MqttClientOptionsFunc, error) {
 
 	u, err := url.Parse(brokerUrl)
 	if err != nil {
-		logger.Log.WithFields(logrus.Fields{"error": err}).Fatalf("Unable to determine protocol for MQTT connection")
+		logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to determine protocol for the MQTT connection")
 		return nil, err
 	}
 
@@ -46,7 +50,7 @@ func buildBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *con
 	if u.Scheme == "wss" {
 		jwtGenerator, err := jwt_utils.NewJwtGenerator(cfg.MqttBrokerJwtGeneratorImpl, cfg)
 		if err != nil {
-			logger.Log.WithFields(logrus.Fields{"error": err}).Fatalf("Unable to instantiate a JWT generator")
+			logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to instantiate a JWT generator for the MQTT connection")
 			return nil, err
 		}
 
@@ -56,36 +60,35 @@ func buildBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *con
 	return brokerConfigFuncs, nil
 }
 
-func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config, subscribers SubscriberMap) error {
+func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config, subscribers []Subscriber) error {
 
 	brokerConfigFuncs, err := buildBrokerConfigFuncList(brokerUrl, tlsConfig, cfg)
 	if err != nil {
-		logger.Log.WithFields(logrus.Fields{"error": err}).Fatalf("MQTT Broker configuration error")
+		logger.Log.WithFields(logrus.Fields{"error": err}).Error("MQTT Broker configuration error")
 		return err
 	}
 
 	connOpts, err := NewBrokerOptions(brokerUrl, brokerConfigFuncs...)
 	if err != nil {
-		logger.Log.WithFields(logrus.Fields{"error": err}).Fatalf("Unable to build MQTT ClientOptions")
+		logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to build MQTT ClientOptions")
 		return err
 	}
 
-	connOpts.OnConnect = func(c MQTT.Client) {
-		for topic, entryPoint := range subscribers {
-			logger.Log.Info("Subscribing to topic: ", topic)
-			if token := c.Subscribe(topic, 2, entryPoint); token.Wait() && token.Error() != nil {
-				logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Fatalf("Subscribing to topic (%s) failed", topic)
-			}
-		}
-	}
-
-	client := MQTT.NewClient(connOpts)
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
+	mqttClient := MQTT.NewClient(connOpts)
+	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
 		logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Error("Unable to connect to MQTT broker")
 		return token.Error()
 	}
 
-	logger.Log.Info("Connected to broker: ", brokerUrl)
+	logger.Log.Info("Connected to MQTT broker: ", brokerUrl)
+
+	for _, subscriber := range subscribers {
+		logger.Log.Info("Subscribing to MQTT topic: ", subscriber.Topic)
+		if token := mqttClient.Subscribe(subscriber.Topic, subscriber.Qos, subscriber.EntryPoint); token.Wait() && token.Error() != nil {
+			logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Error("Subscribing to MQTT topic (%s) failed", subscriber.Topic)
+			return token.Error()
+		}
+	}
 
 	return nil
 }
