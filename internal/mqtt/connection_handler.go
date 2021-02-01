@@ -85,7 +85,7 @@ func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Co
 	for _, subscriber := range subscribers {
 		logger.Log.Info("Subscribing to MQTT topic: ", subscriber.Topic)
 		if token := mqttClient.Subscribe(subscriber.Topic, subscriber.Qos, subscriber.EntryPoint); token.Wait() && token.Error() != nil {
-			logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Error("Subscribing to MQTT topic (%s) failed", subscriber.Topic)
+			logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Errorf("Subscribing to MQTT topic (%s) failed", subscriber.Topic)
 			return token.Error()
 		}
 	}
