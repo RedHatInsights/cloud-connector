@@ -42,6 +42,42 @@ func WithTlsConfig(tlsConfig *tls.Config) MqttClientOptionsFunc {
 	}
 }
 
+func WithClientID(clientID string) MqttClientOptionsFunc {
+	return func(opts *MQTT.ClientOptions) error {
+		fmt.Printf("SETTING THE CLIENT ID: %s\n", clientID)
+
+		opts.SetClientID(clientID)
+		return nil
+	}
+}
+
+func WithCleanSession(cleanSession bool) MqttClientOptionsFunc {
+	return func(opts *MQTT.ClientOptions) error {
+		fmt.Printf("SETTING THE CLEAN SESSION: %v\n", cleanSession)
+
+		opts.SetCleanSession(cleanSession)
+		return nil
+	}
+}
+
+func WithResumeSubs(resumeSubs bool) MqttClientOptionsFunc {
+	return func(opts *MQTT.ClientOptions) error {
+		fmt.Printf("SETTING THE RESUME SUBS: %v\n", resumeSubs)
+
+		opts.SetResumeSubs(resumeSubs)
+		return nil
+	}
+}
+
+func WithDefaultPublishHandler(msgHdlr MQTT.MessageHandler) MqttClientOptionsFunc {
+	return func(opts *MQTT.ClientOptions) error {
+		fmt.Println("SETTING THE DEFAULT PUBLISH HANDLER")
+
+		opts.SetDefaultPublishHandler(msgHdlr)
+		return nil
+	}
+}
+
 func NewBrokerOptions(brokerUrl string, opts ...MqttClientOptionsFunc) (*MQTT.ClientOptions, error) {
 	connOpts := MQTT.NewClientOptions()
 

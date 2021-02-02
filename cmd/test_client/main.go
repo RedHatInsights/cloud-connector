@@ -1,14 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"flag"
 	"fmt"
-	//"log"
-	"bufio"
+	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -67,13 +67,13 @@ func NewTLSConfig(certFile string, keyFile string) (*tls.Config, string) {
 
 func main() {
 
+	logger := log.New(os.Stderr, "", log.LstdFlags)
 	/*
-	   logger := log.New(os.Stderr, "", log.LstdFlags)
 	   MQTT.ERROR = logger
 	   MQTT.CRITICAL = logger
 	   MQTT.WARN = logger
-	   MQTT.DEBUG = logger
 	*/
+	MQTT.DEBUG = logger
 
 	connectionCount := flag.Int("connection_count", 1, "number of connections to create")
 	broker := flag.String("broker", "tcp://eclipse-mosquitto:1883", "hostname / port of broker")
@@ -89,7 +89,7 @@ func main() {
 	}
 
 	<-c
-
+	fmt.Println("Client going down...disconnecting from mqtt uncleanly")
 }
 
 var m MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
@@ -138,35 +138,27 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 		panic(err)
 	}
 
-	connOpts.SetWill(controlWriteTopic, string(payload), byte(0), true)
+	retained := false
+	qos := byte(1)
 
-	//lastWillPayload, err := buildDisconnectMessage(clientID)
-	//connOpts.SetWill(writeTopic, string(lastWillPayload), byte(0), false)
+	fmt.Println("last-will - publishing to topic:", controlWriteTopic)
+	fmt.Println("last-will -  retained: ", retained)
+	fmt.Println("last-will - qos: ", qos)
 
-	//    connOpts.SetDefaultPublishHandler(m)
+	connOpts.SetWill(controlWriteTopic, string(payload), qos, retained)
 
-	connOpts.OnConnect = func(c MQTT.Client) {
+	connOpts.SetOnConnectHandler(func(client MQTT.Client) {
 		fmt.Println("*** OnConnect - subscribing to topic:", controlReadTopic)
-		if token := c.Subscribe(controlReadTopic, 0, onMessageReceived); token.Wait() && token.Error() != nil {
+		if token := client.Subscribe(controlReadTopic, 0, onMessageReceived); token.Wait() && token.Error() != nil {
 			panic(token.Error())
 		}
-	}
+	})
 
 	client := MQTT.NewClient(connOpts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {
 		panic(token.Error())
 	}
 	fmt.Println("Connected to server ", broker)
-
-	/* Verify that this client cannot publish to a different client's topic
-	   topic = fmt.Sprintf("redhat/insights/%s/in", "client-10")
-	   payload = fmt.Sprintf(`{"id": "%s"}`, "client-10")
-	*/
-
-	/* SPOOF the payload
-	   spoofPayload := `{"id": "client-NO"}`
-	   payload = spoofPayload
-	*/
 
 	cf := Connector.CanonicalFacts{
 		InsightsID:            "1234",
@@ -203,9 +195,10 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 	}
 
 	fmt.Println("publishing to topic:", controlWriteTopic)
-	client.Publish(controlWriteTopic, byte(0), true, payload)
+	fmt.Println("retained: ", retained)
+	fmt.Println("qos: ", qos)
+	client.Publish(controlWriteTopic, qos, retained, payload)
 	fmt.Printf("Published message %s... Sleeping...\n", payload)
-	time.Sleep(time.Second * 10)
 }
 
 func onMessageReceived(client MQTT.Client, message MQTT.Message) {

@@ -62,20 +62,25 @@ func main() {
 
 	connectedClientRecorder := &controller.InventoryBasedConnectedClientRecorder{}
 
+	controlMsgHandler := mqtt.ControlMessageHandler(localConnectionManager, accountResolver, connectedClientRecorder)
+	dataMsgHandler := mqtt.DataMessageHandler()
+
+	defaultMsgHandler := mqtt.DefaultMessageHandler(controlMsgHandler, dataMsgHandler)
+
 	subscribers := []mqtt.Subscriber{
 		mqtt.Subscriber{
 			Topic:      "redhat/insights/+/control/out",
-			EntryPoint: mqtt.ControlMessageHandler(localConnectionManager, accountResolver, connectedClientRecorder),
-			Qos:        0,
+			EntryPoint: controlMsgHandler,
+			Qos:        1,
 		},
 		mqtt.Subscriber{
 			Topic:      "redhat/insights/+/data/out",
-			EntryPoint: mqtt.DataMessageHandler(),
+			EntryPoint: dataMsgHandler,
 			Qos:        0,
 		},
 	}
 
-	err = mqtt.RegisterSubscribers(cfg.MqttBrokerAddress, tlsConfig, cfg, subscribers)
+	err = mqtt.RegisterSubscribers(cfg.MqttBrokerAddress, tlsConfig, cfg, subscribers, defaultMsgHandler)
 	if err != nil {
 		logFatalError("Failed to connect to MQTT broker", err)
 	}

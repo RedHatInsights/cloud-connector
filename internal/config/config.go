@@ -19,6 +19,9 @@ const (
 	SERVICE_TO_SERVICE_CREDENTIALS             = "Service_To_Service_Credentials"
 	PROFILE                                    = "Enable_Profile"
 	MQTT_BROKER_ADDRESS                        = "MQTT_Broker_Address"
+	MQTT_CLIENT_ID                             = "MQTT_Client_Id"
+	MQTT_CLEAN_SESSION                         = "MQTT_Clean_Session"
+	MQTT_RESUME_SUBS                           = "MQTT_Resume_Subs"
 	MQTT_BROKER_TLS_CERT_FILE                  = "MQTT_Broker_Tls_Cert_File"
 	MQTT_BROKER_TLS_KEY_FILE                   = "MQTT_Broker_Tls_Key_File"
 	MQTT_BROKER_TLS_CA_CERT_FILE               = "MQTT_Broker_Tls_CA_Cert_File"
@@ -42,6 +45,9 @@ type Config struct {
 	ServiceToServiceCredentials         map[string]interface{}
 	Profile                             bool
 	MqttBrokerAddress                   string
+	MqttClientId                        string
+	MqttCleanSession                    bool
+	MqttResumeSubs                      bool
 	MqttBrokerTlsCertFile               string
 	MqttBrokerTlsKeyFile                string
 	MqttBrokerTlsCACertFile             string
@@ -63,6 +69,9 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", HTTP_SHUTDOWN_TIMEOUT, c.HttpShutdownTimeout)
 	fmt.Fprintf(&b, "%s: %t\n", PROFILE, c.Profile)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_ADDRESS, c.MqttBrokerAddress)
+	fmt.Fprintf(&b, "%s: %s\n", MQTT_CLIENT_ID, c.MqttClientId)
+	fmt.Fprintf(&b, "%s: %v\n", MQTT_CLEAN_SESSION, c.MqttCleanSession)
+	fmt.Fprintf(&b, "%s: %v\n", MQTT_RESUME_SUBS, c.MqttResumeSubs)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_TLS_CERT_FILE, c.MqttBrokerTlsCertFile)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_TLS_KEY_FILE, c.MqttBrokerTlsKeyFile)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_TLS_CA_CERT_FILE, c.MqttBrokerTlsCACertFile)
@@ -88,6 +97,9 @@ func GetConfig() *Config {
 	options.SetDefault(PROFILE, false)
 	options.SetDefault(KAFKA_BROKERS, []string{DEFAULT_KAFKA_BROKER_ADDRESS})
 	options.SetDefault(MQTT_BROKER_ADDRESS, DEFAULT_MQTT_BROKER_ADDRESS)
+	options.SetDefault(MQTT_CLIENT_ID, "connector-service")
+	options.SetDefault(MQTT_CLEAN_SESSION, false)
+	options.SetDefault(MQTT_RESUME_SUBS, true)
 	options.SetDefault(MQTT_BROKER_TLS_SKIP_VERIFY, false)
 	options.SetDefault(MQTT_BROKER_JWT_GENERATOR_IMPL, "jwt_file_reader")
 	options.SetDefault(MQTT_BROKER_JWT_FILE, "cloud-connector-mqtt-jwt.txt")
@@ -108,6 +120,9 @@ func GetConfig() *Config {
 		Profile:                             options.GetBool(PROFILE),
 		KafkaBrokers:                        options.GetStringSlice(KAFKA_BROKERS),
 		MqttBrokerAddress:                   options.GetString(MQTT_BROKER_ADDRESS),
+		MqttClientId:                        options.GetString(MQTT_CLIENT_ID),
+		MqttCleanSession:                    options.GetBool(MQTT_CLEAN_SESSION),
+		MqttResumeSubs:                      options.GetBool(MQTT_RESUME_SUBS),
 		MqttBrokerTlsCertFile:               options.GetString(MQTT_BROKER_TLS_CERT_FILE),
 		MqttBrokerTlsKeyFile:                options.GetString(MQTT_BROKER_TLS_KEY_FILE),
 		MqttBrokerTlsCACertFile:             options.GetString(MQTT_BROKER_TLS_CA_CERT_FILE),
