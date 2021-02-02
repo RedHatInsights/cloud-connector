@@ -57,10 +57,18 @@ func buildBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *con
 		brokerConfigFuncs = append(brokerConfigFuncs, WithJwtAsHttpHeader(jwtGenerator))
 	}
 
+	if cfg.MqttClientId != "" {
+		brokerConfigFuncs = append(brokerConfigFuncs, WithClientID(cfg.MqttClientId))
+	}
+
+	brokerConfigFuncs = append(brokerConfigFuncs, WithCleanSession(cfg.MqttCleanSession))
+
+	brokerConfigFuncs = append(brokerConfigFuncs, WithResumeSubs(cfg.MqttResumeSubs))
+
 	return brokerConfigFuncs, nil
 }
 
-func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config, subscribers []Subscriber) error {
+func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config, subscribers []Subscriber, defaultMessageHandler func(MQTT.Client, MQTT.Message)) error {
 
 	brokerConfigFuncs, err := buildBrokerConfigFuncList(brokerUrl, tlsConfig, cfg)
 	if err != nil {
@@ -68,11 +76,25 @@ func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Co
 		return err
 	}
 
+	// Add a default publish message handler as some messages will get delivered before the topic
+	// subscriptions are setup completely
+	// See "Common Problems" here: https://github.com/eclipse/paho.mqtt.golang#common-problems
+	brokerConfigFuncs = append(brokerConfigFuncs, WithDefaultPublishHandler(defaultMessageHandler))
+
 	connOpts, err := NewBrokerOptions(brokerUrl, brokerConfigFuncs...)
 	if err != nil {
 		logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to build MQTT ClientOptions")
 		return err
 	}
+
+	connOpts.SetOnConnectHandler(func(client MQTT.Client) {
+		for _, subscriber := range subscribers {
+			logger.Log.Infof("Subscribing to MQTT topic: %s - QOS: %d\n", subscriber.Topic, subscriber.Qos)
+			if token := client.Subscribe(subscriber.Topic, subscriber.Qos, subscriber.EntryPoint); token.Wait() && token.Error() != nil {
+				logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Fatalf("Subscribing to MQTT topic (%s) failed", subscriber.Topic)
+			}
+		}
+	})
 
 	mqttClient := MQTT.NewClient(connOpts)
 	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
@@ -81,14 +103,6 @@ func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Co
 	}
 
 	logger.Log.Info("Connected to MQTT broker: ", brokerUrl)
-
-	for _, subscriber := range subscribers {
-		logger.Log.Infof("Subscribing to MQTT topic: %s - QOS: %d\n", subscriber.Topic, subscriber.Qos)
-		if token := mqttClient.Subscribe(subscriber.Topic, subscriber.Qos, subscriber.EntryPoint); token.Wait() && token.Error() != nil {
-			logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Errorf("Subscribing to MQTT topic (%s) failed", subscriber.Topic)
-			return token.Error()
-		}
-	}
 
 	return nil
 }
@@ -107,7 +121,7 @@ func ControlMessageHandler(connectionRegistrar controller.ConnectionRegistrar, a
 
 		if message.Payload() == nil || len(message.Payload()) == 0 {
 			// This will happen when a retained message is removed
-			logger.Debugf("client sent an empty payload\n") // FIXME:  Remove me later on...
+			logger.Trace("client sent an empty payload")
 			return
 		}
 
@@ -209,11 +223,6 @@ func handleOfflineMessage(client MQTT.Client, account domain.AccountID, clientID
 
 	disconnectionEvent(account, clientID)
 
-	logger.Debug("Removing client's retained connection-status message")
-	// FIXME:
-	clientTopic := fmt.Sprintf("redhat/insights/%s/control/out", clientID)
-	client.Publish(clientTopic, byte(0), true, "")
-
 	return nil
 }
 
@@ -251,6 +260,19 @@ func disconnectionEvent(account domain.AccountID, clientID domain.ClientID) {
 
 func DataMessageHandler() func(MQTT.Client, MQTT.Message) {
 	return func(client MQTT.Client, message MQTT.Message) {
+		logger.Log.Debugf("Received data message: %s\n", message.Payload())
+	}
+}
+
+func DefaultMessageHandler(controlMessageHandler, dataMessageHandler func(MQTT.Client, MQTT.Message)) func(client MQTT.Client, message MQTT.Message) {
+	return func(client MQTT.Client, message MQTT.Message) {
 		logger.Log.Debugf("Received message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
+		if strings.Contains(message.Topic(), "control") {
+			controlMessageHandler(client, message)
+		} else if strings.Contains(message.Topic(), "data") {
+			dataMessageHandler(client, message)
+		} else {
+			logger.Log.Debugf("Received message on unknown topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
+		}
 	}
 }
