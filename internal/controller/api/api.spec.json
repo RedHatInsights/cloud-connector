@@ -15,6 +15,10 @@
     {
       "name": "api",
       "description": "RESTful service"
+    },
+    {
+      "name": "connection",
+      "description": "Connection status operations"
     }
   ],
   "paths": {
@@ -63,7 +67,8 @@
     "/connection": {
       "get": {
         "tags": [
-          "api"
+          "api",
+          "connection"
         ],
         "summary": "Get a list of open connections",
         "security": [
@@ -93,7 +98,8 @@
     "/connection/{account}": {
       "get": {
         "tags": [
-          "api"
+          "api",
+          "connection"
         ],
         "summary": "Get a list of open connections",
         "security": [
@@ -128,7 +134,8 @@
     "/connection/status": {
       "post": {
         "tags": [
-          "api"
+          "api",
+          "connection"
         ],
         "summary": "Submit a job request to be routed to a customers environment",
         "security": [
@@ -167,7 +174,8 @@
     "/connection/ping": {
       "post": {
         "tags": [
-          "api"
+          "api",
+          "connection"
         ],
         "summary": "Send a ping request to a connected client",
         "security": [
