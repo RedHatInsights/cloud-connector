@@ -62,9 +62,9 @@ message-specific fields should be included in the `content` object.
 ##### Connection Status #####
 
 A `ConnectionStatus` message is initiated by the *Client*. It is published as a
-retained message when the client initializes itself at startup. When a client is
-shutting down, it will clear this retained message by publishing a new, empty
-retained message.
+QOS 1 message when the client initializes itself at startup. When a client is
+shutting down, it will publish a `ConnectionStatus` message with the state
+set to `offline`.  The `offline` message will be published as a QOS 1 message.
 
 The `content` field of a `ConnectionStatus` message must contain two fields:
 
