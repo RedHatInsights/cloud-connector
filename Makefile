@@ -1,7 +1,7 @@
 CONNECTOR_SERVICE_BINARY=connector_service
 CONNECTED_CLIENT_BINARY=test_client
 
-DOCKER_COMPOSE_CFG=docker-compose.yml
+DOCKER_COMPOSE_CFG=dev.yml
 
 COVERAGE_OUTPUT=coverage.out
 COVERAGE_HTML=coverage.html
@@ -26,10 +26,10 @@ coverage:
 	@echo "file://$(PWD)/$(COVERAGE_HTML)"
 
 start-test-env:
-	docker-compose -f $(DOCKER_COMPOSE_CFG) up
+	podman-compose -f $(DOCKER_COMPOSE_CFG) up
 
 stop-test-env:
-	docker-compose -f $(DOCKER_COMPOSE_CFG) down
+	podman-compose -f $(DOCKER_COMPOSE_CFG) down
 
 fmt:
 	go fmt ./...

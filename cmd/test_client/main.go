@@ -101,6 +101,7 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 
 	controlReadTopic := fmt.Sprintf("redhat/insights/%s/control/in", clientID)
 	controlWriteTopic := fmt.Sprintf("redhat/insights/%s/control/out", clientID)
+	dataReadTopic := fmt.Sprintf("redhat/insights/%s/data/in", clientID)
 	fmt.Println("control consumer topic: ", controlReadTopic)
 
 	connOpts := MQTT.NewClientOptions()
@@ -150,6 +151,10 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 	connOpts.SetOnConnectHandler(func(client MQTT.Client) {
 		fmt.Println("*** OnConnect - subscribing to topic:", controlReadTopic)
 		if token := client.Subscribe(controlReadTopic, 0, onMessageReceived); token.Wait() && token.Error() != nil {
+			panic(token.Error())
+		}
+
+		if token := client.Subscribe(dataReadTopic, 0, onMessageReceived); token.Wait() && token.Error() != nil {
 			panic(token.Error())
 		}
 	})
