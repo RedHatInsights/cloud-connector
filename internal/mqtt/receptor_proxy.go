@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/RedHatInsights/cloud-connector/internal/domain"
+	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
@@ -17,9 +19,9 @@ var (
 )
 
 type ReceptorMQTTProxy struct {
-	ClientID string
-	Client   MQTT.Client
-	Logger   *logrus.Entry
+	AccountID domain.AccountID
+	ClientID  domain.ClientID
+	Client    MQTT.Client
 }
 
 func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber string, recipient string, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
@@ -60,7 +62,7 @@ func (rhp *ReceptorMQTTProxy) sendControlMessage(ctx context.Context, msgType st
 		return nil, err
 	}
 
-	logger := rhp.Logger.WithFields(logrus.Fields{"message_id": messageID})
+	logger := logger.Log.WithFields(logrus.Fields{"message_id": messageID, "account": rhp.AccountID, "client_id": rhp.ClientID})
 
 	logger.Debug("Sending control message to connected client")
 
@@ -87,7 +89,7 @@ func (rhp *ReceptorMQTTProxy) sendDataMessage(ctx context.Context, directive str
 		return nil, err
 	}
 
-	logger := rhp.Logger.WithFields(logrus.Fields{"message_id": messageID})
+	logger := logger.Log.WithFields(logrus.Fields{"message_id": messageID, "account": rhp.AccountID, "client_id": rhp.ClientID})
 
 	logger.Debug("Sending data message to connected client")
 

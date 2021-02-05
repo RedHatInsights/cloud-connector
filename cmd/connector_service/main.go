@@ -53,7 +53,10 @@ func main() {
 		logFatalError("Unable to configure TLS for MQTT Broker connection", err)
 	}
 
-	localConnectionManager := controller.NewLocalConnectionManager()
+	sqlConnectionRegistrar, err := mqtt.NewSqlConnectionRegistrar(cfg)
+	if err != nil {
+		logFatalError("Failed to create SQL Connection Registrar", err)
+	}
 
 	accountResolver, err := controller.NewAccountIdResolver(cfg.ClientIdToAccountIdImpl, cfg)
 	if err != nil {
@@ -62,7 +65,7 @@ func main() {
 
 	connectedClientRecorder := &controller.InventoryBasedConnectedClientRecorder{}
 
-	controlMsgHandler := mqtt.ControlMessageHandler(localConnectionManager, accountResolver, connectedClientRecorder)
+	controlMsgHandler := mqtt.ControlMessageHandler(sqlConnectionRegistrar, accountResolver, connectedClientRecorder)
 	dataMsgHandler := mqtt.DataMessageHandler()
 
 	defaultMsgHandler := mqtt.DefaultMessageHandler(controlMsgHandler, dataMsgHandler)
@@ -80,9 +83,19 @@ func main() {
 		},
 	}
 
-	err = mqtt.RegisterSubscribers(cfg.MqttBrokerAddress, tlsConfig, cfg, subscribers, defaultMsgHandler)
+	mqttClient, err := mqtt.RegisterSubscribers(cfg.MqttBrokerAddress, tlsConfig, cfg, subscribers, defaultMsgHandler)
 	if err != nil {
 		logFatalError("Failed to connect to MQTT broker", err)
+	}
+
+	proxyFactory, err := mqtt.NewReceptorMQTTProxyFactory(cfg, mqttClient)
+	if err != nil {
+		logFatalError("Unable to create proxy factory", err)
+	}
+
+	sqlConnectionLocator, err := mqtt.NewSqlConnectionLocator(cfg, proxyFactory)
+	if err != nil {
+		logFatalError("Failed to create SQL Connection Locator", err)
 	}
 
 	apiMux := mux.NewRouter()
@@ -94,10 +107,10 @@ func main() {
 	monitoringServer := api.NewMonitoringServer(apiMux, cfg)
 	monitoringServer.Routes()
 
-	mgmtServer := api.NewManagementServer(localConnectionManager, apiMux, cfg.UrlBasePath, cfg)
+	mgmtServer := api.NewManagementServer(sqlConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
 	mgmtServer.Routes()
 
-	jr := api.NewMessageReceiver(localConnectionManager, apiMux, cfg.UrlBasePath, cfg)
+	jr := api.NewMessageReceiver(sqlConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
 	jr.Routes()
 
 	apiSrv := utils.StartHTTPServer(*mgmtAddr, "management", apiMux)

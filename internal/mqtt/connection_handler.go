@@ -68,12 +68,12 @@ func buildBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *con
 	return brokerConfigFuncs, nil
 }
 
-func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config, subscribers []Subscriber, defaultMessageHandler func(MQTT.Client, MQTT.Message)) error {
+func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config, subscribers []Subscriber, defaultMessageHandler func(MQTT.Client, MQTT.Message)) (MQTT.Client, error) {
 
 	brokerConfigFuncs, err := buildBrokerConfigFuncList(brokerUrl, tlsConfig, cfg)
 	if err != nil {
 		logger.Log.WithFields(logrus.Fields{"error": err}).Error("MQTT Broker configuration error")
-		return err
+		return nil, err
 	}
 
 	// Add a default publish message handler as some messages will get delivered before the topic
@@ -84,7 +84,7 @@ func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Co
 	connOpts, err := NewBrokerOptions(brokerUrl, brokerConfigFuncs...)
 	if err != nil {
 		logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to build MQTT ClientOptions")
-		return err
+		return nil, err
 	}
 
 	connOpts.SetOnConnectHandler(func(client MQTT.Client) {
@@ -99,12 +99,12 @@ func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Co
 	mqttClient := MQTT.NewClient(connOpts)
 	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
 		logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Error("Unable to connect to MQTT broker")
-		return token.Error()
+		return nil, token.Error()
 	}
 
 	logger.Log.Info("Connected to MQTT broker: ", brokerUrl)
 
-	return nil
+	return mqttClient, nil
 }
 
 func ControlMessageHandler(connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder) func(MQTT.Client, MQTT.Message) {
@@ -204,7 +204,7 @@ func handleOnlineMessage(client MQTT.Client, account domain.AccountID, clientID 
 
 	connectionEvent(account, clientID, msg.Content)
 
-	proxy := ReceptorMQTTProxy{ClientID: string(clientID), Client: client, Logger: logger}
+	proxy := ReceptorMQTTProxy{AccountID: account, ClientID: clientID, Client: client}
 
 	connectionRegistrar.Register(context.Background(), string(account), string(clientID), &proxy)
 	// FIXME: check for error, but ignore duplicate registration errors
