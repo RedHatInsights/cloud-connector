@@ -166,10 +166,11 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 	fmt.Println("Connected to server ", broker)
 
 	cf := Connector.CanonicalFacts{
-		InsightsID:            "1234",
-		MachineID:             "5678",
-		BiosID:                "1234",
-		SubscriptionManagerID: "3245",
+		InsightsID:            generateUUID(),
+		MachineID:             generateUUID(),
+		BiosID:                generateUUID(),
+		SubscriptionManagerID: generateUUID(),
+		SatelliteID:           generateUUID(),
 		IpAddresses:           []string{"192.168.68.101"},
 		MacAddresses:          []string{"54.54.45.45.62.26"},
 		Fqdn:                  "fred.flintstone.com",
@@ -331,4 +332,9 @@ func buildDisconnectMessage(clientID string) ([]byte, error) {
 	}
 
 	return json.Marshal(connMsg)
+}
+
+func generateUUID() string {
+	id, _ := uuid.NewUUID()
+	return id.String()
 }
