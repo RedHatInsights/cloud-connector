@@ -271,10 +271,13 @@
             "type": "string"
           },
           "payload": {
-            "type": "object"
+            "type": "string"
           },
           "metadata": {
-            "type": "object"
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "directive": {
             "type": "string"
