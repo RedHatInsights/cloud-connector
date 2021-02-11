@@ -63,7 +63,10 @@ func main() {
 		logFatalError("Failed to create Account ID Resolver", err)
 	}
 
-	connectedClientRecorder := &controller.InventoryBasedConnectedClientRecorder{}
+	connectedClientRecorder, err := controller.NewConnectedClientRecorder(cfg.ConnectedClientRecorderImpl, cfg)
+	if err != nil {
+		logFatalError("Failed to create Connected Client Recorder", err)
+	}
 
 	controlMsgHandler := mqtt.ControlMessageHandler(sqlConnectionRegistrar, accountResolver, connectedClientRecorder)
 	dataMsgHandler := mqtt.DataMessageHandler()

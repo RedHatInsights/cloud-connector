@@ -29,8 +29,6 @@ const (
 	MQTT_BROKER_JWT_GENERATOR_IMPL             = "MQTT_Broker_JWT_Generator_Impl"
 	MQTT_BROKER_JWT_FILE                       = "MQTT_Broker_JWT_File"
 	DEFAULT_MQTT_BROKER_ADDRESS                = "ssl://localhost:8883"
-	KAFKA_BROKERS                              = "Kafka_Brokers"
-	DEFAULT_KAFKA_BROKER_ADDRESS               = "kafka:29092"
 	CLIENT_ID_TO_ACCOUNT_ID_IMPL               = "Client_Id_To_Account_Id_Impl"
 	CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE        = "Client_Id_To_Account_Id_Config_File"
 	CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID = "Client_Id_To_Account_Id_Default_Account_Id"
@@ -46,6 +44,14 @@ const (
 	BOP_URL                                    = "BOP_URL"
 	BOP_CA_FILE                                = "BOP_CA_File"
 	BOP_ENV                                    = "BOP_Env"
+	DEFAULT_KAFKA_BROKER_ADDRESS               = "kafka:29092"
+	CONNECTED_CLIENT_RECORDER_IMPL             = "Connected_Client_Recorder_Impl"
+	INVENTORY_KAFKA_BROKERS                    = "Inventory_Kafka_Brokers"
+	INVENTORY_KAFKA_TOPIC                      = "Inventory_Kafka_Topic"
+	INVENTORY_KAFKA_BATCH_SIZE                 = "Inventory_Kafka_Batch_Size"
+	INVENTORY_KAFKA_BATCH_BYTES                = "Inventory_Kafka_Batch_Bytes"
+	INVENTORY_STALE_TIMESTAMP_OFFSET           = "Inventory_Stale_Timestamp_Offset"
+	INVENTORY_REPORTER_NAME                    = "Inventory_Reporter_Name"
 )
 
 type Config struct {
@@ -82,6 +88,13 @@ type Config struct {
 	BopUrl                              string
 	BopCaFile                           string
 	BopEnv                              string
+	ConnectedClientRecorderImpl         string
+	InventoryKafkaBrokers               []string
+	InventoryKafkaTopic                 string
+	InventoryKafkaBatchSize             int
+	InventoryKafkaBatchBytes            int
+	InventoryStaleTimestampOffset       time.Duration
+	InventoryReporterName               string
 }
 
 func (c Config) String() string {
@@ -102,7 +115,6 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %v\n", MQTT_BROKER_TLS_SKIP_VERIFY, c.MqttBrokerTlsSkipVerify)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_JWT_GENERATOR_IMPL, c.MqttBrokerJwtGeneratorImpl)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_JWT_FILE, c.MqttBrokerJwtFile)
-	fmt.Fprintf(&b, "%s: %s\n", KAFKA_BROKERS, c.KafkaBrokers)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_IMPL, c.ClientIdToAccountIdImpl)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE, c.ClientIdToAccountIdConfigFile)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID, c.ClientIdToAccountIdDefaultAccountId)
@@ -114,7 +126,13 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", BOP_URL, c.BopUrl)
 	fmt.Fprintf(&b, "%s: %s\n", BOP_CA_FILE, c.BopCaFile)
 	fmt.Fprintf(&b, "%s: %s\n", BOP_ENV, c.BopEnv) //rest of BOP parameters deliberately ommitted
-
+	fmt.Fprintf(&b, "%s: %s\n", CONNECTED_CLIENT_RECORDER_IMPL, c.ConnectedClientRecorderImpl)
+	fmt.Fprintf(&b, "%s: %s\n", INVENTORY_KAFKA_BROKERS, c.InventoryKafkaBrokers)
+	fmt.Fprintf(&b, "%s: %s\n", INVENTORY_KAFKA_TOPIC, c.InventoryKafkaTopic)
+	fmt.Fprintf(&b, "%s: %d\n", INVENTORY_KAFKA_BATCH_SIZE, c.InventoryKafkaBatchSize)
+	fmt.Fprintf(&b, "%s: %d\n", INVENTORY_KAFKA_BATCH_BYTES, c.InventoryKafkaBatchBytes)
+	fmt.Fprintf(&b, "%s: %s\n", INVENTORY_STALE_TIMESTAMP_OFFSET, c.InventoryStaleTimestampOffset)
+	fmt.Fprintf(&b, "%s: %s\n", INVENTORY_REPORTER_NAME, c.InventoryReporterName)
 	return b.String()
 }
 
@@ -127,7 +145,6 @@ func GetConfig() *Config {
 	options.SetDefault(HTTP_SHUTDOWN_TIMEOUT, 2)
 	options.SetDefault(SERVICE_TO_SERVICE_CREDENTIALS, "")
 	options.SetDefault(PROFILE, false)
-	options.SetDefault(KAFKA_BROKERS, []string{DEFAULT_KAFKA_BROKER_ADDRESS})
 	options.SetDefault(MQTT_BROKER_ADDRESS, DEFAULT_MQTT_BROKER_ADDRESS)
 	options.SetDefault(MQTT_CLIENT_ID, "connector-service")
 	options.SetDefault(MQTT_CLEAN_SESSION, false)
@@ -146,6 +163,14 @@ func GetConfig() *Config {
 	options.SetDefault(BOP_CERT_ISSUER, "/C=US/ST=North Carolina/O=Red Hat, Inc./OU=Red Hat Network/CN=Red Hat Candlepin Authority/Email=ca-support@redhat.com")
 	options.SetDefault(BOP_URL, "https://backoffice-proxy-insights-services.ext.us-west.dc.preprod.paas.redhat.com/")
 	options.SetDefault(BOP_ENV, "qa")
+	options.SetDefault(CONNECTED_CLIENT_RECORDER_IMPL, "fake")
+	options.SetDefault(INVENTORY_KAFKA_BROKERS, []string{DEFAULT_KAFKA_BROKER_ADDRESS})
+	options.SetDefault(INVENTORY_KAFKA_TOPIC, "platform.inventory.host-ingress-p1")
+	options.SetDefault(INVENTORY_KAFKA_BATCH_SIZE, 100)
+	options.SetDefault(INVENTORY_KAFKA_BATCH_BYTES, 1048576)
+	options.SetDefault(INVENTORY_STALE_TIMESTAMP_OFFSET, 26)
+	options.SetDefault(INVENTORY_REPORTER_NAME, "cloud-connector")
+
 	options.SetEnvPrefix(ENV_PREFIX)
 	options.AutomaticEnv()
 
@@ -157,7 +182,6 @@ func GetConfig() *Config {
 		HttpShutdownTimeout:                 options.GetDuration(HTTP_SHUTDOWN_TIMEOUT) * time.Second,
 		ServiceToServiceCredentials:         options.GetStringMap(SERVICE_TO_SERVICE_CREDENTIALS),
 		Profile:                             options.GetBool(PROFILE),
-		KafkaBrokers:                        options.GetStringSlice(KAFKA_BROKERS),
 		MqttBrokerAddress:                   options.GetString(MQTT_BROKER_ADDRESS),
 		MqttClientId:                        options.GetString(MQTT_CLIENT_ID),
 		MqttCleanSession:                    options.GetBool(MQTT_CLEAN_SESSION),
@@ -183,6 +207,13 @@ func GetConfig() *Config {
 		BopUrl:                              options.GetString(BOP_URL),
 		BopCaFile:                           options.GetString(BOP_CA_FILE),
 		BopEnv:                              options.GetString(BOP_ENV),
+		ConnectedClientRecorderImpl:         options.GetString(CONNECTED_CLIENT_RECORDER_IMPL),
+		InventoryKafkaBrokers:               options.GetStringSlice(INVENTORY_KAFKA_BROKERS),
+		InventoryKafkaTopic:                 options.GetString(INVENTORY_KAFKA_TOPIC),
+		InventoryKafkaBatchSize:             options.GetInt(INVENTORY_KAFKA_BATCH_SIZE),
+		InventoryKafkaBatchBytes:            options.GetInt(INVENTORY_KAFKA_BATCH_BYTES),
+		InventoryStaleTimestampOffset:       options.GetDuration(INVENTORY_STALE_TIMESTAMP_OFFSET) * time.Hour,
+		InventoryReporterName:               options.GetString(INVENTORY_REPORTER_NAME),
 	}
 }
 
