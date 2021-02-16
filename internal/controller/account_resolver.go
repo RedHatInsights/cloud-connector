@@ -2,10 +2,13 @@ package controller
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -14,7 +17,28 @@ import (
 )
 
 type AccountIdResolver interface {
-	MapClientIdToAccountId(context.Context, domain.ClientID) (domain.AccountID, error)
+	MapClientIdToAccountId(context.Context, domain.ClientID) (domain.AccountID, error) //this should really be returning Identity header in 3scale format
+}
+
+//Fix me temporary
+type BopResp struct {
+	Mechanism string `json:"mechanism"`
+	User      struct {
+		DisplayName   string `json:"display_name"`
+		OrgID         string `json:"org_id"`
+		Username      string `json:"username"`
+		AccountNumber string `json:"account_number"`
+		IsInternal    bool   `json:"is_internal"`
+		IsOrgAdmin    bool   `json:"is_org_admin"`
+		IsActive      bool   `json:"is_active"`
+		Locale        string `json:"locale"`
+		ID            int    `json:"id"`
+		Email         string `json:"email"`
+		FirstName     string `json:"first_name"`
+		LastName      string `json:"last_name"`
+		AddressString string `json:"address_string"`
+		Type          string `json:"type"`
+	} `json:"user"`
 }
 
 func NewAccountIdResolver(accountIdResolverImpl string, cfg *config.Config) (AccountIdResolver, error) {
@@ -24,39 +48,60 @@ func NewAccountIdResolver(accountIdResolverImpl string, cfg *config.Config) (Acc
 		err := resolver.init()
 		return &resolver, err
 	case "bop":
-		return &BOPAccountIdResolver{}, nil
+		return &BOPAccountIdResolver{cfg}, nil
 	default:
 		return nil, errors.New("Invalid AccountIdResolver impl requested")
 	}
 }
 
 type BOPAccountIdResolver struct {
+	Config *config.Config
 }
 
 func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.AccountID, error) {
-	// FIXME: need to lookup the account number for the connected client
-	fmt.Println("FIXME: looking up the connection's account number in BOP")
 
-	/*
-		Required
-		x-rh-apitoken *
-		x-rh-clientid
-
-		Optional
-		x-rh-insights-env
-
-		Cert auth
-		x-rh-certauth-cn
-		x-rh-certauth-issuer
-		x-rh-insights-certauth-secret
-
-		make http GET
-
-
-
-	*/
-
-	return "010101", nil
+	fmt.Println("Looking up the connection's account number in BOP")
+	caCert, err := ioutil.ReadFile(bar.Config.BopCaFile)
+	if err != nil {
+		fmt.Println(err)
+		return "", err
+	}
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: caCertPool,
+			},
+		},
+	}
+	req, err := http.NewRequest("GET", bar.Config.BopUrl, nil)
+	req.Header.Add("x-rh-insights-certauth-secret", bar.Config.BopCertAuthSecret)
+	req.Header.Add("x-rh-certauth-issuer", bar.Config.BopCertIssuer)
+	req.Header.Add("x-rh-apitoken", bar.Config.BopToken)
+	req.Header.Add("x-rh-clientid", bar.Config.BopClientID)
+	req.Header.Add("x-rh-insights-env", bar.Config.BopEnv)
+	req.Header.Add("accept", "application/json")
+	req.Header.Add("x-rh-certauth-cn", fmt.Sprintf("/CN=%s", clientID))
+	if err != nil {
+		fmt.Println(err)
+		return "", err
+	}
+	r, err := client.Do(req)
+	defer r.Body.Close()
+	if r.StatusCode != 200 {
+		b, _ := ioutil.ReadAll(r.Body)
+		return "", fmt.Errorf("Unable to find account %s", string(b))
+	}
+	var resp BopResp
+	//body, err := ioutil.ReadAll(r.Body)
+	//fmt.Println(string(body))
+	err = json.NewDecoder(r.Body).Decode(&resp)
+	if err != nil {
+		return "", err
+	}
+	fmt.Println(resp.User.AccountNumber)
+	return domain.AccountID(resp.User.AccountNumber), nil
 }
 
 type ConfigurableAccountIdResolver struct {

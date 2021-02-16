@@ -39,6 +39,13 @@ const (
 	CONNECTION_DATABASE_USER                   = "Connection_Database_User"
 	CONNECTION_DATABASE_PASSWORD               = "Connection_Database_Password"
 	CONNECTION_DATABASE_NAME                   = "Connection_Database_Name"
+	BOP_AUTH_SECRET                            = "BOP_Auth_Secret"
+	BOP_CERT_ISSUER                            = "BOP_Cert_Issuer"
+	BOP_CLIENT_ID                              = "BOP_Client_id"
+	BOP_TOKEN                                  = "BOP_Token"
+	BOP_URL                                    = "BOP_URL"
+	BOP_CA_FILE                                = "BOP_CA_File"
+	BOP_ENV                                    = "BOP_Env"
 )
 
 type Config struct {
@@ -68,6 +75,13 @@ type Config struct {
 	ConnectionDatabaseUser              string
 	ConnectionDatabasePassword          string
 	ConnectionDatabaseName              string
+	BopCertAuthSecret                   string
+	BopCertIssuer                       string
+	BopClientID                         string
+	BopToken                            string
+	BopUrl                              string
+	BopCaFile                           string
+	BopEnv                              string
 }
 
 func (c Config) String() string {
@@ -96,6 +110,10 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %d\n", CONNECTION_DATABASE_PORT, c.ConnectionDatabasePort)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_USER, c.ConnectionDatabaseUser)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_NAME, c.ConnectionDatabaseName)
+	fmt.Fprintf(&b, "%s: %s\n", BOP_CERT_ISSUER, c.BopCertIssuer)
+	fmt.Fprintf(&b, "%s: %s\n", BOP_URL, c.BopUrl)
+	fmt.Fprintf(&b, "%s: %s\n", BOP_CA_FILE, c.BopCaFile)
+	fmt.Fprintf(&b, "%s: %s\n", BOP_ENV, c.BopEnv) //rest of BOP parameters deliberately ommitted
 
 	return b.String()
 }
@@ -125,7 +143,9 @@ func GetConfig() *Config {
 	options.SetDefault(CONNECTION_DATABASE_USER, "insights")
 	options.SetDefault(CONNECTION_DATABASE_PASSWORD, "insights")
 	options.SetDefault(CONNECTION_DATABASE_NAME, "cloud-connector")
-
+	options.SetDefault(BOP_CERT_ISSUER, "/C=US/ST=North Carolina/O=Red Hat, Inc./OU=Red Hat Network/CN=Red Hat Candlepin Authority/Email=ca-support@redhat.com")
+	options.SetDefault(BOP_URL, "https://backoffice-proxy-insights-services.ext.us-west.dc.preprod.paas.redhat.com/")
+	options.SetDefault(BOP_ENV, "qa")
 	options.SetEnvPrefix(ENV_PREFIX)
 	options.AutomaticEnv()
 
@@ -156,6 +176,13 @@ func GetConfig() *Config {
 		ConnectionDatabaseUser:              options.GetString(CONNECTION_DATABASE_USER),
 		ConnectionDatabasePassword:          options.GetString(CONNECTION_DATABASE_PASSWORD),
 		ConnectionDatabaseName:              options.GetString(CONNECTION_DATABASE_NAME),
+		BopCertAuthSecret:                   options.GetString(BOP_AUTH_SECRET),
+		BopCertIssuer:                       options.GetString(BOP_CERT_ISSUER),
+		BopClientID:                         options.GetString(BOP_CLIENT_ID),
+		BopToken:                            options.GetString(BOP_TOKEN),
+		BopUrl:                              options.GetString(BOP_URL),
+		BopCaFile:                           options.GetString(BOP_CA_FILE),
+		BopEnv:                              options.GetString(BOP_ENV),
 	}
 }
 
