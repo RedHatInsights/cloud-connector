@@ -24,19 +24,8 @@ type AccountIdResolver interface {
 type BopResp struct {
 	Mechanism string `json:"mechanism"`
 	User      struct {
-		DisplayName   string `json:"display_name"`
 		OrgID         string `json:"org_id"`
-		Username      string `json:"username"`
 		AccountNumber string `json:"account_number"`
-		IsInternal    bool   `json:"is_internal"`
-		IsOrgAdmin    bool   `json:"is_org_admin"`
-		IsActive      bool   `json:"is_active"`
-		Locale        string `json:"locale"`
-		ID            int    `json:"id"`
-		Email         string `json:"email"`
-		FirstName     string `json:"first_name"`
-		LastName      string `json:"last_name"`
-		AddressString string `json:"address_string"`
 		Type          string `json:"type"`
 	} `json:"user"`
 }
