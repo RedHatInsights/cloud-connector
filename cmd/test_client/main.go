@@ -181,6 +181,15 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 	dispatchers["playbook"]["ansible-runner-version"] = "1.2.3"
 	dispatchers["echo"] = make(map[string]string)
 
+	dispatchers["catalog"] = make(map[string]string)
+	dispatchers["catalog"]["ApplicationType"] = "/insights/platform/catalog"
+	dispatchers["catalog"]["SourceRef"] = "df2bac3e-c7b4-4a8b-8226-b943b9a12eaf"
+	dispatchers["catalog"]["SrcName"] = "dehort Testing Bulk Create"
+	dispatchers["catalog"]["SrcType"] = "ansible-tower"
+	dispatchers["catalog"]["WorkerBuild"] = "2021-02-19 10:18:24"
+	dispatchers["catalog"]["WorkerSHA"] = "48d28791e3b59f7334d2671c07978113b0d40374"
+	dispatchers["catalog"]["WorkerVersion"] = "v0.1.0"
+
 	connectionStatusPayload := Connector.ConnectionStatusMessageContent{
 		CanonicalFacts:  cf,
 		Dispatchers:     dispatchers,

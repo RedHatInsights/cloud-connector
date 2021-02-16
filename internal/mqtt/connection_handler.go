@@ -107,7 +107,7 @@ func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Co
 	return mqttClient, nil
 }
 
-func ControlMessageHandler(connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder) func(MQTT.Client, MQTT.Message) {
+func ControlMessageHandler(connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(MQTT.Client, MQTT.Message) {
 	return func(client MQTT.Client, message MQTT.Message) {
 		logger.Log.Debugf("Received control message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
 
@@ -136,7 +136,7 @@ func ControlMessageHandler(connectionRegistrar controller.ConnectionRegistrar, a
 
 		switch controlMsg.MessageType {
 		case "connection-status":
-			handleConnectionStatusMessage(client, clientID, controlMsg, connectionRegistrar, accountResolver, connectedClientRecorder)
+			handleConnectionStatusMessage(client, clientID, controlMsg, connectionRegistrar, accountResolver, connectedClientRecorder, sourcesRecorder)
 		case "event":
 			handleEventMessage(client, clientID, controlMsg)
 		default:
@@ -145,7 +145,7 @@ func ControlMessageHandler(connectionRegistrar controller.ConnectionRegistrar, a
 	}
 }
 
-func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder) error {
+func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
 
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 
@@ -161,7 +161,7 @@ func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID,
 	}
 
 	if connectionState == "online" {
-		return handleOnlineMessage(client, clientID, msg, accountResolver, connectionRegistrar, connectedClientRecorder)
+		return handleOnlineMessage(client, clientID, msg, accountResolver, connectionRegistrar, connectedClientRecorder, sourcesRecorder)
 	} else if connectionState == "offline" {
 		return handleOfflineMessage(client, clientID, msg, connectionRegistrar)
 	} else {
@@ -171,7 +171,7 @@ func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID,
 	return nil
 }
 
-func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage, accountResolver controller.AccountIdResolver, connectionRegistrar controller.ConnectionRegistrar, connectedClientRecorder controller.ConnectedClientRecorder) error {
+func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage, accountResolver controller.AccountIdResolver, connectionRegistrar controller.ConnectionRegistrar, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
 
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 
@@ -207,11 +207,65 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 	connectionRegistrar.Register(context.Background(), account, clientID, &proxy)
 	// FIXME: check for error, but ignore duplicate registration errors
 
+	processDispatchers(sourcesRecorder, account, clientID, handshakePayload)
+
 	return nil
 }
 
-func handleOfflineMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
+const (
+	CATALOG_DISPATCHER_KEY   = "catalog"
+	CATALOG_APPLICATION_TYPE = "ApplicationType"
+	CATALOG_SOURCE_NAME      = "SrcName"
+	CATALOG_SOURCE_REF       = "SourceRef"
+	CATALOG_SOURCE_TYPE      = "SrcType"
+)
 
+func processDispatchers(sourcesRecorder controller.SourcesRecorder, account domain.AccountID, clientId domain.ClientID, handshakePayload map[string]interface{}) {
+
+	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientId, "account": account})
+
+	dispatchers, gotDispatchers := handshakePayload["dispatchers"]
+
+	if gotDispatchers == false {
+		logger.Debug("No dispatchers found")
+		return
+	}
+
+	dispatchersMap := dispatchers.(map[string]interface{})
+
+	catalog, gotCatalog := dispatchersMap[CATALOG_DISPATCHER_KEY]
+
+	if gotCatalog == false {
+		logger.Debug("No catalog dispatcher found")
+		return
+	}
+
+	catalogMap := catalog.(map[string]interface{})
+
+	applicationType, gotApplicationType := catalogMap[CATALOG_APPLICATION_TYPE]
+	sourceType, gotSourceType := catalogMap[CATALOG_SOURCE_TYPE]
+	sourceRef, gotSourceRef := catalogMap[CATALOG_SOURCE_REF]
+	sourceName, gotSourceName := catalogMap[CATALOG_SOURCE_NAME]
+
+	if gotApplicationType != true || gotSourceType != true || gotSourceRef != true || gotSourceName != true {
+		// MISSING FIELDS
+		logger.Debug("Found a catalog dispatcher, but missing some of the required fields")
+		return
+	}
+
+	// FIXME: such an ugly hack!!
+	applicationType1, _ := applicationType.(string)
+	sourceType1, _ := sourceType.(string)
+	sourceRef1, _ := sourceRef.(string)
+	sourceName1, _ := sourceName.(string)
+
+	err := sourcesRecorder.RegisterWithSources(account, clientId, sourceRef1, sourceName1, sourceType1, applicationType1)
+	if err != nil {
+		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to register catalog with sources")
+	}
+}
+
+func handleOfflineMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 
 	logger.Debug("handling offline connection-status message")

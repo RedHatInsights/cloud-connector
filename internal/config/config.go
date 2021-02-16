@@ -54,6 +54,8 @@ const (
 	INVENTORY_KAFKA_BATCH_BYTES                = "Inventory_Kafka_Batch_Bytes"
 	INVENTORY_STALE_TIMESTAMP_OFFSET           = "Inventory_Stale_Timestamp_Offset"
 	INVENTORY_REPORTER_NAME                    = "Inventory_Reporter_Name"
+	SOURCES_RECORDER_IMPL                      = "Sources_Recorder_Impl"
+	SOURCES_BASE_URL                           = "Sources_Base_Url"
 )
 
 type Config struct {
@@ -99,6 +101,8 @@ type Config struct {
 	InventoryKafkaBatchBytes            int
 	InventoryStaleTimestampOffset       time.Duration
 	InventoryReporterName               string
+	SourcesRecorderImpl                 string
+	SourcesBaseUrl                      string
 }
 
 func (c Config) String() string {
@@ -139,6 +143,8 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %d\n", INVENTORY_KAFKA_BATCH_BYTES, c.InventoryKafkaBatchBytes)
 	fmt.Fprintf(&b, "%s: %s\n", INVENTORY_STALE_TIMESTAMP_OFFSET, c.InventoryStaleTimestampOffset)
 	fmt.Fprintf(&b, "%s: %s\n", INVENTORY_REPORTER_NAME, c.InventoryReporterName)
+	fmt.Fprintf(&b, "%s: %s\n", SOURCES_RECORDER_IMPL, c.SourcesRecorderImpl)
+	fmt.Fprintf(&b, "%s: %s\n", SOURCES_BASE_URL, c.SourcesBaseUrl)
 	return b.String()
 }
 
@@ -178,6 +184,8 @@ func GetConfig() *Config {
 	options.SetDefault(INVENTORY_KAFKA_BATCH_BYTES, 1048576)
 	options.SetDefault(INVENTORY_STALE_TIMESTAMP_OFFSET, 26)
 	options.SetDefault(INVENTORY_REPORTER_NAME, "cloud-connector")
+	options.SetDefault(SOURCES_RECORDER_IMPL, "fake")
+	options.SetDefault(SOURCES_BASE_URL, "http://sources-api.sources-ci.svc.cluster.local:8080")
 
 	options.SetEnvPrefix(ENV_PREFIX)
 	options.AutomaticEnv()
@@ -224,6 +232,8 @@ func GetConfig() *Config {
 		InventoryKafkaBatchBytes:            options.GetInt(INVENTORY_KAFKA_BATCH_BYTES),
 		InventoryStaleTimestampOffset:       options.GetDuration(INVENTORY_STALE_TIMESTAMP_OFFSET) * time.Hour,
 		InventoryReporterName:               options.GetString(INVENTORY_REPORTER_NAME),
+		SourcesRecorderImpl:                 options.GetString(SOURCES_RECORDER_IMPL),
+		SourcesBaseUrl:                      options.GetString(SOURCES_BASE_URL),
 	}
 }
 

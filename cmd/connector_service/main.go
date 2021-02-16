@@ -68,7 +68,12 @@ func main() {
 		logFatalError("Failed to create Connected Client Recorder", err)
 	}
 
-	controlMsgHandler := mqtt.ControlMessageHandler(sqlConnectionRegistrar, accountResolver, connectedClientRecorder)
+	sourcesRecorder, err := controller.NewSourcesRecorder(cfg.SourcesRecorderImpl, cfg)
+	if err != nil {
+		logFatalError("Failed to create Sources Recorder", err)
+	}
+
+	controlMsgHandler := mqtt.ControlMessageHandler(sqlConnectionRegistrar, accountResolver, connectedClientRecorder, sourcesRecorder)
 	dataMsgHandler := mqtt.DataMessageHandler()
 
 	defaultMsgHandler := mqtt.DefaultMessageHandler(controlMsgHandler, dataMsgHandler)
