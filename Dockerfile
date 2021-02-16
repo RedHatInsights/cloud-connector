@@ -1,4 +1,4 @@
-FROM registry.redhat.io/ubi8/go-toolset
+FROM registry.access.redhat.com/ubi8/go-toolset
 
 WORKDIR /go/src/app
 
