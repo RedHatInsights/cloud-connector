@@ -10,7 +10,7 @@ COPY . .
 
 USER root
 
-RUN go build -o connector-service ./cmd/connector_service/main.go
+RUN make build
 
 RUN REMOVE_PKGS="binutils kernel-headers nodejs nodejs-full-i18n npm" && \
     yum remove -y $REMOVE_PKGS && \
