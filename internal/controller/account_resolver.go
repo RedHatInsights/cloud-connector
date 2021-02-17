@@ -64,7 +64,10 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 			},
 		},
 	}
-	req, err := http.NewRequest("GET", bar.Config.BopUrl, nil)
+	req, err := http.NewRequest("GET", bar.Config.BopUrl+"v1/auth", nil)
+	if err != nil {
+		return "", err
+	}
 	req.Header.Add("x-rh-insights-certauth-secret", bar.Config.BopCertAuthSecret)
 	req.Header.Add("x-rh-certauth-issuer", bar.Config.BopCertIssuer)
 	req.Header.Add("x-rh-apitoken", bar.Config.BopToken)
@@ -72,24 +75,20 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 	req.Header.Add("x-rh-insights-env", bar.Config.BopEnv)
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("x-rh-certauth-cn", fmt.Sprintf("/CN=%s", clientID))
-	if err != nil {
-		fmt.Println(err)
-		return "", err
-	}
 	r, err := client.Do(req)
 	defer r.Body.Close()
+	if err != nil {
+		return "", err
+	}
 	if r.StatusCode != 200 {
 		b, _ := ioutil.ReadAll(r.Body)
 		return "", fmt.Errorf("Unable to find account %s", string(b))
 	}
 	var resp BopResp
-	//body, err := ioutil.ReadAll(r.Body)
-	//fmt.Println(string(body))
 	err = json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
 		return "", err
 	}
-	fmt.Println(resp.User.AccountNumber)
 	return domain.AccountID(resp.User.AccountNumber), nil
 }
 
