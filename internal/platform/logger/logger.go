@@ -98,7 +98,7 @@ func InitLogger() {
 		logconfig.SetDefault("AWS_REGION", "us-east-1")
 		logconfig.SetDefault("LOG_STREAM", hostname)
 		logconfig.SetDefault("LOG_FORMAT", "text")
-		logconfig.SetEnvPrefix("RECEPTOR_CONTROLLER")
+		logconfig.SetEnvPrefix("CLOUD_CONNECTOR")
 		logconfig.AutomaticEnv()
 		key := logconfig.GetString("CW_AWS_ACCESS_KEY_ID")
 		secret := logconfig.GetString("CW_AWS_SECRET_ACCESS_KEY")
