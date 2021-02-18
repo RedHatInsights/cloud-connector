@@ -5,6 +5,7 @@ import (
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
+	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/redhatinsights/platform-go-middlewares/request_id"
@@ -78,7 +79,7 @@ func (jr *MessageReceiver) handleJob() http.HandlerFunc {
 		}
 
 		var client controller.Receptor
-		client = jr.connectionMgr.GetConnection(req.Context(), msgRequest.Account, msgRequest.Recipient)
+		client = jr.connectionMgr.GetConnection(req.Context(), domain.AccountID(msgRequest.Account), domain.ClientID(msgRequest.Recipient))
 		if client == nil {
 			writeConnectionFailureResponse(logger, w)
 			return
@@ -88,7 +89,7 @@ func (jr *MessageReceiver) handleJob() http.HandlerFunc {
 			"directive": msgRequest.Directive})
 		logger.Info("Sending a message")
 
-		jobID, err := client.SendMessage(req.Context(), msgRequest.Account, msgRequest.Recipient,
+		jobID, err := client.SendMessage(req.Context(), domain.AccountID(msgRequest.Account), domain.ClientID(msgRequest.Recipient),
 			msgRequest.Directive,
 			msgRequest.Metadata,
 			msgRequest.Payload)

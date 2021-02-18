@@ -32,11 +32,13 @@ const (
 	CLIENT_ID_TO_ACCOUNT_ID_IMPL               = "Client_Id_To_Account_Id_Impl"
 	CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE        = "Client_Id_To_Account_Id_Config_File"
 	CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID = "Client_Id_To_Account_Id_Default_Account_Id"
+	CONNECTION_DATABASE_IMPL                   = "Connection_Database_Impl"
 	CONNECTION_DATABASE_HOST                   = "Connection_Database_Host"
 	CONNECTION_DATABASE_PORT                   = "Connection_Database_Port"
 	CONNECTION_DATABASE_USER                   = "Connection_Database_User"
 	CONNECTION_DATABASE_PASSWORD               = "Connection_Database_Password"
 	CONNECTION_DATABASE_NAME                   = "Connection_Database_Name"
+	CONNECTION_DATABASE_SQLITE_FILE            = "Connection_Database_Sqlite_File"
 	BOP_AUTH_SECRET                            = "BOP_Auth_Secret"
 	BOP_CERT_ISSUER                            = "BOP_Cert_Issuer"
 	BOP_CLIENT_ID                              = "BOP_Client_id"
@@ -76,11 +78,13 @@ type Config struct {
 	ClientIdToAccountIdImpl             string
 	ClientIdToAccountIdConfigFile       string
 	ClientIdToAccountIdDefaultAccountId string
+	ConnectionDatabaseImpl              string
 	ConnectionDatabaseHost              string
 	ConnectionDatabasePort              int
 	ConnectionDatabaseUser              string
 	ConnectionDatabasePassword          string
 	ConnectionDatabaseName              string
+	ConnectionDatabaseSqliteFile        string
 	BopCertAuthSecret                   string
 	BopCertIssuer                       string
 	BopClientID                         string
@@ -118,10 +122,12 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_IMPL, c.ClientIdToAccountIdImpl)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE, c.ClientIdToAccountIdConfigFile)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID, c.ClientIdToAccountIdDefaultAccountId)
+	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_IMPL, c.ConnectionDatabaseImpl)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_HOST, c.ConnectionDatabaseHost)
 	fmt.Fprintf(&b, "%s: %d\n", CONNECTION_DATABASE_PORT, c.ConnectionDatabasePort)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_USER, c.ConnectionDatabaseUser)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_NAME, c.ConnectionDatabaseName)
+	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_SQLITE_FILE, c.ConnectionDatabaseSqliteFile)
 	fmt.Fprintf(&b, "%s: %s\n", BOP_CERT_ISSUER, c.BopCertIssuer)
 	fmt.Fprintf(&b, "%s: %s\n", BOP_URL, c.BopUrl)
 	fmt.Fprintf(&b, "%s: %s\n", BOP_CA_FILE, c.BopCaFile)
@@ -155,11 +161,13 @@ func GetConfig() *Config {
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_IMPL, "config_file_based")
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE, "client_id_to_account_id_map.json")
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID, "111000")
+	options.SetDefault(CONNECTION_DATABASE_IMPL, "postgres")
 	options.SetDefault(CONNECTION_DATABASE_HOST, "localhost")
 	options.SetDefault(CONNECTION_DATABASE_PORT, 5432)
 	options.SetDefault(CONNECTION_DATABASE_USER, "insights")
 	options.SetDefault(CONNECTION_DATABASE_PASSWORD, "insights")
 	options.SetDefault(CONNECTION_DATABASE_NAME, "cloud-connector")
+	options.SetDefault(CONNECTION_DATABASE_SQLITE_FILE, "connections_metadata_sqlite.db")
 	options.SetDefault(BOP_CERT_ISSUER, "/C=US/ST=North Carolina/O=Red Hat, Inc./OU=Red Hat Network/CN=Red Hat Candlepin Authority/Email=ca-support@redhat.com")
 	options.SetDefault(BOP_URL, "https://backoffice-proxy-insights-services.ext.us-west.dc.preprod.paas.redhat.com/")
 	options.SetDefault(BOP_ENV, "qa")
@@ -195,11 +203,13 @@ func GetConfig() *Config {
 		ClientIdToAccountIdImpl:             options.GetString(CLIENT_ID_TO_ACCOUNT_ID_IMPL),
 		ClientIdToAccountIdConfigFile:       options.GetString(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE),
 		ClientIdToAccountIdDefaultAccountId: options.GetString(CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID),
+		ConnectionDatabaseImpl:              options.GetString(CONNECTION_DATABASE_IMPL),
 		ConnectionDatabaseHost:              options.GetString(CONNECTION_DATABASE_HOST),
 		ConnectionDatabasePort:              options.GetInt(CONNECTION_DATABASE_PORT),
 		ConnectionDatabaseUser:              options.GetString(CONNECTION_DATABASE_USER),
 		ConnectionDatabasePassword:          options.GetString(CONNECTION_DATABASE_PASSWORD),
 		ConnectionDatabaseName:              options.GetString(CONNECTION_DATABASE_NAME),
+		ConnectionDatabaseSqliteFile:        options.GetString(CONNECTION_DATABASE_SQLITE_FILE),
 		BopCertAuthSecret:                   options.GetString(BOP_AUTH_SECRET),
 		BopCertIssuer:                       options.GetString(BOP_CERT_ISSUER),
 		BopClientID:                         options.GetString(BOP_CLIENT_ID),

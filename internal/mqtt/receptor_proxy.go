@@ -24,7 +24,7 @@ type ReceptorMQTTProxy struct {
 	Client    MQTT.Client
 }
 
-func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber string, recipient string, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
+func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
 
 	messageID, err := rhp.sendDataMessage(ctx, directive, metadata, payload)
 	fmt.Print("messageID:", messageID)
@@ -33,7 +33,7 @@ func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber str
 	return messageID, nil
 }
 
-func (rhp *ReceptorMQTTProxy) Ping(ctx context.Context, accountNumber string, recipient string) error {
+func (rhp *ReceptorMQTTProxy) Ping(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID) error {
 
 	commandMessageContent := CommandMessageContent{Command: "ping"}
 
