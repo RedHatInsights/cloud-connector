@@ -240,7 +240,7 @@ func verifyTopic(topic string) (domain.ClientID, error) {
 }
 
 func handleEventMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage) error {
-	logger.Log.Debugf("Received an event message from client (%s): %s\n", clientID, msg)
+	logger.Log.Debugf("Received an event message from client (%s): %v\n", clientID, msg)
 	return nil
 }
 
