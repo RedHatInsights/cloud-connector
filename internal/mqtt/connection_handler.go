@@ -204,8 +204,6 @@ func handleOnlineMessage(client MQTT.Client, account domain.AccountID, clientID 
 		return err
 	}
 
-	connectionEvent(account, clientID, msg.Content)
-
 	proxy := ReceptorMQTTProxy{AccountID: account, ClientID: clientID, Client: client}
 
 	connectionRegistrar.Register(context.Background(), string(account), string(clientID), &proxy)
@@ -223,8 +221,6 @@ func handleOfflineMessage(client MQTT.Client, account domain.AccountID, clientID
 
 	connectionRegistrar.Unregister(context.Background(), string(account), string(clientID))
 
-	disconnectionEvent(account, clientID)
-
 	return nil
 }
 
@@ -236,28 +232,16 @@ func verifyTopic(topic string) (domain.ClientID, error) {
 
 	if items[0] != "redhat" || items[1] != "insights" || items[4] != "out" {
 		fmt.Println("topic: ", topic)
+		logger.Log.Debugf("Invalid topic: %s\n", topic)
 		return "", errors.New("MQTT topic needs to be redhat/insights/<clientID>/control/out")
 	}
 
 	return domain.ClientID(items[2]), nil
 }
 
-func registerConnectionInSources(account domain.AccountID, clientID domain.ClientID, catalogServiceFacts interface{}) error {
-	fmt.Println("FIXME: adding entry to sources - ", account, clientID, catalogServiceFacts)
-	return nil
-}
-
 func handleEventMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage) error {
-	fmt.Printf("FIXME: Got an event: %+v\n", msg.Content)
+	logger.Log.Debugf("Received an event message from client (%s): %s\n", clientID, msg)
 	return nil
-}
-
-func connectionEvent(account domain.AccountID, clientID domain.ClientID, canonicalFacts interface{}) {
-	fmt.Println("FIXME: send new connection kafka message")
-}
-
-func disconnectionEvent(account domain.AccountID, clientID domain.ClientID) {
-	fmt.Println("FIXME: send lost connection kafka message")
 }
 
 func DataMessageHandler() func(MQTT.Client, MQTT.Message) {
