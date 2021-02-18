@@ -154,6 +154,7 @@ func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID,
 
 	account, err := accountResolver.MapClientIdToAccountId(context.Background(), clientID)
 	if err != nil {
+		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to resolve client id to account number")
 		// FIXME:  tell the client to disconnect
 		return err
 	}
@@ -199,6 +200,7 @@ func handleOnlineMessage(client MQTT.Client, account domain.AccountID, clientID 
 	err := connectedClientRecorder.RecordConnectedClient(context.Background(), account, clientID, canonicalFacts)
 	if err != nil {
 		// FIXME:  If we cannot "register" the connection with inventory, then send a disconnect message
+		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to record client id within the platform")
 		return err
 	}
 

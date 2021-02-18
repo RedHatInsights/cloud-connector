@@ -75,7 +75,9 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 	req.Header.Add("x-rh-insights-env", bar.Config.BopEnv)
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("x-rh-certauth-cn", fmt.Sprintf("/CN=%s", clientID))
+	fmt.Println("About to call BOP")
 	r, err := client.Do(req)
+	fmt.Println("Returned from call to BOP")
 	defer r.Body.Close()
 	if err != nil {
 		return "", err
@@ -87,6 +89,7 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 	var resp BopResp
 	err = json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
+		fmt.Println("Unable to parse BOP response")
 		return "", err
 	}
 	return domain.AccountID(resp.User.AccountNumber), nil
