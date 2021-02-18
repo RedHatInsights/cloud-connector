@@ -19,7 +19,7 @@ type SqlConnectionLocator struct {
 
 func NewSqlConnectionLocator(cfg *config.Config, proxyFactory controller.ReceptorProxyFactory) (*SqlConnectionLocator, error) {
 
-	database, err := initializeSqlDatabase(cfg)
+	database, err := initializeDatabaseConnection(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +30,7 @@ func NewSqlConnectionLocator(cfg *config.Config, proxyFactory controller.Recepto
 	}, nil
 }
 
-func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account string, client_id string) controller.Receptor {
+func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account domain.AccountID, client_id domain.ClientID) controller.Receptor {
 	var conn controller.Receptor
 	var err error
 
@@ -57,7 +57,7 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account stri
 	return conn
 }
 
-func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, account string) map[string]controller.Receptor {
+func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, account domain.AccountID) map[string]controller.Receptor {
 
 	connectionsPerAccount := make(map[string]controller.Receptor)
 

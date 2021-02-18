@@ -5,15 +5,20 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
+	"github.com/RedHatInsights/cloud-connector/internal/domain"
+	"github.com/RedHatInsights/cloud-connector/internal/mqtt"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
 	"github.com/google/uuid"
@@ -29,11 +34,18 @@ const (
 	MESSAGE_ENDPOINT          = URL_BASE_PATH + "/message"
 )
 
+type MockClientProxyFactory struct {
+}
+
+func (MockClientProxyFactory) CreateProxy(context.Context, domain.AccountID, domain.ClientID) (controller.Receptor, error) {
+	return MockClient{}, nil
+}
+
 type MockClient struct {
 	returnAnError bool
 }
 
-func (mc MockClient) SendMessage(ctx context.Context, account string, recipient string, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
+func (mc MockClient) SendMessage(ctx context.Context, account domain.AccountID, recipient domain.ClientID, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
 	if mc.returnAnError {
 		return nil, errors.New("ImaError")
 	}
@@ -41,7 +53,7 @@ func (mc MockClient) SendMessage(ctx context.Context, account string, recipient 
 	return &myUUID, nil
 }
 
-func (mc MockClient) Ping(ctx context.Context, account string, recipient string) error {
+func (mc MockClient) Ping(ctx context.Context, account domain.AccountID, recipient domain.ClientID) error {
 	if mc.returnAnError {
 		return errors.New("ImaError")
 	}
@@ -61,21 +73,31 @@ var _ = Describe("MessageReceiver", func() {
 	var (
 		jr                  *MessageReceiver
 		validIdentityHeader string
+		sqliteDbFileName    string
 	)
 
 	BeforeEach(func() {
 		apiMux := mux.NewRouter()
-		cm := controller.NewLocalConnectionManager()
-		mc := MockClient{}
-		cm.Register(context.TODO(), "1234", "345", mc)
-		errorMC := MockClient{returnAnError: true}
-		cm.Register(context.TODO(), "1234", "error-client", errorMC)
 		cfg := config.GetConfig()
-		jr = NewMessageReceiver(cm, apiMux, URL_BASE_PATH, cfg)
+		cfg.ConnectionDatabaseImpl = "sqlite3"
+		sqliteDbFileName := fmt.Sprintf("connection_metadata-%d.db", time.Now().UnixNano())
+		cfg.ConnectionDatabaseSqliteFile = sqliteDbFileName
+		mpf := MockClientProxyFactory{}
+		cr, _ := mqtt.NewSqlConnectionRegistrar(cfg)
+		mc := MockClient{}
+		cr.Register(context.TODO(), "1234", "345", mc)
+		errorMC := MockClient{returnAnError: true}
+		cr.Register(context.TODO(), "1234", "error-client", errorMC)
+		cl, _ := mqtt.NewSqlConnectionLocator(cfg, mpf)
+		jr = NewMessageReceiver(cl, apiMux, URL_BASE_PATH, cfg)
 		jr.Routes()
 
 		identity := `{ "identity": {"account_number": "540155", "type": "User", "internal": { "org_id": "1979710" } } }`
 		validIdentityHeader = base64.StdEncoding.EncodeToString([]byte(identity))
+	})
+
+	AfterEach(func() {
+		os.Remove(sqliteDbFileName)
 	})
 
 	Describe("Connecting to the job receiver", func() {
@@ -101,6 +123,8 @@ var _ = Describe("MessageReceiver", func() {
 			})
 
 			It("Should be able to send a job to a connected customer but get an error", func() {
+
+				Skip("This test is supposed simulate a situation where the client throws and error")
 
 				postBody := "{\"account\": \"1234\", \"recipient\": \"error-client\", \"payload\": [\"678\"], \"directive\": \"fred:flintstone\"}"
 

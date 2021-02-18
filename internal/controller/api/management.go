@@ -6,6 +6,7 @@ import (
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
+	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/redhatinsights/platform-go-middlewares/request_id"
@@ -89,7 +90,7 @@ func (s *ManagementServer) handleDisconnect() http.HandlerFunc {
 			return
 		}
 
-		client := s.connectionMgr.GetConnection(req.Context(), connID.Account, connID.NodeID)
+		client := s.connectionMgr.GetConnection(req.Context(), domain.AccountID(connID.Account), domain.ClientID(connID.NodeID))
 		if client == nil {
 			errMsg := fmt.Sprintf("No connection found for node (%s:%s)", connID.Account, connID.NodeID)
 			logger.Info(errMsg)
@@ -136,7 +137,7 @@ func (s *ManagementServer) handleConnectionStatus() http.HandlerFunc {
 
 		connectionStatus := connectionStatusResponse{Status: DISCONNECTED_STATUS}
 
-		client := s.connectionMgr.GetConnection(req.Context(), connID.Account, connID.NodeID)
+		client := s.connectionMgr.GetConnection(req.Context(), domain.AccountID(connID.Account), domain.ClientID(connID.NodeID))
 		if client != nil {
 			connectionStatus.Status = CONNECTED_STATUS
 		}
@@ -209,7 +210,7 @@ func (s *ManagementServer) handleConnectionListingByAccount() http.HandlerFunc {
 
 		logger.Debug("Getting connections for ", accountId)
 
-		accountConnections := s.connectionMgr.GetConnectionsByAccount(req.Context(), accountId)
+		accountConnections := s.connectionMgr.GetConnectionsByAccount(req.Context(), domain.AccountID(accountId))
 		connections := make([]string, len(accountConnections))
 
 		connCount := 0
@@ -250,7 +251,7 @@ func (s *ManagementServer) handleConnectionPing() http.HandlerFunc {
 			connID.Account, connID.NodeID)
 
 		pingResponse := connectionPingResponse{Status: DISCONNECTED_STATUS}
-		client := s.connectionMgr.GetConnection(req.Context(), connID.Account, connID.NodeID)
+		client := s.connectionMgr.GetConnection(req.Context(), domain.AccountID(connID.Account), domain.ClientID(connID.NodeID))
 		if client == nil {
 			writeJSONResponse(w, http.StatusOK, pingResponse)
 			return
@@ -258,7 +259,7 @@ func (s *ManagementServer) handleConnectionPing() http.HandlerFunc {
 
 		pingResponse.Status = CONNECTED_STATUS
 
-		err := client.Ping(req.Context(), connID.Account, connID.NodeID)
+		err := client.Ping(req.Context(), domain.AccountID(connID.Account), domain.ClientID(connID.NodeID))
 
 		if err != nil {
 			errorResponse := errorResponse{Title: "Ping failed",

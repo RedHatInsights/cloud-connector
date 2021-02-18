@@ -8,13 +8,15 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
-	"github.com/RedHatInsights/cloud-connector/internal/controller"
+	"github.com/RedHatInsights/cloud-connector/internal/mqtt"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
 	"github.com/gorilla/mux"
@@ -41,22 +43,31 @@ func createConnectionStatusPostBody(account_number string, node_id string) io.Re
 var _ = Describe("Management", func() {
 
 	var (
-		cm                  *controller.LocalConnectionManager
 		ms                  *ManagementServer
 		validIdentityHeader string
+		sqliteDbFileName    string
 	)
 
 	BeforeEach(func() {
 		apiMux := mux.NewRouter()
-		cm = controller.NewLocalConnectionManager()
-		mc := MockClient{}
-		cm.Register(context.TODO(), CONNECTED_ACCOUNT_NUMBER, CONNECTED_NODE_ID, mc)
 		cfg := config.GetConfig()
-		ms = NewManagementServer(cm, apiMux, URL_BASE_PATH, cfg)
+		cfg.ConnectionDatabaseImpl = "sqlite3"
+		sqliteDbFileName := fmt.Sprintf("connection_metadata-%d.db", time.Now().UnixNano())
+		cfg.ConnectionDatabaseSqliteFile = sqliteDbFileName
+		mpf := MockClientProxyFactory{}
+		cr, _ := mqtt.NewSqlConnectionRegistrar(cfg)
+		mc := MockClient{}
+		cr.Register(context.TODO(), CONNECTED_ACCOUNT_NUMBER, CONNECTED_NODE_ID, mc)
+		cl, _ := mqtt.NewSqlConnectionLocator(cfg, mpf)
+		ms = NewManagementServer(cl, apiMux, URL_BASE_PATH, cfg)
 		ms.Routes()
 
 		identity := `{ "identity": {"account_number": "540155", "type": "User", "internal": { "org_id": "1979710" } } }`
 		validIdentityHeader = base64.StdEncoding.EncodeToString([]byte(identity))
+	})
+
+	AfterEach(func() {
+		os.Remove(sqliteDbFileName)
 	})
 
 	Describe("Connecting to the connection/status endpoint", func() {
