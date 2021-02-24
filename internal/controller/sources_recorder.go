@@ -186,6 +186,7 @@ func (sri *SourcesRecorderImpl) checkForExistingSourcesEntry(account domain.Acco
 		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse sources GET response")
 		return false, errors.New("Unable to parse sources GET response")
 	}
+	logger.Debugf("sources response:%+v\n", getSourcesResponse)
 
 	return len(getSourcesResponse.Data) > 0, nil
 }
