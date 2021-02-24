@@ -38,10 +38,11 @@ type SourcesRecorderImpl struct {
 	config *config.Config
 }
 
+
 type sourceEntry struct {
 	SourceRef  string `json:"source_ref"`
-	SourceName string `json:"source_name"`
-	SourceType string `json:"source_type"`
+	SourceName string `json:"name"`
+	SourceType string `json:"source_type_name"`
 }
 
 type applicationEntry struct {
