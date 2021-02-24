@@ -201,7 +201,7 @@ func makeHttpRequest(ctx context.Context /*probe *receptorHttpProxyProbe,*/, acc
 		return nil, err
 	}
 
-	identityJson := fmt.Sprintf("{\"identity\": {\"account_number\": \"%s\", \"internal\": {\"org_id\": \"%s\"}}}", string(account), string(account))
+	identityJson := fmt.Sprintf("{\"identity\": {\"account_number\": \"%s\", \"internal\": {\"org_id\": \"%s\"}, \"user\": {\"is_org_admin\": true}}}", string(account), string(account))
 	identityJsonBase64 := base64.StdEncoding.EncodeToString([]byte(identityJson))
 
 	req.Header.Set("x-rh-identity", identityJsonBase64)
