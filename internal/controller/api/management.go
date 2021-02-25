@@ -50,6 +50,7 @@ func (s *ManagementServer) Routes() {
 	securedSubRouter.HandleFunc("", s.handleConnectionListing()).Methods(http.MethodGet)
 	securedSubRouter.HandleFunc("/{id:[0-9]+}", s.handleConnectionListingByAccount()).Methods(http.MethodGet)
 	securedSubRouter.HandleFunc("/disconnect", s.handleDisconnect()).Methods(http.MethodPost)
+	securedSubRouter.HandleFunc("/reconnect", s.handleReconnect()).Methods(http.MethodPost)
 	securedSubRouter.HandleFunc("/status", s.handleConnectionStatus()).Methods(http.MethodPost)
 	securedSubRouter.HandleFunc("/ping", s.handleConnectionPing()).Methods(http.MethodPost)
 }
@@ -107,6 +108,54 @@ func (s *ManagementServer) handleDisconnect() http.HandlerFunc {
 		client.Close(req.Context())
 
 		writeJSONResponse(w, http.StatusOK, struct{}{})
+	}
+}
+
+func (s *ManagementServer) handleReconnect() http.HandlerFunc {
+
+	type reconnectRequest struct {
+		Account domain.AccountID `json:"account" validate:"required"`
+		NodeID  domain.ClientID  `json:"node_id" validate:"required"`
+		Delay   int              `json:"delay" validate:"required"`
+	}
+
+	return func(w http.ResponseWriter, req *http.Request) {
+
+		principal, _ := middlewares.GetPrincipal(req.Context())
+		requestId := request_id.GetReqID(req.Context())
+		logger := logger.Log.WithFields(logrus.Fields{
+			"account":    principal.GetAccount(),
+			"request_id": requestId})
+
+		body := http.MaxBytesReader(w, req.Body, 1048576)
+
+		var reconnectReq reconnectRequest
+
+		if err := decodeJSON(body, &reconnectReq); err != nil {
+			errorResponse := errorResponse{Title: "Unable to process json input",
+				Status: http.StatusBadRequest,
+				Detail: err.Error()}
+			writeJSONResponse(w, errorResponse.Status, errorResponse)
+			return
+		}
+
+		client := s.connectionMgr.GetConnection(req.Context(), reconnectReq.Account, reconnectReq.NodeID)
+		if client == nil {
+			errMsg := fmt.Sprintf("No connection found for node (%s:%s)", reconnectReq.Account, reconnectReq.NodeID)
+			logger.Info(errMsg)
+			errorResponse := errorResponse{Title: errMsg,
+				Status: http.StatusBadRequest,
+				Detail: errMsg}
+			writeJSONResponse(w, errorResponse.Status, errorResponse)
+			return
+		}
+
+		logger.Infof("Attempting to disconnect account:%s - node id:%s",
+			reconnectReq.Account, reconnectReq.NodeID)
+
+		client.Reconnect(req.Context(), domain.AccountID(reconnectReq.Account), domain.ClientID(reconnectReq.NodeID), reconnectReq.Delay)
+
+		writeJSONResponse(w, http.StatusOK, nil)
 	}
 }
 

@@ -210,6 +210,39 @@
           }
         }
       }
+    },
+    "/connection/reconnect": {
+      "post": {
+        "tags": [
+          "api",
+          "connection"
+        ],
+        "summary": "Send a reconnect request to a connected client",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          },
+          {
+            "PSKAuthClientID": [],
+            "PSKAuthAccount": [],
+            "PSKAuthKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionReconnectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -350,6 +383,20 @@
           },
           "payload": {
             "$ref": "#/components/schemas/Payload"
+          }
+        }
+      },
+      "ConnectionReconnectRequest": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "delay": {
+            "type": "number"
           }
         }
       },
