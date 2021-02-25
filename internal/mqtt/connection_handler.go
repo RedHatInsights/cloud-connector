@@ -213,6 +213,7 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 }
 
 const (
+	DISPATCHERS_KEY          = "dispatchers"
 	CATALOG_DISPATCHER_KEY   = "catalog"
 	CATALOG_APPLICATION_TYPE = "ApplicationType"
 	CATALOG_SOURCE_NAME      = "SrcName"
@@ -224,7 +225,7 @@ func processDispatchers(sourcesRecorder controller.SourcesRecorder, account doma
 
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientId, "account": account})
 
-	dispatchers, gotDispatchers := handshakePayload["dispatchers"]
+	dispatchers, gotDispatchers := handshakePayload[DISPATCHERS_KEY]
 
 	if gotDispatchers == false {
 		logger.Debug("No dispatchers found")
@@ -253,13 +254,7 @@ func processDispatchers(sourcesRecorder controller.SourcesRecorder, account doma
 		return
 	}
 
-	// FIXME: such an ugly hack!!
-	applicationType1, _ := applicationType.(string)
-	sourceType1, _ := sourceType.(string)
-	sourceRef1, _ := sourceRef.(string)
-	sourceName1, _ := sourceName.(string)
-
-	err := sourcesRecorder.RegisterWithSources(account, clientId, sourceRef1, sourceName1, sourceType1, applicationType1)
+	err := sourcesRecorder.RegisterWithSources(account, clientId, sourceRef.(string), sourceName.(string), sourceType.(string), applicationType.(string))
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to register catalog with sources")
 	}
