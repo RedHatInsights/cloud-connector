@@ -60,6 +60,13 @@ func (mc MockClient) Ping(ctx context.Context, account domain.AccountID, recipie
 	return nil
 }
 
+func (mc MockClient) Reconnect(ctx context.Context, account domain.AccountID, recipient domain.ClientID, delay int) error {
+	if mc.returnAnError {
+		return errors.New("ImaError")
+	}
+	return nil
+}
+
 func (mc MockClient) Close(context.Context) error {
 	return nil
 }

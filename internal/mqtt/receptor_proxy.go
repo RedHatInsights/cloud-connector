@@ -27,32 +27,37 @@ type ReceptorMQTTProxy struct {
 func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
 
 	messageID, err := rhp.sendDataMessage(ctx, directive, metadata, payload)
-	fmt.Print("messageID:", messageID)
-	fmt.Print("err:", err)
 
-	return messageID, nil
+	return messageID, err
 }
 
 func (rhp *ReceptorMQTTProxy) Ping(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID) error {
 
 	commandMessageContent := CommandMessageContent{Command: "ping"}
 
-	messageID, err := rhp.sendControlMessage(ctx, "command", commandMessageContent)
-	fmt.Print("messageID:", messageID)
-	fmt.Print("err:", err)
+	_, err := rhp.sendControlMessage(ctx, "command", commandMessageContent)
 
-	return nil
+	return err
+}
+
+func (rhp *ReceptorMQTTProxy) Reconnect(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID, delay int) error {
+
+	args := map[string]int{"delay": delay}
+
+	commandMessageContent := CommandMessageContent{Command: "reconnect", Arguments: args}
+
+	_, err := rhp.sendControlMessage(ctx, "command", commandMessageContent)
+
+	return err
 }
 
 func (rhp *ReceptorMQTTProxy) Close(ctx context.Context) error {
 
 	commandMessageContent := CommandMessageContent{Command: "disconnect"}
 
-	messageID, err := rhp.sendControlMessage(ctx, "command", commandMessageContent)
-	fmt.Print("messageID:", messageID)
-	fmt.Print("err:", err)
+	_, err := rhp.sendControlMessage(ctx, "command", commandMessageContent)
 
-	return nil
+	return err
 }
 
 func (rhp *ReceptorMQTTProxy) sendControlMessage(ctx context.Context, msgType string, content CommandMessageContent) (*uuid.UUID, error) {
@@ -76,8 +81,7 @@ func (rhp *ReceptorMQTTProxy) sendControlMessage(ctx context.Context, msgType st
 
 	topic := fmt.Sprintf(CONTROL_MESSAGE_OUTGOING_TOPIC, rhp.ClientID)
 
-	err = rhp.sendMessage(topic, message)
-	fmt.Print("err:", err)
+	err = rhp.sendMessage(logger, topic, message)
 
 	return &messageID, err
 }
@@ -105,20 +109,19 @@ func (rhp *ReceptorMQTTProxy) sendDataMessage(ctx context.Context, directive str
 		Content:     payload,
 	}
 
-	err = rhp.sendMessage(topic, message)
-	fmt.Print("err:", err)
+	err = rhp.sendMessage(logger, topic, message)
 
 	return &messageID, err
 }
 
-func (rhp *ReceptorMQTTProxy) sendMessage(topic string, message interface{}) error {
+func (rhp *ReceptorMQTTProxy) sendMessage(logger *logrus.Entry, topic string, message interface{}) error {
 
 	messageBytes, err := json.Marshal(message)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("topic: ", topic)
+	logger.Trace("Sending message to connected client on topic: ", topic)
 
 	t := rhp.Client.Publish(topic, byte(0), false, messageBytes)
 	go func() {
