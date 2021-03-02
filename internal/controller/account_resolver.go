@@ -17,7 +17,7 @@ import (
 )
 
 type AccountIdResolver interface {
-	MapClientIdToAccountId(context.Context, domain.ClientID) (domain.AccountID, error) //this should really be returning Identity header in 3scale format
+	MapClientIdToAccountId(context.Context, domain.ClientID) (domain.Identity, domain.AccountID, error)
 }
 
 //Fix me temporary
@@ -47,13 +47,13 @@ type BOPAccountIdResolver struct {
 	Config *config.Config
 }
 
-func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.AccountID, error) {
+func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, error) {
 
 	fmt.Println("Looking up the connection's account number in BOP")
 	caCert, err := ioutil.ReadFile(bar.Config.BopCaFile)
 	if err != nil {
 		fmt.Println(err)
-		return "", err
+		return "", "", err
 	}
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
@@ -66,7 +66,7 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 	}
 	req, err := http.NewRequest("GET", bar.Config.BopUrl+"v1/auth", nil)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	req.Header.Add("x-rh-insights-certauth-secret", bar.Config.BopCertAuthSecret)
 	req.Header.Add("x-rh-certauth-issuer", bar.Config.BopCertIssuer)
@@ -80,19 +80,19 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 	fmt.Println("Returned from call to BOP")
 	defer r.Body.Close()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if r.StatusCode != 200 {
 		b, _ := ioutil.ReadAll(r.Body)
-		return "", fmt.Errorf("Unable to find account %s", string(b))
+		return "", "", fmt.Errorf("Unable to find account %s", string(b))
 	}
 	var resp BopResp
 	err = json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
 		fmt.Println("Unable to parse BOP response")
-		return "", err
+		return "", "", err
 	}
-	return domain.AccountID(resp.User.AccountNumber), nil
+	return "", domain.AccountID(resp.User.AccountNumber), nil
 }
 
 type ConfigurableAccountIdResolver struct {
@@ -139,11 +139,11 @@ func (bar *ConfigurableAccountIdResolver) loadAccountIdMapFromFile() error {
 	return nil
 }
 
-func (bar *ConfigurableAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.AccountID, error) {
+func (bar *ConfigurableAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, error) {
 
 	if accountId, ok := bar.clientIdToAccountIdMap[clientID]; ok == true {
-		return accountId, nil
+		return "", accountId, nil
 	}
 
-	return bar.defaultAccountId, nil
+	return "", bar.defaultAccountId, nil
 }

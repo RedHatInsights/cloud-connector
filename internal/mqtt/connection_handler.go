@@ -177,7 +177,7 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 
 	logger.Debug("handling online connection-status message")
 
-	account, err := accountResolver.MapClientIdToAccountId(context.Background(), clientID)
+	identity, account, err := accountResolver.MapClientIdToAccountId(context.Background(), clientID)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to resolve client id to account number")
 		// FIXME:  tell the client to disconnect
@@ -195,7 +195,7 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 		return errors.New("Invalid handshake")
 	}
 
-	err = connectedClientRecorder.RecordConnectedClient(context.Background(), account, clientID, canonicalFacts)
+	err = connectedClientRecorder.RecordConnectedClient(context.Background(), identity, account, clientID, canonicalFacts)
 	if err != nil {
 		// FIXME:  If we cannot "register" the connection with inventory, then send a disconnect message
 		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to record client id within the platform")
@@ -207,7 +207,7 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 	connectionRegistrar.Register(context.Background(), account, clientID, &proxy)
 	// FIXME: check for error, but ignore duplicate registration errors
 
-	processDispatchers(sourcesRecorder, account, clientID, handshakePayload)
+	processDispatchers(sourcesRecorder, identity, account, clientID, handshakePayload)
 
 	return nil
 }
@@ -221,7 +221,7 @@ const (
 	CATALOG_SOURCE_TYPE      = "SrcType"
 )
 
-func processDispatchers(sourcesRecorder controller.SourcesRecorder, account domain.AccountID, clientId domain.ClientID, handshakePayload map[string]interface{}) {
+func processDispatchers(sourcesRecorder controller.SourcesRecorder, identity domain.Identity, account domain.AccountID, clientId domain.ClientID, handshakePayload map[string]interface{}) {
 
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientId, "account": account})
 
@@ -254,7 +254,7 @@ func processDispatchers(sourcesRecorder controller.SourcesRecorder, account doma
 		return
 	}
 
-	err := sourcesRecorder.RegisterWithSources(account, clientId, sourceRef.(string), sourceName.(string), sourceType.(string), applicationType.(string))
+    err := sourcesRecorder.RegisterWithSources(identity, account, clientId, sourceRef.(string), sourceName.(string), sourceType.(string), applicationType.(string))
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to register catalog with sources")
 	}
