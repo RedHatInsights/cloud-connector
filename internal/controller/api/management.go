@@ -61,7 +61,8 @@ type connectionID struct {
 }
 
 type connectionStatusResponse struct {
-	Status string `json:"status"`
+	Status      string      `json:"status"`
+	Dispatchers interface{} `json:"dispatchers,omitempty"`
 }
 
 type connectionPingResponse struct {
@@ -189,6 +190,7 @@ func (s *ManagementServer) handleConnectionStatus() http.HandlerFunc {
 		client := s.connectionMgr.GetConnection(req.Context(), domain.AccountID(connID.Account), domain.ClientID(connID.NodeID))
 		if client != nil {
 			connectionStatus.Status = CONNECTED_STATUS
+			connectionStatus.Dispatchers, _ = client.GetDispatchers(req.Context())
 		}
 
 		logger.Infof("Connection status for account:%s - node id:%s => %s\n",

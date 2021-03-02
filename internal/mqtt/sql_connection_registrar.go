@@ -3,16 +3,15 @@ package mqtt
 import (
 	"context"
 	"database/sql"
-	"errors"
+	"encoding/json"
 	"fmt"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
+	"github.com/RedHatInsights/cloud-connector/internal/platform/db"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
-	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,7 +21,7 @@ type SqlConnectionRegistrar struct {
 
 func NewSqlConnectionRegistrar(cfg *config.Config) (*SqlConnectionRegistrar, error) {
 
-	database, err := initializeDatabaseConnection(cfg)
+	database, err := db.InitializeDatabaseConnection(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -32,23 +31,51 @@ func NewSqlConnectionRegistrar(cfg *config.Config) (*SqlConnectionRegistrar, err
 	}, nil
 }
 
-func (scm *SqlConnectionRegistrar) Register(ctx context.Context, account domain.AccountID, client_id domain.ClientID, client controller.Receptor) error {
+func (scm *SqlConnectionRegistrar) Register(ctx context.Context, account domain.AccountID, client_id domain.ClientID, client controller.Receptor) (controller.RegistrationResults, error) {
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": account, "client_id": client_id})
 
-	statement, err := scm.database.Prepare("INSERT INTO connections (account, client_id) VALUES ($1, $2)")
+	update := "UPDATE connections SET dispatchers=$1, updated_at = NOW() WHERE account=$2 AND client_id=$3"
+	insert := "INSERT INTO connections (account, client_id, dispatchers) SELECT $4, $5, $6"
+	insertOrUpdate := fmt.Sprintf("WITH upsert AS (%s RETURNING *) %s WHERE NOT EXISTS (SELECT * FROM upsert)", update, insert)
+
+	statement, err := scm.database.Prepare(insertOrUpdate)
 	if err != nil {
 		logger.Fatal(err)
 	}
 	defer statement.Close()
 
-	_, err = statement.Exec(account, client_id)
+	dispatchers, err := client.GetDispatchers(ctx)
 	if err != nil {
 		logger.Fatal(err)
 	}
 
+	dispatchersString, err := json.Marshal(dispatchers)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	results, err := statement.Exec(dispatchersString, account, client_id, account, client_id, dispatchersString)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	rowsAffected, err := results.RowsAffected()
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	var registrationResults controller.RegistrationResults
+	if rowsAffected == 0 {
+		fmt.Println("UPDATED!")
+		registrationResults = controller.ExistingConnection
+	} else if rowsAffected == 1 {
+		registrationResults = controller.NewConnection
+		fmt.Println("INSERTED!")
+	}
+
 	logger.Debug("Registered a connection")
-	return nil
+	return registrationResults, nil
 }
 
 func (scm *SqlConnectionRegistrar) Unregister(ctx context.Context, client_id domain.ClientID) {
@@ -66,51 +93,4 @@ func (scm *SqlConnectionRegistrar) Unregister(ctx context.Context, client_id dom
 	}
 
 	logger.Debug("Unregistered a connection")
-}
-
-func initializePostgresConnection(cfg *config.Config) (*sql.DB, error) {
-	psqlConnectionInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		cfg.ConnectionDatabaseHost,
-		cfg.ConnectionDatabasePort,
-		cfg.ConnectionDatabaseUser,
-		cfg.ConnectionDatabasePassword,
-		cfg.ConnectionDatabaseName)
-
-	return sql.Open("postgres", psqlConnectionInfo)
-}
-
-func initializeSqliteConnection(cfg *config.Config) (*sql.DB, error) {
-	return sql.Open("sqlite3", cfg.ConnectionDatabaseSqliteFile)
-}
-
-func initializeDatabaseConnection(cfg *config.Config) (*sql.DB, error) {
-
-	var database *sql.DB
-	var err error
-
-	if cfg.ConnectionDatabaseImpl == "postgres" {
-		database, err = initializePostgresConnection(cfg)
-	} else if cfg.ConnectionDatabaseImpl == "sqlite3" {
-		database, err = initializeSqliteConnection(cfg)
-	} else {
-		return nil, errors.New("Invalid SQL database impl requested")
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	statement, err := database.Prepare(
-		"CREATE TABLE IF NOT EXISTS connections (id SERIAL PRIMARY KEY, account VARCHAR(10), client_id VARCHAR(100))")
-	if err != nil {
-		return nil, err
-	}
-	defer statement.Close()
-
-	_, err = statement.Exec()
-	if err != nil {
-		return nil, err
-	}
-
-	return database, nil
 }

@@ -3,27 +3,33 @@ module github.com/RedHatInsights/cloud-connector
 go 1.13
 
 require (
-	github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a // indirect
-	github.com/alicebob/miniredis v2.5.0+incompatible
 	github.com/aws/aws-sdk-go v1.36.23
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/eclipse/paho.mqtt.golang v1.3.1
+	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-playground/assert/v2 v2.0.1
 	github.com/go-playground/validator/v10 v10.4.1
-	github.com/go-redis/redis v6.15.9+incompatible
-	github.com/gomodule/redigo v2.0.0+incompatible // indirect
-	github.com/google/go-cmp v0.4.0
+	github.com/golang-migrate/migrate/v4 v4.14.1
 	github.com/google/uuid v1.1.4
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/lib/pq v1.9.0
+	github.com/magiconair/properties v1.8.4 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
-	github.com/onsi/ginkgo v1.8.0
-	github.com/onsi/gomega v1.5.0
+	github.com/mitchellh/mapstructure v1.4.1 // indirect
+	github.com/onsi/ginkgo v1.12.0
+	github.com/onsi/gomega v1.9.0
+	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/prometheus/client_golang v1.9.0
 	github.com/redhatinsights/platform-go-middlewares v0.7.0
 	github.com/segmentio/kafka-go v0.4.8
 	github.com/sirupsen/logrus v1.7.0
+	github.com/spf13/afero v1.5.1 // indirect
+	github.com/spf13/cast v1.3.1 // indirect
+	github.com/spf13/cobra v1.1.3
+	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.7.1
-	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da // indirect
+	golang.org/x/sys v0.0.0-20210301091718-77cc2087c03b // indirect
+	golang.org/x/text v0.3.5 // indirect
+	gopkg.in/ini.v1 v1.62.0 // indirect
 )

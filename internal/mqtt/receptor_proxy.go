@@ -23,6 +23,7 @@ type ReceptorMQTTProxy struct {
 	ClientID     domain.ClientID
 	Client       MQTT.Client
 	TopicBuilder *TopicBuilder
+	Dispatchers  domain.Dispatchers
 }
 
 func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
@@ -50,6 +51,10 @@ func (rhp *ReceptorMQTTProxy) Reconnect(ctx context.Context, accountNumber domai
 	_, err := rhp.sendControlMessage(ctx, "command", commandMessageContent)
 
 	return err
+}
+
+func (rhp *ReceptorMQTTProxy) GetDispatchers(ctx context.Context) (domain.Dispatchers, error) {
+	return rhp.Dispatchers, nil
 }
 
 func (rhp *ReceptorMQTTProxy) Close(ctx context.Context) error {

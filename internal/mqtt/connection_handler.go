@@ -178,26 +178,28 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 
 	logger = logger.WithFields(logrus.Fields{"account": account})
 
-	handshakePayload := msg.Content.(map[string]interface{}) // FIXME:
+	handshakePayload := msg.Content.(map[string]interface{})
 
-	canonicalFacts, gotCanonicalFacts := handshakePayload["canonical_facts"]
+	proxy := ReceptorMQTTProxy{AccountID: account, ClientID: clientID, Client: client, Dispatchers: handshakePayload[DISPATCHERS_KEY]}
 
-	if gotCanonicalFacts == false {
-		fmt.Println("FIXME: error!  hangup")
-		return errors.New("Invalid handshake")
+	registrationResults, err := connectionRegistrar.Register(context.Background(), account, clientID, &proxy)
+
+	if registrationResults == controller.NewConnection {
+
+		canonicalFacts, gotCanonicalFacts := handshakePayload["canonical_facts"]
+
+		if gotCanonicalFacts == false {
+			fmt.Println("FIXME: error!  hangup")
+			return errors.New("Invalid handshake")
+		}
+
+		err = connectedClientRecorder.RecordConnectedClient(context.Background(), identity, account, clientID, canonicalFacts)
+		if err != nil {
+			// FIXME:  If we cannot "register" the connection with inventory, then send a disconnect message
+			logger.WithFields(logrus.Fields{"error": err}).Error("Failed to record client id within the platform")
+			return err
+		}
 	}
-
-	err = connectedClientRecorder.RecordConnectedClient(context.Background(), identity, account, clientID, canonicalFacts)
-	if err != nil {
-		// FIXME:  If we cannot "register" the connection with inventory, then send a disconnect message
-		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to record client id within the platform")
-		return err
-	}
-
-	proxy := ReceptorMQTTProxy{AccountID: account, ClientID: clientID, Client: client}
-
-	connectionRegistrar.Register(context.Background(), account, clientID, &proxy)
-	// FIXME: check for error, but ignore duplicate registration errors
 
 	processDispatchers(sourcesRecorder, identity, account, clientID, handshakePayload)
 

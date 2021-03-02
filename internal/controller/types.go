@@ -18,15 +18,23 @@ type Receptor interface {
 	SendMessage(context.Context, domain.AccountID, domain.ClientID, string, interface{}, interface{}) (*uuid.UUID, error)
 	Ping(context.Context, domain.AccountID, domain.ClientID) error
 	Reconnect(context.Context, domain.AccountID, domain.ClientID, int) error
+	GetDispatchers(context.Context) (domain.Dispatchers, error)
 	Close(context.Context) error
 }
 
 type ReceptorProxyFactory interface {
-	CreateProxy(context.Context, domain.AccountID, domain.ClientID) (Receptor, error)
+	CreateProxy(context.Context, domain.AccountID, domain.ClientID, domain.Dispatchers) (Receptor, error)
 }
 
+type RegistrationResults int
+
+const (
+	NewConnection RegistrationResults = iota
+	ExistingConnection
+)
+
 type ConnectionRegistrar interface {
-	Register(context.Context, domain.AccountID, domain.ClientID, Receptor) error
+	Register(context.Context, domain.AccountID, domain.ClientID, Receptor) (RegistrationResults, error)
 	Unregister(context.Context, domain.ClientID)
 }
 
