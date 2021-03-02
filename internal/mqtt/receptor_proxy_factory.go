@@ -19,13 +19,14 @@ func NewReceptorMQTTProxyFactory(cfg *config.Config, mqttClient MQTT.Client, top
 	return &proxyFactory, nil
 }
 
-func (rhp *ReceptorMQTTProxyFactory) CreateProxy(ctx context.Context, account domain.AccountID, client_id domain.ClientID) (controller.Receptor, error) {
+func (rhp *ReceptorMQTTProxyFactory) CreateProxy(ctx context.Context, account domain.AccountID, client_id domain.ClientID, dispatchers domain.Dispatchers) (controller.Receptor, error) {
 
 	proxy := ReceptorMQTTProxy{
 		AccountID:    account,
 		ClientID:     client_id,
 		Client:       rhp.mqttClient,
 		TopicBuilder: rhp.topicBuilder,
+		Dispatchers:  dispatchers,
 	}
 
 	return &proxy, nil

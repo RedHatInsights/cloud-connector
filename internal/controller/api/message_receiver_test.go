@@ -5,12 +5,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -18,7 +16,6 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
-	"github.com/RedHatInsights/cloud-connector/internal/mqtt"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
 	"github.com/google/uuid"
@@ -37,7 +34,7 @@ const (
 type MockClientProxyFactory struct {
 }
 
-func (MockClientProxyFactory) CreateProxy(context.Context, domain.AccountID, domain.ClientID) (controller.Receptor, error) {
+func (MockClientProxyFactory) CreateProxy(context.Context, domain.AccountID, domain.ClientID, domain.Dispatchers) (controller.Receptor, error) {
 	return MockClient{}, nil
 }
 
@@ -67,8 +64,59 @@ func (mc MockClient) Reconnect(ctx context.Context, account domain.AccountID, re
 	return nil
 }
 
+func (mc MockClient) GetDispatchers(ctx context.Context) (domain.Dispatchers, error) {
+	var dispatchers domain.Dispatchers
+	if mc.returnAnError {
+		return dispatchers, errors.New("ImaError")
+	}
+	return dispatchers, nil
+}
+
 func (mc MockClient) Close(context.Context) error {
 	return nil
+}
+
+type MockConnectionManager struct {
+	AccountIndex map[domain.AccountID]map[domain.ClientID]controller.Receptor
+	ClientIndex  map[domain.ClientID]domain.AccountID
+}
+
+func NewMockConnectionManager() *MockConnectionManager {
+	mcm := MockConnectionManager{AccountIndex: make(map[domain.AccountID]map[domain.ClientID]controller.Receptor),
+		ClientIndex: make(map[domain.ClientID]domain.AccountID)}
+	return &mcm
+}
+
+func (m *MockConnectionManager) Register(ctx context.Context, account domain.AccountID, clientID domain.ClientID, receptor controller.Receptor) error {
+	_, ok := m.AccountIndex[account]
+	if !ok {
+		m.AccountIndex[account] = make(map[domain.ClientID]controller.Receptor)
+	}
+	m.AccountIndex[account][clientID] = receptor
+	m.ClientIndex[clientID] = account
+	return nil
+}
+
+func (m *MockConnectionManager) Unregister(ctx context.Context, clientID domain.ClientID) {
+	account, ok := m.ClientIndex[clientID]
+	if !ok {
+		return
+	}
+
+	delete(m.ClientIndex, clientID)
+	delete(m.AccountIndex[account], clientID)
+}
+
+func (m *MockConnectionManager) GetConnection(ctx context.Context, account domain.AccountID, clientID domain.ClientID) controller.Receptor {
+	return m.AccountIndex[account][clientID]
+}
+
+func (m *MockConnectionManager) GetConnectionsByAccount(ctx context.Context, account domain.AccountID) map[domain.ClientID]controller.Receptor {
+	return m.AccountIndex[account]
+}
+
+func (m *MockConnectionManager) GetAllConnections(ctx context.Context) map[domain.AccountID]map[domain.ClientID]controller.Receptor {
+	return m.AccountIndex
 }
 
 func init() {
@@ -86,17 +134,12 @@ var _ = Describe("MessageReceiver", func() {
 	BeforeEach(func() {
 		apiMux := mux.NewRouter()
 		cfg := config.GetConfig()
-		cfg.ConnectionDatabaseImpl = "sqlite3"
-		sqliteDbFileName := fmt.Sprintf("connection_metadata-%d.db", time.Now().UnixNano())
-		cfg.ConnectionDatabaseSqliteFile = sqliteDbFileName
-		mpf := MockClientProxyFactory{}
-		cr, _ := mqtt.NewSqlConnectionRegistrar(cfg)
+		connectionManager := NewMockConnectionManager()
 		mc := MockClient{}
-		cr.Register(context.TODO(), "1234", "345", mc)
+		connectionManager.Register(context.TODO(), "1234", "345", mc)
 		errorMC := MockClient{returnAnError: true}
-		cr.Register(context.TODO(), "1234", "error-client", errorMC)
-		cl, _ := mqtt.NewSqlConnectionLocator(cfg, mpf)
-		jr = NewMessageReceiver(cl, apiMux, URL_BASE_PATH, cfg)
+		connectionManager.Register(context.TODO(), "1234", "error-client", errorMC)
+		jr = NewMessageReceiver(connectionManager, apiMux, URL_BASE_PATH, cfg)
 		jr.Routes()
 
 		identity := `{ "identity": {"account_number": "540155", "type": "User", "internal": { "org_id": "1979710" } } }`

@@ -370,7 +370,7 @@
           "status": {
             "$ref": "#/components/schemas/ConnectionStatus"
           },
-          "capabilities": {
+          "dispatchers": {
             "type": "object"
           }
         }

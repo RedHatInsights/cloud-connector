@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"flag"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,23 +17,9 @@ import (
 	"github.com/redhatinsights/platform-go-middlewares/request_id"
 
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
 )
 
-func logFatalError(msg string, err error) {
-	logger.Log.WithFields(logrus.Fields{"error": err}).Fatal(msg)
-}
-
-// mutual auth
-// JWT header
-//   from env
-//   from file
-// client id
-
-func main() {
-	var mgmtAddr = flag.String("mgmtAddr", ":8081", "Hostname:port of the management server")
-
-	flag.Parse()
+func startMqttConnectionHandler(mgmtAddr string) {
 
 	logger.InitLogger()
 
@@ -45,32 +30,32 @@ func main() {
 
 	tlsConfigFuncs, err := buildBrokerTlsConfigFuncList(cfg)
 	if err != nil {
-		logFatalError("TLS configuration error for MQTT Broker connection", err)
+		logger.LogFatalError("TLS configuration error for MQTT Broker connection", err)
 	}
 
 	tlsConfig, err := tls_utils.NewTlsConfig(tlsConfigFuncs...)
 	if err != nil {
-		logFatalError("Unable to configure TLS for MQTT Broker connection", err)
+		logger.LogFatalError("Unable to configure TLS for MQTT Broker connection", err)
 	}
 
 	sqlConnectionRegistrar, err := mqtt.NewSqlConnectionRegistrar(cfg)
 	if err != nil {
-		logFatalError("Failed to create SQL Connection Registrar", err)
+		logger.LogFatalError("Failed to create SQL Connection Registrar", err)
 	}
 
 	accountResolver, err := controller.NewAccountIdResolver(cfg.ClientIdToAccountIdImpl, cfg)
 	if err != nil {
-		logFatalError("Failed to create Account ID Resolver", err)
+		logger.LogFatalError("Failed to create Account ID Resolver", err)
 	}
 
 	connectedClientRecorder, err := controller.NewConnectedClientRecorder(cfg.ConnectedClientRecorderImpl, cfg)
 	if err != nil {
-		logFatalError("Failed to create Connected Client Recorder", err)
+		logger.LogFatalError("Failed to create Connected Client Recorder", err)
 	}
 
 	sourcesRecorder, err := controller.NewSourcesRecorder(cfg.SourcesRecorderImpl, cfg)
 	if err != nil {
-		logFatalError("Failed to create Sources Recorder", err)
+		logger.LogFatalError("Failed to create Sources Recorder", err)
 	}
 
 	mqttTopicBuilder := mqtt.NewTopicBuilder(cfg.MqttTopicPrefix)
@@ -96,17 +81,17 @@ func main() {
 
 	mqttClient, err := mqtt.RegisterSubscribers(cfg.MqttBrokerAddress, tlsConfig, cfg, subscribers, defaultMsgHandler)
 	if err != nil {
-		logFatalError("Failed to connect to MQTT broker", err)
+		logger.LogFatalError("Failed to connect to MQTT broker", err)
 	}
 
 	proxyFactory, err := mqtt.NewReceptorMQTTProxyFactory(cfg, mqttClient, mqttTopicBuilder)
 	if err != nil {
-		logFatalError("Unable to create proxy factory", err)
+		logger.LogFatalError("Unable to create proxy factory", err)
 	}
 
 	sqlConnectionLocator, err := mqtt.NewSqlConnectionLocator(cfg, proxyFactory)
 	if err != nil {
-		logFatalError("Failed to create SQL Connection Locator", err)
+		logger.LogFatalError("Failed to create SQL Connection Locator", err)
 	}
 
 	apiMux := mux.NewRouter()
@@ -124,7 +109,7 @@ func main() {
 	jr := api.NewMessageReceiver(sqlConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
 	jr.Routes()
 
-	apiSrv := utils.StartHTTPServer(*mgmtAddr, "management", apiMux)
+	apiSrv := utils.StartHTTPServer(mgmtAddr, "management", apiMux)
 
 	signalChan := make(chan os.Signal, 1)
 

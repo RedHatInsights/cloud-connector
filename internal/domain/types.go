@@ -13,3 +13,6 @@ type AccountID string
 func (aid AccountID) String() string {
 	return string(aid)
 }
+
+//type Dispatchers map[string]map[string]string
+type Dispatchers interface{}

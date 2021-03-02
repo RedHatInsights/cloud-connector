@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/RedHatInsights/cloud-connector/internal/domain"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	lc "github.com/redhatinsights/platform-go-middlewares/logging/cloudwatch"
@@ -143,4 +145,18 @@ func InitLogger() {
 			Log.Hooks.Add(hook)
 		}
 	})
+}
+
+func LogFatalError(msg string, err error) {
+	Log.WithFields(logrus.Fields{"error": err}).Fatal(msg)
+}
+
+func LogError(msg string, err error) {
+	Log.WithFields(logrus.Fields{"error": err}).Error(msg)
+}
+
+func LogErrorWithAccountAndClientId(msg string, err error, account domain.AccountID, client_id domain.ClientID) {
+	Log.WithFields(logrus.Fields{"error": err,
+		"account":   account,
+		"client_id": client_id}).Error(msg)
 }
