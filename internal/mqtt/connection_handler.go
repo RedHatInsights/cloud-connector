@@ -254,7 +254,7 @@ func processDispatchers(sourcesRecorder controller.SourcesRecorder, identity dom
 		return
 	}
 
-    err := sourcesRecorder.RegisterWithSources(identity, account, clientId, sourceRef.(string), sourceName.(string), sourceType.(string), applicationType.(string))
+	err := sourcesRecorder.RegisterWithSources(identity, account, clientId, sourceRef.(string), sourceName.(string), sourceType.(string), applicationType.(string))
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to register catalog with sources")
 	}
