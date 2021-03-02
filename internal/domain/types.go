@@ -1,5 +1,7 @@
 package domain
 
+type Identity string
+
 type ClientID string
 
 func (cid ClientID) String() string {

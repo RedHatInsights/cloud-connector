@@ -20,7 +20,7 @@ import (
 )
 
 type SourcesRecorder interface {
-	RegisterWithSources(account domain.AccountID, clientID domain.ClientID, sourceRef, sourceName, sourceType, applicationType string) error
+	RegisterWithSources(identity domain.Identity, account domain.AccountID, client domain.ClientID, sourceRef, sourceName, sourceType, applicationType string) error
 }
 
 func NewSourcesRecorder(impl string, cfg *config.Config) (SourcesRecorder, error) {
@@ -60,7 +60,7 @@ type sourcesBulkOperation struct {
 	Endpoints    []endpointEntry    `json:"endpoints"`
 }
 
-func (sri *SourcesRecorderImpl) RegisterWithSources(account domain.AccountID, clientID domain.ClientID, sourceRef, sourceName, sourceType, applicationType string) error {
+func (sri *SourcesRecorderImpl) RegisterWithSources(identity domain.Identity, account domain.AccountID, clientID domain.ClientID, sourceRef, sourceName, sourceType, applicationType string) error {
 
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID, "account": account})
 
@@ -222,7 +222,7 @@ func makeHttpRequest(ctx context.Context /*probe *receptorHttpProxyProbe,*/, acc
 type FakeSourcesRecorder struct {
 }
 
-func (f *FakeSourcesRecorder) RegisterWithSources(account domain.AccountID, clientID domain.ClientID, sourceRef, sourceName, sourceType, applicationType string) error {
+func (f *FakeSourcesRecorder) RegisterWithSources(identity domain.Identity, account domain.AccountID, clientID domain.ClientID, sourceRef, sourceName, sourceType, applicationType string) error {
 	fmt.Println("FAKE ... registering with sources:", account, clientID, sourceRef, sourceName)
 	return nil
 }
