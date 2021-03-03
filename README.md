@@ -120,7 +120,7 @@ A complete example of a `ConnectionStatus` message:
             "playbook": {
                 "ansible-runner-version": "1.2.3"
             },
-            "echo": {}.
+            "echo": {}
         },
         "state": "online"
     }
