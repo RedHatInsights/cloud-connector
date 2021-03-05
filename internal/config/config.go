@@ -56,6 +56,9 @@ const (
 	INVENTORY_REPORTER_NAME                    = "Inventory_Reporter_Name"
 	SOURCES_RECORDER_IMPL                      = "Sources_Recorder_Impl"
 	SOURCES_BASE_URL                           = "Sources_Base_Url"
+	JWT_TOKEN_EXPIRY                           = "JWT_Token_Expiry_Minutes"
+	JWT_PRIVATE_KEY_FILE                       = "JWT_Private_Key_File"
+	JWT_PUBLIC_KEY_FILE                        = "JWT_Public_Key_File"
 )
 
 type Config struct {
@@ -103,6 +106,9 @@ type Config struct {
 	InventoryReporterName               string
 	SourcesRecorderImpl                 string
 	SourcesBaseUrl                      string
+	JwtTokenExpiry                      int
+	JwtPrivateKeyFile                   string
+	JwtPublicKeyFile                    string
 }
 
 func (c Config) String() string {
@@ -145,6 +151,9 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", INVENTORY_REPORTER_NAME, c.InventoryReporterName)
 	fmt.Fprintf(&b, "%s: %s\n", SOURCES_RECORDER_IMPL, c.SourcesRecorderImpl)
 	fmt.Fprintf(&b, "%s: %s\n", SOURCES_BASE_URL, c.SourcesBaseUrl)
+	fmt.Fprintf(&b, "%s: %d\n", JWT_TOKEN_EXPIRY, c.JwtTokenExpiry)
+	fmt.Fprintf(&b, "%s: %s\n", JWT_PRIVATE_KEY_FILE, c.JwtPrivateKeyFile)
+	fmt.Fprintf(&b, "%s: %s\n", JWT_PUBLIC_KEY_FILE, c.JwtPublicKeyFile)
 	return b.String()
 }
 
@@ -186,6 +195,9 @@ func GetConfig() *Config {
 	options.SetDefault(INVENTORY_REPORTER_NAME, "cloud-connector")
 	options.SetDefault(SOURCES_RECORDER_IMPL, "fake")
 	options.SetDefault(SOURCES_BASE_URL, "http://sources-api.sources-ci.svc.cluster.local:8080")
+	options.SetDefault(JWT_TOKEN_EXPIRY, 1)
+	options.SetDefault(JWT_PRIVATE_KEY_FILE, "/etc/jwt/mqtt-private-key.rsa")
+	options.SetDefault(JWT_PUBLIC_KEY_FILE, "/etc/jwt/mqtt-public-key.rsa")
 
 	options.SetEnvPrefix(ENV_PREFIX)
 	options.AutomaticEnv()
@@ -234,6 +246,9 @@ func GetConfig() *Config {
 		InventoryReporterName:               options.GetString(INVENTORY_REPORTER_NAME),
 		SourcesRecorderImpl:                 options.GetString(SOURCES_RECORDER_IMPL),
 		SourcesBaseUrl:                      options.GetString(SOURCES_BASE_URL),
+		JwtTokenExpiry:                      options.GetInt(JWT_TOKEN_EXPIRY),
+		JwtPrivateKeyFile:                   options.GetString(JWT_PRIVATE_KEY_FILE),
+		JwtPublicKeyFile:                    options.GetString(JWT_PUBLIC_KEY_FILE),
 	}
 }
 

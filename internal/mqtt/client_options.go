@@ -14,6 +14,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const akamaiTokenHeader = "X-Akamai-DCP-Token"
+
 type MqttClientOptionsFunc func(*MQTT.ClientOptions) error
 
 func WithJwtAsHttpHeader(tokenGenerator jwt_utils.JwtGenerator) MqttClientOptionsFunc {
@@ -26,10 +28,28 @@ func WithJwtAsHttpHeader(tokenGenerator jwt_utils.JwtGenerator) MqttClientOption
 			return err
 		}
 
-		headers.Add("X-Akamai-DCP-Token", jwtToken)
+		headers.Add(akamaiTokenHeader, jwtToken)
 		fmt.Println("SETTING THE JWT HTTP HEADER")
 		opts.SetHTTPHeaders(headers)
 
+		return nil
+	}
+}
+
+func WithJwtReconnectingHandler(tokenGenerator jwt_utils.JwtGenerator) MqttClientOptionsFunc {
+	//'Reconnecting' handler is called prior to a reconnection attempt , before 'Reconnect' handlers
+	return func(opts *MQTT.ClientOptions) error {
+		tokenRefresher := func(c MQTT.Client, opts *MQTT.ClientOptions) {
+			logger.Log.Info("Attempting JWT token refresh")
+			jwtToken, err := tokenGenerator(context.Background())
+			if err != nil {
+				logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to refresh the JWT Token for the MQTT broker connection")
+			} else {
+				opts.HTTPHeaders.Set(akamaiTokenHeader, jwtToken)
+			}
+		}
+		logger.Log.Info("Setting MQTT JWT reconnecting handler")
+		opts.SetReconnectingHandler(tokenRefresher)
 		return nil
 	}
 }

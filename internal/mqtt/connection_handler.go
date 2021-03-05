@@ -47,14 +47,14 @@ func buildBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *con
 		brokerConfigFuncs = append(brokerConfigFuncs, WithTlsConfig(tlsConfig))
 	}
 
-	if u.Scheme == "wss" {
+	if u.Scheme == "wss" { //Rethink this check - jwt also works over TLS
 		jwtGenerator, err := jwt_utils.NewJwtGenerator(cfg.MqttBrokerJwtGeneratorImpl, cfg)
 		if err != nil {
 			logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to instantiate a JWT generator for the MQTT connection")
 			return nil, err
 		}
-
 		brokerConfigFuncs = append(brokerConfigFuncs, WithJwtAsHttpHeader(jwtGenerator))
+		brokerConfigFuncs = append(brokerConfigFuncs, WithJwtReconnectingHandler(jwtGenerator))
 	}
 
 	if cfg.MqttClientId != "" {
