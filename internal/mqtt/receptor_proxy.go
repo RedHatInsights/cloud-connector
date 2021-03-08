@@ -127,7 +127,8 @@ func (rhp *ReceptorMQTTProxy) sendMessage(logger *logrus.Entry, topic string, me
 	go func() {
 		_ = t.Wait() // Can also use '<-t.Done()' in releases > 1.2.0
 		if t.Error() != nil {
-			fmt.Println("public error:", t.Error())
+			logger := logger.WithFields(logrus.Fields{"error": t.Error()})
+			logger.Error("Error sending a message to MQTT broker")
 		}
 	}()
 

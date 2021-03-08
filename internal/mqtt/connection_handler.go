@@ -286,7 +286,8 @@ func verifyTopic(topic string) (domain.ClientID, error) {
 }
 
 func handleEventMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage) error {
-	logger.Log.Debugf("Received an event message from client (%s): %v\n", clientID, msg)
+	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
+	logger.Debugf("Received an event message from client: %v\n", msg)
 	return nil
 }
 
