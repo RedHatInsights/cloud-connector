@@ -96,7 +96,7 @@ func (rhp *ReceptorMQTTProxy) sendDataMessage(ctx context.Context, directive str
 	logger := logger.Log.WithFields(logrus.Fields{"message_id": messageID, "account": rhp.AccountID, "client_id": rhp.ClientID})
 
 	go func() {
-		var sleepTime time.Duration = 2
+		var sleepTime time.Duration = 5
 		logger.Debugf("Sleeping for %d second before sending data message to connected client\n", sleepTime)
 		time.Sleep(sleepTime * time.Second)
 		logger.Debug("Sending data message to connected client")
