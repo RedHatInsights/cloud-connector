@@ -95,21 +95,25 @@ func (rhp *ReceptorMQTTProxy) sendDataMessage(ctx context.Context, directive str
 
 	logger := logger.Log.WithFields(logrus.Fields{"message_id": messageID, "account": rhp.AccountID, "client_id": rhp.ClientID})
 
-	logger.Debug("Sending data message to connected client")
+	go func() {
+		logger.Debug("Sleeping for 1 second before sending data message to connected client")
+		time.Sleep(10 * time.Second)
+		logger.Debug("Sending data message to connected client")
 
-	topic := fmt.Sprintf(DATA_MESSAGE_OUTGOING_TOPIC, rhp.ClientID)
+		topic := fmt.Sprintf(DATA_MESSAGE_OUTGOING_TOPIC, rhp.ClientID)
 
-	message := DataMessage{
-		MessageType: "data",
-		MessageID:   messageID.String(),
-		Version:     1,
-		Sent:        time.Now(),
-		Metadata:    metadata,
-		Directive:   directive,
-		Content:     payload,
-	}
+		message := DataMessage{
+			MessageType: "data",
+			MessageID:   messageID.String(),
+			Version:     1,
+			Sent:        time.Now(),
+			Metadata:    metadata,
+			Directive:   directive,
+			Content:     payload,
+		}
 
-	err = rhp.sendMessage(logger, topic, message)
+		err = rhp.sendMessage(logger, topic, message)
+	}()
 
 	return &messageID, err
 }
