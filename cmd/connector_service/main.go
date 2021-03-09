@@ -87,7 +87,7 @@ func main() {
 		mqtt.Subscriber{
 			Topic:      "redhat/insights/+/data/out",
 			EntryPoint: dataMsgHandler,
-			Qos:        0,
+			Qos:        1,
 		},
 	}
 
