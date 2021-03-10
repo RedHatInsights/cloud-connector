@@ -39,13 +39,7 @@ const (
 	CONNECTION_DATABASE_PASSWORD               = "Connection_Database_Password"
 	CONNECTION_DATABASE_NAME                   = "Connection_Database_Name"
 	CONNECTION_DATABASE_SQLITE_FILE            = "Connection_Database_Sqlite_File"
-	BOP_AUTH_SECRET                            = "BOP_Auth_Secret"
-	BOP_CERT_ISSUER                            = "BOP_Cert_Issuer"
-	BOP_CLIENT_ID                              = "BOP_Client_id"
-	BOP_TOKEN                                  = "BOP_Token"
-	BOP_URL                                    = "BOP_URL"
-	BOP_CA_FILE                                = "BOP_CA_File"
-	BOP_ENV                                    = "BOP_Env"
+	AUTH_GATEWAY_URL                           = "Auth_Gateway_Url"
 	DEFAULT_KAFKA_BROKER_ADDRESS               = "kafka:29092"
 	CONNECTED_CLIENT_RECORDER_IMPL             = "Connected_Client_Recorder_Impl"
 	INVENTORY_KAFKA_BROKERS                    = "Inventory_Kafka_Brokers"
@@ -90,13 +84,7 @@ type Config struct {
 	ConnectionDatabasePassword          string
 	ConnectionDatabaseName              string
 	ConnectionDatabaseSqliteFile        string
-	BopCertAuthSecret                   string
-	BopCertIssuer                       string
-	BopClientID                         string
-	BopToken                            string
-	BopUrl                              string
-	BopCaFile                           string
-	BopEnv                              string
+	AuthGatewayUrl                      string
 	ConnectedClientRecorderImpl         string
 	InventoryKafkaBrokers               []string
 	InventoryKafkaTopic                 string
@@ -138,10 +126,6 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_USER, c.ConnectionDatabaseUser)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_NAME, c.ConnectionDatabaseName)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_SQLITE_FILE, c.ConnectionDatabaseSqliteFile)
-	fmt.Fprintf(&b, "%s: %s\n", BOP_CERT_ISSUER, c.BopCertIssuer)
-	fmt.Fprintf(&b, "%s: %s\n", BOP_URL, c.BopUrl)
-	fmt.Fprintf(&b, "%s: %s\n", BOP_CA_FILE, c.BopCaFile)
-	fmt.Fprintf(&b, "%s: %s\n", BOP_ENV, c.BopEnv) //rest of BOP parameters deliberately ommitted
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTED_CLIENT_RECORDER_IMPL, c.ConnectedClientRecorderImpl)
 	fmt.Fprintf(&b, "%s: %s\n", INVENTORY_KAFKA_BROKERS, c.InventoryKafkaBrokers)
 	fmt.Fprintf(&b, "%s: %s\n", INVENTORY_KAFKA_TOPIC, c.InventoryKafkaTopic)
@@ -154,6 +138,7 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %d\n", JWT_TOKEN_EXPIRY, c.JwtTokenExpiry)
 	fmt.Fprintf(&b, "%s: %s\n", JWT_PRIVATE_KEY_FILE, c.JwtPrivateKeyFile)
 	fmt.Fprintf(&b, "%s: %s\n", JWT_PUBLIC_KEY_FILE, c.JwtPublicKeyFile)
+	fmt.Fprintf(&b, "%s: %s\n", AUTH_GATEWAY_URL, c.AuthGatewayUrl)
 	return b.String()
 }
 
@@ -183,9 +168,6 @@ func GetConfig() *Config {
 	options.SetDefault(CONNECTION_DATABASE_PASSWORD, "insights")
 	options.SetDefault(CONNECTION_DATABASE_NAME, "cloud-connector")
 	options.SetDefault(CONNECTION_DATABASE_SQLITE_FILE, "connections_metadata_sqlite.db")
-	options.SetDefault(BOP_CERT_ISSUER, "/C=US/ST=North Carolina/O=Red Hat, Inc./OU=Red Hat Network/CN=Red Hat Candlepin Authority/Email=ca-support@redhat.com")
-	options.SetDefault(BOP_URL, "https://backoffice-proxy-insights-services.ext.us-west.dc.preprod.paas.redhat.com/")
-	options.SetDefault(BOP_ENV, "qa")
 	options.SetDefault(CONNECTED_CLIENT_RECORDER_IMPL, "fake")
 	options.SetDefault(INVENTORY_KAFKA_BROKERS, []string{DEFAULT_KAFKA_BROKER_ADDRESS})
 	options.SetDefault(INVENTORY_KAFKA_TOPIC, "platform.inventory.host-ingress-p1")
@@ -198,6 +180,7 @@ func GetConfig() *Config {
 	options.SetDefault(JWT_TOKEN_EXPIRY, 1)
 	options.SetDefault(JWT_PRIVATE_KEY_FILE, "/etc/jwt/mqtt-private-key.rsa")
 	options.SetDefault(JWT_PUBLIC_KEY_FILE, "/etc/jwt/mqtt-public-key.rsa")
+	options.SetDefault(AUTH_GATEWAY_URL, "http://apicast.3scale-staging.svc.cluster.local:8890/internal/certauth")
 
 	options.SetEnvPrefix(ENV_PREFIX)
 	options.AutomaticEnv()
@@ -230,13 +213,7 @@ func GetConfig() *Config {
 		ConnectionDatabasePassword:          options.GetString(CONNECTION_DATABASE_PASSWORD),
 		ConnectionDatabaseName:              options.GetString(CONNECTION_DATABASE_NAME),
 		ConnectionDatabaseSqliteFile:        options.GetString(CONNECTION_DATABASE_SQLITE_FILE),
-		BopCertAuthSecret:                   options.GetString(BOP_AUTH_SECRET),
-		BopCertIssuer:                       options.GetString(BOP_CERT_ISSUER),
-		BopClientID:                         options.GetString(BOP_CLIENT_ID),
-		BopToken:                            options.GetString(BOP_TOKEN),
-		BopUrl:                              options.GetString(BOP_URL),
-		BopCaFile:                           options.GetString(BOP_CA_FILE),
-		BopEnv:                              options.GetString(BOP_ENV),
+		AuthGatewayUrl:                      options.GetString(AUTH_GATEWAY_URL),
 		ConnectedClientRecorderImpl:         options.GetString(CONNECTED_CLIENT_RECORDER_IMPL),
 		InventoryKafkaBrokers:               options.GetStringSlice(INVENTORY_KAFKA_BROKERS),
 		InventoryKafkaTopic:                 options.GetString(INVENTORY_KAFKA_TOPIC),
