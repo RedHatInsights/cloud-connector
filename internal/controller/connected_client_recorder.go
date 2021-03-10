@@ -76,9 +76,11 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 	hostData := canonicalFacts.(map[string]interface{})
 
 	hostData["account"] = string(account)
-	hostData["rhc_client_id"] = clientID
 	hostData["stale_timestamp"] = staleTimestamp.UTC().Format("2006-01-02T15:04:05Z07:00")
 	hostData["reporter"] = ibccr.ReporterName
+
+	var systemProfile = map[string]string{"rhc_client_id": string(clientID)}
+	hostData["system_profile"] = systemProfile
 
 	metadata := platformMetadata{RequestID: requestID.String()}
 	envelope := inventoryMessageEnvelope{
