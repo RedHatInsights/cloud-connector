@@ -2,32 +2,27 @@ package controller
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/redhatinsights/platform-go-middlewares/identity"
 )
 
 type AccountIdResolver interface {
 	MapClientIdToAccountId(context.Context, domain.ClientID) (domain.Identity, domain.AccountID, error)
 }
 
-//Fix me temporary
-type BopResp struct {
-	Mechanism string `json:"mechanism"`
-	User      struct {
-		OrgID         string `json:"org_id"`
-		AccountNumber string `json:"account_number"`
-		Type          string `json:"type"`
-	} `json:"user"`
+type AuthGwResp struct {
+	Identity string `json:"x-rh-identity"`
 }
 
 func NewAccountIdResolver(accountIdResolverImpl string, cfg *config.Config) (AccountIdResolver, error) {
@@ -49,35 +44,19 @@ type BOPAccountIdResolver struct {
 
 func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, error) {
 
-	fmt.Println("Looking up the connection's account number in BOP")
-	caCert, err := ioutil.ReadFile(bar.Config.BopCaFile)
-	if err != nil {
-		fmt.Println(err)
-		return "", "", err
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
+	logger.Log.Debugf("Looking up the client %s account number in via Gateway", clientID)
 	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs: caCertPool,
-			},
-		},
+		Timeout: time.Second * 15,
 	}
-	req, err := http.NewRequest("GET", bar.Config.BopUrl+"v1/auth", nil)
+	req, err := http.NewRequest("GET", bar.Config.AuthGatewayUrl, nil)
 	if err != nil {
 		return "", "", err
 	}
-	req.Header.Add("x-rh-insights-certauth-secret", bar.Config.BopCertAuthSecret)
-	req.Header.Add("x-rh-certauth-issuer", bar.Config.BopCertIssuer)
-	req.Header.Add("x-rh-apitoken", bar.Config.BopToken)
-	req.Header.Add("x-rh-clientid", bar.Config.BopClientID)
-	req.Header.Add("x-rh-insights-env", bar.Config.BopEnv)
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("x-rh-certauth-cn", fmt.Sprintf("/CN=%s", clientID))
-	fmt.Println("About to call BOP")
+	logger.Log.Debug("About to call BOP")
 	r, err := client.Do(req)
-	fmt.Println("Returned from call to BOP")
+	logger.Log.Debug("Returned from call to BOP")
 	defer r.Body.Close()
 	if err != nil {
 		return "", "", err
@@ -86,13 +65,23 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 		b, _ := ioutil.ReadAll(r.Body)
 		return "", "", fmt.Errorf("Unable to find account %s", string(b))
 	}
-	var resp BopResp
+	var resp AuthGwResp
 	err = json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
 		fmt.Println("Unable to parse BOP response")
 		return "", "", err
 	}
-	return "", domain.AccountID(resp.User.AccountNumber), nil
+	idRaw, err := base64.StdEncoding.DecodeString(resp.Identity)
+	if err != nil {
+		return "", "", err
+	}
+
+	var jsonData identity.XRHID
+	err = json.Unmarshal(idRaw, &jsonData)
+	if err != nil {
+		return "", "", err
+	}
+	return domain.Identity(resp.Identity), domain.AccountID(jsonData.Identity.AccountNumber), nil
 }
 
 type ConfigurableAccountIdResolver struct {
@@ -139,11 +128,17 @@ func (bar *ConfigurableAccountIdResolver) loadAccountIdMapFromFile() error {
 	return nil
 }
 
+func (bar *ConfigurableAccountIdResolver) createIdentityHeader(account domain.AccountID) domain.Identity {
+	identityJson := fmt.Sprintf("{\"identity\": {\"account_number\": \"%s\", \"internal\": {\"org_id\": \"%s\"}, \"user\": {\"is_org_admin\": true}}}", string(account), string(account))
+	identityJsonBase64 := base64.StdEncoding.EncodeToString([]byte(identityJson))
+	return domain.Identity(identityJsonBase64)
+}
+
 func (bar *ConfigurableAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, error) {
 
 	if accountId, ok := bar.clientIdToAccountIdMap[clientID]; ok == true {
-		return "", accountId, nil
+		return bar.createIdentityHeader(accountId), accountId, nil
 	}
 
-	return "", bar.defaultAccountId, nil
+	return bar.createIdentityHeader(bar.defaultAccountId), bar.defaultAccountId, nil
 }
