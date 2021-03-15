@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
-	"strings"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 
@@ -18,13 +17,6 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/jwt_utils"
 
 	"github.com/sirupsen/logrus"
-)
-
-const (
-	CONTROL_MESSAGE_INCOMING_TOPIC string = "redhat/insights/+/control/out"
-	CONTROL_MESSAGE_OUTGOING_TOPIC string = "redhat/insights/%s/control/in"
-	DATA_MESSAGE_INCOMING_TOPIC    string = "redhat/insights/+/data/out"
-	DATA_MESSAGE_OUTGOING_TOPIC    string = "redhat/insights/%s/data/in"
 )
 
 type Subscriber struct {
@@ -107,11 +99,11 @@ func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Co
 	return mqttClient, nil
 }
 
-func ControlMessageHandler(connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(MQTT.Client, MQTT.Message) {
+func ControlMessageHandler(topicVerifier *TopicVerifier, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(MQTT.Client, MQTT.Message) {
 	return func(client MQTT.Client, message MQTT.Message) {
 		logger.Log.Debugf("Received control message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
 
-		clientID, err := verifyTopic(message.Topic())
+		_, clientID, err := topicVerifier.VerifyIncomingTopic(message.Topic())
 		if err != nil {
 			logger.Log.WithFields(logrus.Fields{"error": err}).Error("Failed to verify topic")
 			return
@@ -270,21 +262,6 @@ func handleOfflineMessage(client MQTT.Client, clientID domain.ClientID, msg Cont
 	return nil
 }
 
-func verifyTopic(topic string) (domain.ClientID, error) {
-	items := strings.Split(topic, "/")
-	if len(items) != 5 {
-		return "", errors.New("MQTT topic requires 4 sections: redhat, insights, <clientID>, control, in")
-	}
-
-	if items[0] != "redhat" || items[1] != "insights" || items[4] != "out" {
-		fmt.Println("topic: ", topic)
-		logger.Log.Debugf("Invalid topic: %s\n", topic)
-		return "", errors.New("MQTT topic needs to be redhat/insights/<clientID>/control/out")
-	}
-
-	return domain.ClientID(items[2]), nil
-}
-
 func handleEventMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage) error {
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 	logger.Debugf("Received an event message from client: %v\n", msg)
@@ -302,12 +279,20 @@ func DataMessageHandler() func(MQTT.Client, MQTT.Message) {
 	}
 }
 
-func DefaultMessageHandler(controlMessageHandler, dataMessageHandler func(MQTT.Client, MQTT.Message)) func(client MQTT.Client, message MQTT.Message) {
+func DefaultMessageHandler(topicVerifier *TopicVerifier, controlMessageHandler, dataMessageHandler func(MQTT.Client, MQTT.Message)) func(client MQTT.Client, message MQTT.Message) {
 	return func(client MQTT.Client, message MQTT.Message) {
 		logger.Log.Debugf("Received message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
-		if strings.Contains(message.Topic(), "control") {
+
+		topicType, _, err := topicVerifier.VerifyIncomingTopic(message.Topic())
+
+		if err != nil {
+			logger.Log.Debugf("Topic verification failed : %s\nMessage: %s\n", message.Topic(), message.Payload())
+			return
+		}
+
+		if topicType == ControlTopicType {
 			controlMessageHandler(client, message)
-		} else if strings.Contains(message.Topic(), "data") {
+		} else if topicType == DataTopicType {
 			dataMessageHandler(client, message)
 		} else {
 			logger.Log.Debugf("Received message on unknown topic: %s\nMessage: %s\n", message.Topic(), message.Payload())

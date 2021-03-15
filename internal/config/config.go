@@ -19,6 +19,7 @@ const (
 	SERVICE_TO_SERVICE_CREDENTIALS             = "Service_To_Service_Credentials"
 	PROFILE                                    = "Enable_Profile"
 	MQTT_BROKER_ADDRESS                        = "MQTT_Broker_Address"
+	MQTT_BROKER_ADDRESS_DEFAULT                = "ssl://localhost:8883"
 	MQTT_CLIENT_ID                             = "MQTT_Client_Id"
 	MQTT_CLEAN_SESSION                         = "MQTT_Clean_Session"
 	MQTT_RESUME_SUBS                           = "MQTT_Resume_Subs"
@@ -28,7 +29,7 @@ const (
 	MQTT_BROKER_TLS_SKIP_VERIFY                = "MQTT_Broker_Tls_Skip_Verify"
 	MQTT_BROKER_JWT_GENERATOR_IMPL             = "MQTT_Broker_JWT_Generator_Impl"
 	MQTT_BROKER_JWT_FILE                       = "MQTT_Broker_JWT_File"
-	DEFAULT_MQTT_BROKER_ADDRESS                = "ssl://localhost:8883"
+	MQTT_TOPIC_PREFIX                          = "MQTT_Topic_Prefix"
 	CLIENT_ID_TO_ACCOUNT_ID_IMPL               = "Client_Id_To_Account_Id_Impl"
 	CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE        = "Client_Id_To_Account_Id_Config_File"
 	CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID = "Client_Id_To_Account_Id_Default_Account_Id"
@@ -73,6 +74,7 @@ type Config struct {
 	MqttBrokerTlsSkipVerify             bool
 	MqttBrokerJwtGeneratorImpl          string
 	MqttBrokerJwtFile                   string
+	MqttTopicPrefix                     string
 	KafkaBrokers                        []string
 	ClientIdToAccountIdImpl             string
 	ClientIdToAccountIdConfigFile       string
@@ -117,6 +119,7 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %v\n", MQTT_BROKER_TLS_SKIP_VERIFY, c.MqttBrokerTlsSkipVerify)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_JWT_GENERATOR_IMPL, c.MqttBrokerJwtGeneratorImpl)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_JWT_FILE, c.MqttBrokerJwtFile)
+	fmt.Fprintf(&b, "%s: %s\n", MQTT_TOPIC_PREFIX, c.MqttTopicPrefix)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_IMPL, c.ClientIdToAccountIdImpl)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE, c.ClientIdToAccountIdConfigFile)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID, c.ClientIdToAccountIdDefaultAccountId)
@@ -151,13 +154,14 @@ func GetConfig() *Config {
 	options.SetDefault(HTTP_SHUTDOWN_TIMEOUT, 2)
 	options.SetDefault(SERVICE_TO_SERVICE_CREDENTIALS, "")
 	options.SetDefault(PROFILE, false)
-	options.SetDefault(MQTT_BROKER_ADDRESS, DEFAULT_MQTT_BROKER_ADDRESS)
+	options.SetDefault(MQTT_BROKER_ADDRESS, MQTT_BROKER_ADDRESS_DEFAULT)
 	options.SetDefault(MQTT_CLIENT_ID, "connector-service")
 	options.SetDefault(MQTT_CLEAN_SESSION, false)
 	options.SetDefault(MQTT_RESUME_SUBS, true)
 	options.SetDefault(MQTT_BROKER_TLS_SKIP_VERIFY, false)
 	options.SetDefault(MQTT_BROKER_JWT_GENERATOR_IMPL, "jwt_file_reader")
 	options.SetDefault(MQTT_BROKER_JWT_FILE, "cloud-connector-mqtt-jwt.txt")
+	options.SetDefault(MQTT_TOPIC_PREFIX, "redhat")
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_IMPL, "config_file_based")
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE, "client_id_to_account_id_map.json")
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID, "111000")
@@ -203,6 +207,7 @@ func GetConfig() *Config {
 		MqttBrokerTlsSkipVerify:             options.GetBool(MQTT_BROKER_TLS_SKIP_VERIFY),
 		MqttBrokerJwtGeneratorImpl:          options.GetString(MQTT_BROKER_JWT_GENERATOR_IMPL),
 		MqttBrokerJwtFile:                   options.GetString(MQTT_BROKER_JWT_FILE),
+		MqttTopicPrefix:                     options.GetString(MQTT_TOPIC_PREFIX),
 		ClientIdToAccountIdImpl:             options.GetString(CLIENT_ID_TO_ACCOUNT_ID_IMPL),
 		ClientIdToAccountIdConfigFile:       options.GetString(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE),
 		ClientIdToAccountIdDefaultAccountId: options.GetString(CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID),

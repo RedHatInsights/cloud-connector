@@ -73,19 +73,22 @@ func main() {
 		logFatalError("Failed to create Sources Recorder", err)
 	}
 
-	controlMsgHandler := mqtt.ControlMessageHandler(sqlConnectionRegistrar, accountResolver, connectedClientRecorder, sourcesRecorder)
+	mqttTopicBuilder := mqtt.NewTopicBuilder(cfg.MqttTopicPrefix)
+	mqttTopicVerifier := mqtt.NewTopicVerifier(cfg.MqttTopicPrefix)
+
+	controlMsgHandler := mqtt.ControlMessageHandler(mqttTopicVerifier, sqlConnectionRegistrar, accountResolver, connectedClientRecorder, sourcesRecorder)
 	dataMsgHandler := mqtt.DataMessageHandler()
 
-	defaultMsgHandler := mqtt.DefaultMessageHandler(controlMsgHandler, dataMsgHandler)
+	defaultMsgHandler := mqtt.DefaultMessageHandler(mqttTopicVerifier, controlMsgHandler, dataMsgHandler)
 
 	subscribers := []mqtt.Subscriber{
 		mqtt.Subscriber{
-			Topic:      "redhat/insights/+/control/out",
+			Topic:      mqttTopicBuilder.BuildIncomingWildcardControlTopic(),
 			EntryPoint: controlMsgHandler,
 			Qos:        1,
 		},
 		mqtt.Subscriber{
-			Topic:      "redhat/insights/+/data/out",
+			Topic:      mqttTopicBuilder.BuildIncomingWildcardDataTopic(),
 			EntryPoint: dataMsgHandler,
 			Qos:        0,
 		},
@@ -96,7 +99,7 @@ func main() {
 		logFatalError("Failed to connect to MQTT broker", err)
 	}
 
-	proxyFactory, err := mqtt.NewReceptorMQTTProxyFactory(cfg, mqttClient)
+	proxyFactory, err := mqtt.NewReceptorMQTTProxyFactory(cfg, mqttClient, mqttTopicBuilder)
 	if err != nil {
 		logFatalError("Unable to create proxy factory", err)
 	}

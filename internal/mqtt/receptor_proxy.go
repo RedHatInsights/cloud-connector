@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -19,9 +18,10 @@ var (
 )
 
 type ReceptorMQTTProxy struct {
-	AccountID domain.AccountID
-	ClientID  domain.ClientID
-	Client    MQTT.Client
+	AccountID    domain.AccountID
+	ClientID     domain.ClientID
+	Client       MQTT.Client
+	TopicBuilder *TopicBuilder
 }
 
 func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
@@ -79,7 +79,7 @@ func (rhp *ReceptorMQTTProxy) sendControlMessage(ctx context.Context, msgType st
 		Content:     content,
 	}
 
-	topic := fmt.Sprintf(CONTROL_MESSAGE_OUTGOING_TOPIC, rhp.ClientID)
+	topic := rhp.TopicBuilder.BuildOutgoingControlTopic(rhp.ClientID)
 
 	err = rhp.sendMessage(logger, topic, message)
 
@@ -101,7 +101,7 @@ func (rhp *ReceptorMQTTProxy) sendDataMessage(ctx context.Context, directive str
 		time.Sleep(sleepTime * time.Second)
 		logger.Debug("Sending data message to connected client")
 
-		topic := fmt.Sprintf(DATA_MESSAGE_OUTGOING_TOPIC, rhp.ClientID)
+		topic := rhp.TopicBuilder.BuildOutgoingDataTopic(rhp.ClientID)
 
 		message := DataMessage{
 			MessageType: "data",
