@@ -10,20 +10,22 @@ import (
 )
 
 type ReceptorMQTTProxyFactory struct {
-	mqttClient MQTT.Client
+	mqttClient   MQTT.Client
+	topicBuilder *TopicBuilder
 }
 
-func NewReceptorMQTTProxyFactory(cfg *config.Config, mqttClient MQTT.Client) (controller.ReceptorProxyFactory, error) {
-	proxyFactory := ReceptorMQTTProxyFactory{mqttClient: mqttClient}
+func NewReceptorMQTTProxyFactory(cfg *config.Config, mqttClient MQTT.Client, topicBuilder *TopicBuilder) (controller.ReceptorProxyFactory, error) {
+	proxyFactory := ReceptorMQTTProxyFactory{mqttClient: mqttClient, topicBuilder: topicBuilder}
 	return &proxyFactory, nil
 }
 
 func (rhp *ReceptorMQTTProxyFactory) CreateProxy(ctx context.Context, account domain.AccountID, client_id domain.ClientID) (controller.Receptor, error) {
 
 	proxy := ReceptorMQTTProxy{
-		AccountID: account,
-		ClientID:  client_id,
-		Client:    rhp.mqttClient,
+		AccountID:    account,
+		ClientID:     client_id,
+		Client:       rhp.mqttClient,
+		TopicBuilder: rhp.topicBuilder,
 	}
 
 	return &proxy, nil
