@@ -6,6 +6,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -96,9 +97,10 @@ func (rhp *ReceptorMQTTProxy) sendDataMessage(ctx context.Context, directive str
 	logger := logger.Log.WithFields(logrus.Fields{"message_id": messageID, "account": rhp.AccountID, "client_id": rhp.ClientID})
 
 	go func() {
-		var sleepTime time.Duration = 5
-		logger.Debugf("Sleeping for %d second before sending data message to connected client\n", sleepTime)
-		time.Sleep(sleepTime * time.Second)
+		cfg := config.GetConfig()
+		var sleepTime time.Duration = cfg.SleepTimeHack
+		logger.Debugf("Sleeping for %s seconds before sending data message to connected client\n", sleepTime)
+		time.Sleep(sleepTime)
 		logger.Debug("Sending data message to connected client")
 
 		topic := rhp.TopicBuilder.BuildOutgoingDataTopic(rhp.ClientID)

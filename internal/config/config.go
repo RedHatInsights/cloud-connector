@@ -99,6 +99,7 @@ type Config struct {
 	JwtTokenExpiry                      int
 	JwtPrivateKeyFile                   string
 	JwtPublicKeyFile                    string
+	SleepTimeHack                       time.Duration
 }
 
 func (c Config) String() string {
@@ -142,6 +143,7 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", JWT_PRIVATE_KEY_FILE, c.JwtPrivateKeyFile)
 	fmt.Fprintf(&b, "%s: %s\n", JWT_PUBLIC_KEY_FILE, c.JwtPublicKeyFile)
 	fmt.Fprintf(&b, "%s: %s\n", AUTH_GATEWAY_URL, c.AuthGatewayUrl)
+	fmt.Fprintf(&b, "%s: %s\n", "Sleep_Time_Hack", c.SleepTimeHack)
 	return b.String()
 }
 
@@ -185,6 +187,8 @@ func GetConfig() *Config {
 	options.SetDefault(JWT_PRIVATE_KEY_FILE, "/etc/jwt/mqtt-private-key.rsa")
 	options.SetDefault(JWT_PUBLIC_KEY_FILE, "/etc/jwt/mqtt-public-key.rsa")
 	options.SetDefault(AUTH_GATEWAY_URL, "http://apicast.3scale-staging.svc.cluster.local:8890/internal/certauth")
+
+	options.SetDefault("Sleep_Time_Hack", 0)
 
 	options.SetEnvPrefix(ENV_PREFIX)
 	options.AutomaticEnv()
@@ -231,6 +235,7 @@ func GetConfig() *Config {
 		JwtTokenExpiry:                      options.GetInt(JWT_TOKEN_EXPIRY),
 		JwtPrivateKeyFile:                   options.GetString(JWT_PRIVATE_KEY_FILE),
 		JwtPublicKeyFile:                    options.GetString(JWT_PUBLIC_KEY_FILE),
+		SleepTimeHack:                       options.GetDuration("Sleep_Time_Hack") * time.Second,
 	}
 }
 
