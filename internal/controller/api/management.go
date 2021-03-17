@@ -225,11 +225,11 @@ func (s *ManagementServer) handleConnectionListing() http.HandlerFunc {
 
 		accountCount := 0
 		for key, value := range allReceptorConnections {
-			connections[accountCount].AccountNumber = key
+			connections[accountCount].AccountNumber = string(key)
 			connections[accountCount].Connections = make([]string, len(value))
 			nodeCount := 0
 			for k, _ := range value {
-				connections[accountCount].Connections[nodeCount] = k
+				connections[accountCount].Connections[nodeCount] = string(k)
 				nodeCount++
 			}
 
@@ -264,7 +264,7 @@ func (s *ManagementServer) handleConnectionListingByAccount() http.HandlerFunc {
 
 		connCount := 0
 		for conn := range accountConnections {
-			connections[connCount] = conn
+			connections[connCount] = string(conn)
 			connCount++
 		}
 

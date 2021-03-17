@@ -57,9 +57,9 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account doma
 	return conn
 }
 
-func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, account domain.AccountID) map[string]controller.Receptor {
+func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, account domain.AccountID) map[domain.ClientID]controller.Receptor {
 
-	connectionsPerAccount := make(map[string]controller.Receptor)
+	connectionsPerAccount := make(map[domain.ClientID]controller.Receptor)
 
 	statement, err := scm.database.Prepare("SELECT client_id FROM connections WHERE account = $1")
 	if err != nil {
@@ -76,7 +76,7 @@ func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, ac
 	defer rows.Close()
 
 	for rows.Next() {
-		var client_id string
+		var client_id domain.ClientID
 		if err := rows.Scan(&client_id); err != nil {
 			logError("SQL scan failed", err)
 			return nil
@@ -94,9 +94,9 @@ func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, ac
 	return connectionsPerAccount
 }
 
-func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context) map[string]map[string]controller.Receptor {
+func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context) map[domain.AccountID]map[domain.ClientID]controller.Receptor {
 
-	connectionMap := make(map[string]map[string]controller.Receptor)
+	connectionMap := make(map[domain.AccountID]map[domain.ClientID]controller.Receptor)
 
 	statement, err := scm.database.Prepare("SELECT account, client_id FROM connections")
 	if err != nil {
@@ -113,8 +113,8 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context) map[stri
 	defer rows.Close()
 
 	for rows.Next() {
-		var account string
-		var client_id string
+		var account domain.AccountID
+		var client_id domain.ClientID
 		if err := rows.Scan(&account, &client_id); err != nil {
 			logError("SQL scan failed", err)
 			return nil
@@ -127,7 +127,7 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context) map[stri
 		}
 
 		if _, exists := connectionMap[account]; !exists {
-			connectionMap[account] = make(map[string]controller.Receptor)
+			connectionMap[account] = make(map[domain.ClientID]controller.Receptor)
 		}
 
 		connectionMap[account][client_id] = proxy
