@@ -82,7 +82,7 @@ func (rhp *ReceptorMQTTProxy) sendControlMessage(ctx context.Context, msgType st
 
 	topic := rhp.TopicBuilder.BuildOutgoingControlTopic(rhp.ClientID)
 
-	err = rhp.sendMessage(logger, topic, message)
+	err = rhp.sendMessage(logger, topic, 1, message)
 
 	return &messageID, err
 }
@@ -115,22 +115,22 @@ func (rhp *ReceptorMQTTProxy) sendDataMessage(ctx context.Context, directive str
 			Content:     payload,
 		}
 
-		err = rhp.sendMessage(logger, topic, message)
+		err = rhp.sendMessage(logger, topic, 1, message)
 	}()
 
 	return &messageID, err
 }
 
-func (rhp *ReceptorMQTTProxy) sendMessage(logger *logrus.Entry, topic string, message interface{}) error {
+func (rhp *ReceptorMQTTProxy) sendMessage(logger *logrus.Entry, topic string, qos byte, message interface{}) error {
 
 	messageBytes, err := json.Marshal(message)
 	if err != nil {
 		return err
 	}
 
-	logger.Trace("Sending message to connected client on topic: ", topic)
+	logger.Debug("Sending message to connected client on topic: ", topic, " qos: ", qos)
 
-	t := rhp.Client.Publish(topic, byte(0), false, messageBytes)
+	t := rhp.Client.Publish(topic, qos, false, messageBytes)
 	go func() {
 		_ = t.Wait() // Can also use '<-t.Done()' in releases > 1.2.0
 		if t.Error() != nil {
