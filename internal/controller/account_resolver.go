@@ -15,6 +15,8 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/redhatinsights/platform-go-middlewares/identity"
+
+	"github.com/sirupsen/logrus"
 )
 
 type AccountIdResolver interface {
@@ -44,7 +46,10 @@ type BOPAccountIdResolver struct {
 
 func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, error) {
 
-	logger.Log.Debugf("Looking up the client %s account number in via Gateway", clientID)
+	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
+
+	logger.Debugf("Looking up the client %s account number in via Gateway", clientID)
+
 	client := &http.Client{
 		Timeout: time.Second * 15,
 	}
@@ -54,33 +59,40 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 	}
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("x-rh-certauth-cn", fmt.Sprintf("/CN=%s", clientID))
-	logger.Log.Debug("About to call BOP")
+	logger.Debug("About to call Auth Gateway")
 	r, err := client.Do(req)
-	logger.Log.Debug("Returned from call to BOP")
+	logger.Debug("Returned from call to Auth Gateway")
 	defer r.Body.Close()
 	if err != nil {
+		logger.WithFields(logrus.Fields{"error": err}).Error("Call to Auth Gateway failed")
 		return "", "", err
 	}
 	if r.StatusCode != 200 {
+		logger.Debug("Call to Auth Gateway returned http status code %d", r.StatusCode)
 		b, _ := ioutil.ReadAll(r.Body)
 		return "", "", fmt.Errorf("Unable to find account %s", string(b))
 	}
 	var resp AuthGwResp
 	err = json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
-		fmt.Println("Unable to parse BOP response")
+		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse Auth Gateway response")
 		return "", "", err
 	}
 	idRaw, err := base64.StdEncoding.DecodeString(resp.Identity)
 	if err != nil {
+		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to decode identity from Auth Gateway")
 		return "", "", err
 	}
 
 	var jsonData identity.XRHID
 	err = json.Unmarshal(idRaw, &jsonData)
 	if err != nil {
+		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse identity from Auth Gateway")
 		return "", "", err
 	}
+
+	logger.WithFields(logrus.Fields{"account": jsonData.Identity.AccountNumber}).Debug("Located account number for client")
+
 	return domain.Identity(resp.Identity), domain.AccountID(jsonData.Identity.AccountNumber), nil
 }
 
