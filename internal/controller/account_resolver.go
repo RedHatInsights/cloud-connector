@@ -68,7 +68,7 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 		return "", "", err
 	}
 	if r.StatusCode != 200 {
-		logger.Debug("Call to Auth Gateway returned http status code %d", r.StatusCode)
+		logger.Debugf("Call to Auth Gateway returned http status code %d", r.StatusCode)
 		b, _ := ioutil.ReadAll(r.Body)
 		return "", "", fmt.Errorf("Unable to find account %s", string(b))
 	}
