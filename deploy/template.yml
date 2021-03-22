@@ -1,0 +1,340 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: cloud-connector
+objects:
+
+
+# API
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: cloud-connector
+      pod: cloud-connector-api
+    name: cloud-connector-api
+  spec:
+    replicas: ${{REPLICAS_API}}
+    selector:
+      matchLabels:
+        app: cloud-connector
+        pod: cloud-connector-api
+    template:
+      metadata:
+        labels:
+          app: cloud-connector
+          pod: cloud-connector-api
+      spec:
+        containers:
+        - command:
+          - ./connector_service
+          - -mgmtAddr
+          - :8080
+          env:
+          - name: CLOUD_CONNECTOR_LOG_LEVEL
+            value: ${{LOG_LEVEL}}
+          - name: CLOUD_CONNECTOR_LOG_FORMAT
+            value: logstash
+          - name: CLOUD_CONNECTOR_CW_AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: aws_secret_access_key
+                name: cloudwatch
+          - name: CLOUD_CONNECTOR_CW_AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: aws_access_key_id
+                name: cloudwatch
+          - name: CLOUD_CONNECTOR_AWS_REGION
+            valueFrom:
+              secretKeyRef:
+                key: aws_region
+                name: cloudwatch
+          - name: CLOUD_CONNECTOR_LOG_GROUP
+            valueFrom:
+              secretKeyRef:
+                key: log_group_name
+                name: cloudwatch
+
+          - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
+            value: ${{MQTT_BROKER_ADDRESS}}
+          - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+            value: jwt_rsa_generator
+          - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+            value: /tmp/jwt_keys/private_key.pem
+          - name: CLOUD_CONNECTOR_MQTT_CLIENT_ID
+            valueFrom:
+              secretKeyRef:
+                key: mqtt.user
+                name: mqtt-credentials
+
+            value: ci-connector-service-4
+
+          - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_HOST
+            value: postgres
+          - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_PORT
+            value: "5432"
+          - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_NAME
+            value: cloud-connector
+          - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_USER
+            valueFrom:
+              secretKeyRef:
+                key: db.user
+                name: cloud-connector-db
+          - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: db.password
+                name: cloud-connector-db
+
+          - name: CLOUD_CONNECTOR_SERVICE_TO_SERVICE_CREDENTIALS
+            valueFrom:
+              secretKeyRef:
+                key: connector-psk-map
+                name: cloud-connector-psks
+
+          - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_IMPL
+            value: bop
+          - name: CLOUD_CONNECTOR_AUTH_GATEWAY_URL
+            value: ${{AUTH_GATEWAY_URL}}
+
+          - name: CLOUD_CONNECTOR_INVENTORY_KAFKA_BROKERS
+            value: ${{KAFKA_BOOTSTRAP_HOST}}
+          - name: CLOUD_CONNECTOR_INVENTORY_KAFKA_TOPIC
+            value: ${{INVENTORY_KAFKA_TOPIC}}
+
+          - name: CLOUD_CONNECTOR_CONNECTED_CLIENT_RECORDER_IMPL
+            value: inventory
+
+          - name: CLOUD_CONNECTOR_SOURCES_RECORDER_IMPL
+            value: sources
+
+          - name: CLOUD_CONNECTOR_SLEEP_TIME_HACK
+            value: "0"
+
+          image: ${IMAGE}:${IMAGE_TAG}
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /live
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          name: cloud-connector-api
+          ports:
+          - containerPort: 9000
+            name: metrics
+            protocol: TCP
+          - containerPort: 8000
+            name: web
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /ready
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+            requests:
+              cpu: 250m
+              memory: 256Mi
+          volumeMounts:
+            - mountPath: /tmp/jwt_keys
+              name: volume-mqtt-jwt-keys
+              readOnly: true
+        imagePullSecrets:
+        - name: quay-cloudservices-pull
+        volumes:
+          - name: volume-mqtt-jwt-keys
+            secret:
+              defaultMode: 420
+              secretName: mqtt-jwt-keys
+
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: cloud-connector
+      pod: cloud-connector-api
+    name: cloud-connector
+    annotations:
+      prometheus.io/path: /metrics
+      prometheus.io/port: "8000"
+      prometheus.io/scrape: "true"
+  spec:
+    ports:
+    - appProtocol: http
+      name: public
+      port: 8000
+      protocol: TCP
+      targetPort: 8000
+    selector:
+      pod: cloud-connector-api
+    type: ClusterIP
+
+
+# Database
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    annotations:
+      description: Defines how to deploy the database
+    labels:
+      app: cloud-connector
+    name: postgres
+  spec:
+    replicas: 1
+    strategy:
+      type: Recreate
+    selector:
+      matchLabels:
+        name: postgres
+    template:
+      metadata:
+        labels:
+          app: cloud-connector
+          name: postgres
+      spec:
+        containers:
+        - env:
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                key: db.user
+                name: cloud-connector-db
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: db.password
+                name: cloud-connector-db
+          - name: POSTGRES_DATABASE
+            valueFrom:
+              secretKeyRef:
+                key: db.name
+                name: cloud-connector-db
+          - name: PGDATA
+            value: /var/lib/postgresql/data/pgdata
+          image: quay.io/debezium/postgres:12
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            exec:
+              command:
+              - psql
+              - -w
+              - -U
+              - insights
+              - -c
+              - 'SELECT 1'
+            failureThreshold: 3
+            initialDelaySeconds: 120
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+          name: postgres
+          ports:
+          - containerPort: 5432
+            protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+              - psql
+              - -w
+              - -U
+              - insights
+              - -c
+              - 'SELECT 1'
+            failureThreshold: 3
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 200m
+              memory: 512Mi
+          volumeMounts:
+          - mountPath: /var/lib/postgresql/data
+            name: postgres-data
+        volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-data
+
+- apiVersion: v1
+  kind: PersistentVolumeClaim
+  metadata:
+    labels:
+      app: cloud-connector
+    name: postgres-data
+  spec:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: ${DB_VOLUME_CAPACITY}
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: cloud-connector
+    name: postgres
+  spec:
+    ports:
+    - name: postgres
+      port: 5432
+      protocol: TCP
+      targetPort: 5432
+    selector:
+      name: postgres
+    type: ClusterIP
+
+parameters:
+- name: IMAGE_TAG
+  required: true
+- name: IMAGE
+  value: quay.io/cloudservices/cloud-connector
+
+- name: LOG_LEVEL
+  value: DEBUG
+- name: CPU_LIMIT
+  value: 500m
+- name: MEMORY_LIMIT
+  value: 512Mi
+
+- name: REPLICAS_API
+  value: "1"
+
+- name: DB_VOLUME_CAPACITY
+  value: 5Gi
+- name: DB_SSLMODE
+  value: prefer
+
+- name: KAFKA_BOOTSTRAP_HOST
+  required: true
+  value: platform-mq-ci-kafka-bootstrap.platform-mq-ci.svc:9092
+- name: INVENTORY_KAFKA_TOPIC
+  required: true
+  value: platform.inventory.host-ingress-p1
+
+- name: MQTT_BROKER_ADDRESS
+  required: true
+  value: wss://FIXME.connect.cloud.stage.redhat.com:443
+
+- name: AUTH_GATEWAY_URL
+  required: true
+  value: "http://apicast.3scale-staging.svc.cluster.local:8890/internal/certauth"
