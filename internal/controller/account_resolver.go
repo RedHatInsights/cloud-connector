@@ -141,7 +141,7 @@ func (bar *ConfigurableAccountIdResolver) loadAccountIdMapFromFile() error {
 }
 
 func (bar *ConfigurableAccountIdResolver) createIdentityHeader(account domain.AccountID) domain.Identity {
-	identityJson := fmt.Sprintf("{\"identity\": {\"account_number\": \"%s\", \"internal\": {\"org_id\": \"%s\"}, \"user\": {\"is_org_admin\": true}}}", string(account), string(account))
+	identityJson := fmt.Sprintf("{\"identity\": {\"type\": \"User\", \"account_number\": \"%s\", \"internal\": {\"org_id\": \"%s\"}, \"user\": {\"email\": \"fred@flintstone.com\", \"is_org_admin\": true}}}", string(account), string(account))
 	identityJsonBase64 := base64.StdEncoding.EncodeToString([]byte(identityJson))
 	return domain.Identity(identityJsonBase64)
 }

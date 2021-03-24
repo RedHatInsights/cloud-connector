@@ -54,7 +54,8 @@ type inventoryMessageEnvelope struct {
 }
 
 type platformMetadata struct {
-	RequestID string `json:"request_id"`
+	RequestID   string `json:"request_id"`
+	B64Identity string `json:"b64_identity"`
 }
 
 type InventoryBasedConnectedClientRecorder struct {
@@ -82,7 +83,7 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 	var systemProfile = map[string]string{"rhc_client_id": string(clientID)}
 	hostData["system_profile"] = systemProfile
 
-	metadata := platformMetadata{RequestID: requestID.String()}
+	metadata := platformMetadata{RequestID: requestID.String(), B64Identity: string(identity)}
 	envelope := inventoryMessageEnvelope{
 		Operation:        "add_host",
 		PlatformMetadata: metadata,
