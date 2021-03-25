@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -74,7 +75,9 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 
 	staleTimestamp := time.Now().Add(ibccr.StaleTimestampOffset)
 
-	hostData := canonicalFacts.(map[string]interface{})
+	originalHostData := canonicalFacts.(map[string]interface{})
+
+	hostData := cleanupCanonicalFacts(logger, originalHostData)
 
 	hostData["account"] = string(account)
 	hostData["stale_timestamp"] = staleTimestamp.UTC().Format("2006-01-02T15:04:05Z07:00")
@@ -119,6 +122,32 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 	}()
 
 	return nil
+}
+
+func cleanupCanonicalFacts(logger *logrus.Entry, canonicalFacts map[string]interface{}) map[string]interface{} {
+	hostData := make(map[string]interface{})
+
+	for key, value := range canonicalFacts {
+		if value != nil {
+			v := reflect.ValueOf(value)
+			switch v.Kind() {
+			case reflect.Array, reflect.Slice:
+				// Do not pass an empty array to inventory
+				if v.Len() > 0 {
+					hostData[key] = value
+				}
+			case reflect.String:
+				// Do not pass an empty string to inventory
+				if len(v.String()) > 0 {
+					hostData[key] = value
+				}
+			default:
+				logger.Debugf("Unknown type in canonical facts map - key: %s, value: %s", key, value)
+			}
+		}
+	}
+
+	return hostData
 }
 
 type FakeConnectedClientRecorder struct {
