@@ -68,8 +68,6 @@ objects:
                 key: mqtt.user
                 name: mqtt-credentials
 
-            value: ci-connector-service-4
-
           - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_HOST
             value: postgres
           - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_PORT
@@ -108,6 +106,9 @@ objects:
 
           - name: CLOUD_CONNECTOR_SOURCES_RECORDER_IMPL
             value: sources
+
+          - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
+            value: ${{MQTT_TOPIC_PREFIX}}
 
           - name: CLOUD_CONNECTOR_SLEEP_TIME_HACK
             value: "0"
@@ -334,6 +335,9 @@ parameters:
 - name: MQTT_BROKER_ADDRESS
   required: true
   value: wss://FIXME.connect.cloud.stage.redhat.com:443
+- name: MQTT_TOPIC_PREFIX
+  required: true
+  value: redhat
 
 - name: AUTH_GATEWAY_URL
   required: true
