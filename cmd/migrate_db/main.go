@@ -91,6 +91,7 @@ func performDbMigration(direction string) error {
 		logger.Log.Info("DB migration resulted in no changes")
 	} else if err != nil {
 		logger.LogError("DB migration resulted in an error", err)
+		return err
 	}
 
 	return nil
