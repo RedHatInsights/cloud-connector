@@ -87,7 +87,7 @@ func (rhp *ReceptorMQTTProxy) sendControlMessage(ctx context.Context, msgType st
 
 	topic := rhp.TopicBuilder.BuildOutgoingControlTopic(rhp.ClientID)
 
-	err = rhp.sendMessage(logger, topic, 0, message)
+	err = rhp.sendMessage(logger, topic, 1, message)
 
 	return &messageID, err
 }
@@ -120,7 +120,7 @@ func (rhp *ReceptorMQTTProxy) sendDataMessage(ctx context.Context, directive str
 			Content:     payload,
 		}
 
-		err = rhp.sendMessage(logger, topic, 0, message)
+		err = rhp.sendMessage(logger, topic, 1, message)
 	}()
 
 	return &messageID, err
