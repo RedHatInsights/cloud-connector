@@ -295,6 +295,7 @@ objects:
           persistentVolumeClaim:
             claimName: postgres-data
 
+
 - apiVersion: v1
   kind: PersistentVolumeClaim
   metadata:
@@ -307,6 +308,7 @@ objects:
     resources:
       requests:
         storage: ${DB_VOLUME_CAPACITY}
+
 
 - apiVersion: v1
   kind: Service
@@ -323,6 +325,7 @@ objects:
     selector:
       name: postgres
     type: ClusterIP
+
 
 parameters:
 - name: IMAGE_TAG
