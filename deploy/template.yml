@@ -22,17 +22,6 @@ objects:
     strategy:
       activeDeadlineSeconds: 21600
       recreateParams:
-        mid:
-          execNewPod:
-            command:
-            - ./migrate_db
-            - upgrade
-            containerName: connector-service-poc
-            env:
-            - name: LOG_LEVEL
-              value: DEBUG
-          failurePolicy: Abort
-        timeoutSeconds: 7200
       resources: {}
       type: Recreate
     template:
@@ -137,8 +126,8 @@ objects:
           livenessProbe:
             failureThreshold: 3
             httpGet:
-              path: /live
-              port: 9000
+              path: /metrics
+              port: 8080
               scheme: HTTP
             initialDelaySeconds: 10
             periodSeconds: 10
@@ -146,17 +135,14 @@ objects:
             timeoutSeconds: 5
           name: cloud-connector-api
           ports:
-          - containerPort: 9000
-            name: metrics
-            protocol: TCP
-          - containerPort: 8000
+          - containerPort: 8080
             name: web
             protocol: TCP
           readinessProbe:
             failureThreshold: 3
             httpGet:
-              path: /ready
-              port: 9000
+              path: /metrics
+              port: 8080
               scheme: HTTP
             initialDelaySeconds: 10
             periodSeconds: 10
@@ -175,6 +161,66 @@ objects:
               readOnly: true
         imagePullSecrets:
         - name: quay-cloudservices-pull
+        initContainers:
+         - args:
+           - ./migrate_db
+           - upgrade
+           env:
+           - name: CLOUD_CONNECTOR_LOG_LEVEL
+             value: DEBUG
+           - name: CLOUD_CONNECTOR_LOG_FORMAT
+             value: logstash
+           - name: CLOUD_CONNECTOR_CW_AWS_SECRET_ACCESS_KEY
+             valueFrom:
+               secretKeyRef:
+                 key: aws_secret_access_key
+                 name: cloudwatch
+           - name: CLOUD_CONNECTOR_CW_AWS_ACCESS_KEY_ID
+             valueFrom:
+               secretKeyRef:
+                 key: aws_access_key_id
+                 name: cloudwatch
+           - name: CLOUD_CONNECTOR_AWS_REGION
+             valueFrom:
+               secretKeyRef:
+                 key: aws_region
+                 name: cloudwatch
+           - name: CLOUD_CONNECTOR_LOG_GROUP
+             valueFrom:
+               secretKeyRef:
+                 key: log_group_name
+                 name: cloudwatch
+
+           - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_HOST
+             value: postgres
+           - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_PORT
+             value: "5432"
+           - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_NAME
+             valueFrom:
+               secretKeyRef:
+                 key: db.name
+                 name: cloud-connector-db
+           - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_USER
+             valueFrom:
+               secretKeyRef:
+                 key: db.user
+                 name: cloud-connector-db
+           - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_PASSWORD
+             valueFrom:
+               secretKeyRef:
+                 key: db.password
+                 name: cloud-connector-db
+
+           image: ${IMAGE}:${IMAGE_TAG}
+           name: cloud-connector-init
+           resources:
+             limits:
+               cpu: ${{CPU_LIMIT}}
+               memory: ${{MEMORY_LIMIT}}
+             requests:
+               cpu: 250m
+               memory: 256Mi
+
         volumes:
           - name: volume-mqtt-jwt-keys
             secret:
