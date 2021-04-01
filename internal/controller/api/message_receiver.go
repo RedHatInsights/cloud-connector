@@ -100,8 +100,8 @@ func (jr *MessageReceiver) handleJob() http.HandlerFunc {
 		}
 
 		if err != nil {
-			logger.WithFields(logrus.Fields{"error": err}).Info("Error passing message to receptor")
-			errorResponse := errorResponse{Title: "Error passing message to receptor",
+			logger.WithFields(logrus.Fields{"error": err}).Info("Error passing message to rhc client")
+			errorResponse := errorResponse{Title: "Error passing message to rhc client",
 				Status: http.StatusInternalServerError,
 				Detail: err.Error()}
 			writeJSONResponse(w, errorResponse.Status, errorResponse)
@@ -117,8 +117,8 @@ func (jr *MessageReceiver) handleJob() http.HandlerFunc {
 }
 
 func writeConnectionFailureResponse(logger *logrus.Entry, w http.ResponseWriter) {
-	// The connection to the customer's receptor node was not available
-	errMsg := "No connection to the receptor node"
+	// The connection to the customer's rhc client was not available
+	errMsg := "No connection to the rhc client"
 	logger.Info(errMsg)
 	errorResponse := errorResponse{Title: errMsg,
 		Status: http.StatusNotFound,

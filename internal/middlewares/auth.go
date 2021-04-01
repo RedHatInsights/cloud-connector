@@ -15,9 +15,9 @@ const (
 	authErrorMessage   = "Authentication failed"
 	authErrorLogHeader = "Authentication error: "
 	identityHeader     = "x-rh-identity"
-	clientHeader       = "x-rh-receptor-controller-client-id"
-	accountHeader      = "x-rh-receptor-controller-account"
-	pskHeader          = "x-rh-receptor-controller-psk"
+	PSKClientIdHeader  = "x-rh-cloud-connector-client-id"
+	PSKAccountHeader   = "x-rh-cloud-connector-account"
+	PSKHeader          = "x-rh-cloud-connector-psk"
 )
 
 // Principal interface can be implemented and expanded by various principal objects (type depends on middleware being used)
@@ -70,11 +70,11 @@ type serviceCredentials struct {
 func newServiceCredentials(clientID, account, psk string) (*serviceCredentials, error) {
 	switch {
 	case clientID == "":
-		return nil, errors.New(authErrorLogHeader + "Missing x-rh-receptor-controller-client-id header")
+		return nil, errors.New(authErrorLogHeader + "Missing " + PSKClientIdHeader + " header")
 	case account == "":
-		return nil, errors.New(authErrorLogHeader + "Missing x-rh-receptor-controller-account header")
+		return nil, errors.New(authErrorLogHeader + "Missing " + PSKAccountHeader + " header")
 	case psk == "":
-		return nil, errors.New(authErrorLogHeader + "Missing x-rh-receptor-controller-psk header")
+		return nil, errors.New(authErrorLogHeader + "Missing " + PSKHeader + " header")
 	}
 	return &serviceCredentials{
 		clientID: clientID,
@@ -110,9 +110,9 @@ func (amw *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 			identity.EnforceIdentity(next).ServeHTTP(w, r)
 		} else { // token auth
 			sr, err := newServiceCredentials(
-				r.Header.Get(clientHeader),
-				r.Header.Get(accountHeader),
-				r.Header.Get(pskHeader),
+				r.Header.Get(PSKClientIdHeader),
+				r.Header.Get(PSKAccountHeader),
+				r.Header.Get(PSKHeader),
 			)
 			if err != nil {
 				logger.Log.WithFields(logrus.Fields{"error": err}).Debug("Authentication failure")
