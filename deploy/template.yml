@@ -19,6 +19,28 @@ objects:
       matchLabels:
         app: cloud-connector
         pod: cloud-connector-api
+    strategy:
+      activeDeadlineSeconds: 21600
+      recreateParams:
+        mid:
+          execNewPod:
+            command:
+            - ./migrate_db
+            - upgrade
+            containerName: connector-service-poc
+            env:
+            - name: LOG_LEVEL
+              value: DEBUG
+          failurePolicy: Abort
+        timeoutSeconds: 7200
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 5
+      type: Recreate
     template:
       metadata:
         labels:
@@ -27,8 +49,9 @@ objects:
       spec:
         containers:
         - command:
-          - ./connector_service
-          - -mgmtAddr
+          - ./cloud-connector
+          - mqtt_connection_handler
+          - -l
           - :8080
           env:
           - name: CLOUD_CONNECTOR_LOG_LEVEL
