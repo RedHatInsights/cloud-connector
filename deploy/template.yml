@@ -34,12 +34,6 @@ objects:
           failurePolicy: Abort
         timeoutSeconds: 7200
       resources: {}
-      rollingParams:
-        intervalSeconds: 1
-        maxSurge: 25%
-        maxUnavailable: 25%
-        timeoutSeconds: 600
-        updatePeriodSeconds: 5
       type: Recreate
     template:
       metadata:
