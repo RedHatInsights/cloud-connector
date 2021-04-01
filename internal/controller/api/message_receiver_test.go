@@ -16,6 +16,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
+	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
 	"github.com/google/uuid"
@@ -24,9 +25,9 @@ import (
 
 const (
 	IDENTITY_HEADER_NAME      = "x-rh-identity"
-	TOKEN_HEADER_CLIENT_NAME  = "x-rh-receptor-controller-client-id"
-	TOKEN_HEADER_ACCOUNT_NAME = "x-rh-receptor-controller-account"
-	TOKEN_HEADER_PSK_NAME     = "x-rh-receptor-controller-psk"
+	TOKEN_HEADER_CLIENT_NAME  = middlewares.PSKClientIdHeader
+	TOKEN_HEADER_ACCOUNT_NAME = middlewares.PSKAccountHeader
+	TOKEN_HEADER_PSK_NAME     = middlewares.PSKHeader
 	URL_BASE_PATH             = "/api/cloud-connector/api/v1"
 	MESSAGE_ENDPOINT          = URL_BASE_PATH + "/message"
 )

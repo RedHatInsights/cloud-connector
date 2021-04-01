@@ -11,9 +11,9 @@ import (
 )
 
 const (
-	TOKEN_HEADER_CLIENT_NAME              = "x-rh-receptor-controller-client-id"
-	TOKEN_HEADER_ACCOUNT_NAME             = "x-rh-receptor-controller-account"
-	TOKEN_HEADER_PSK_NAME                 = "x-rh-receptor-controller-psk"
+	TOKEN_HEADER_CLIENT_NAME              = middlewares.PSKClientIdHeader
+	TOKEN_HEADER_ACCOUNT_NAME             = middlewares.PSKAccountHeader
+	TOKEN_HEADER_PSK_NAME                 = middlewares.PSKHeader
 	authFailure                           = "Authentication failed"
 	IDENTITY_HEADER_NAME                  = "x-rh-identity"
 	EXPECTED_ACCOUNT_FROM_TOKEN           = "0000001"
@@ -50,7 +50,7 @@ var _ = Describe("Auth", func() {
 		knownSecrets := make(map[string]interface{})
 		knownSecrets["test_client_1"] = "12345"
 		amw = &middlewares.AuthMiddleware{Secrets: knownSecrets}
-		r, err := http.NewRequest("GET", "/api/receptor-controller/v1/job", nil)
+		r, err := http.NewRequest("GET", "/api/cloud-connector/v1/job", nil)
 		if err != nil {
 			panic("Test error unable to get new request")
 		}
