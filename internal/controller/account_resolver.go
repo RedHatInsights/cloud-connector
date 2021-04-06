@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -51,8 +50,9 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 	logger.Debugf("Looking up the client %s account number in via Gateway", clientID)
 
 	client := &http.Client{
-		Timeout: time.Second * 15,
+		Timeout: bar.Config.AuthGatewayHttpClientTimeout,
 	}
+
 	req, err := http.NewRequest("GET", bar.Config.AuthGatewayUrl, nil)
 	if err != nil {
 		return "", "", err

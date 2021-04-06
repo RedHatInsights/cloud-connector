@@ -41,6 +41,7 @@ const (
 	CONNECTION_DATABASE_NAME                   = "Connection_Database_Name"
 	CONNECTION_DATABASE_SQLITE_FILE            = "Connection_Database_Sqlite_File"
 	AUTH_GATEWAY_URL                           = "Auth_Gateway_Url"
+	AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT           = "Auth_Gateway_HTTP_Client_Timeout"
 	DEFAULT_KAFKA_BROKER_ADDRESS               = "kafka:29092"
 	CONNECTED_CLIENT_RECORDER_IMPL             = "Connected_Client_Recorder_Impl"
 	INVENTORY_KAFKA_BROKERS                    = "Inventory_Kafka_Brokers"
@@ -87,6 +88,7 @@ type Config struct {
 	ConnectionDatabaseName              string
 	ConnectionDatabaseSqliteFile        string
 	AuthGatewayUrl                      string
+	AuthGatewayHttpClientTimeout        time.Duration
 	ConnectedClientRecorderImpl         string
 	InventoryKafkaBrokers               []string
 	InventoryKafkaTopic                 string
@@ -143,6 +145,7 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", JWT_PRIVATE_KEY_FILE, c.JwtPrivateKeyFile)
 	fmt.Fprintf(&b, "%s: %s\n", JWT_PUBLIC_KEY_FILE, c.JwtPublicKeyFile)
 	fmt.Fprintf(&b, "%s: %s\n", AUTH_GATEWAY_URL, c.AuthGatewayUrl)
+	fmt.Fprintf(&b, "%s: %s\n", AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT, c.AuthGatewayHttpClientTimeout)
 	fmt.Fprintf(&b, "%s: %s\n", "Sleep_Time_Hack", c.SleepTimeHack)
 	return b.String()
 }
@@ -187,6 +190,7 @@ func GetConfig() *Config {
 	options.SetDefault(JWT_PRIVATE_KEY_FILE, "/etc/jwt/mqtt-private-key.rsa")
 	options.SetDefault(JWT_PUBLIC_KEY_FILE, "/etc/jwt/mqtt-public-key.rsa")
 	options.SetDefault(AUTH_GATEWAY_URL, "http://apicast.3scale-staging.svc.cluster.local:8890/internal/certauth")
+	options.SetDefault(AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT, 15)
 
 	options.SetDefault("Sleep_Time_Hack", 0)
 
@@ -223,6 +227,7 @@ func GetConfig() *Config {
 		ConnectionDatabaseName:              options.GetString(CONNECTION_DATABASE_NAME),
 		ConnectionDatabaseSqliteFile:        options.GetString(CONNECTION_DATABASE_SQLITE_FILE),
 		AuthGatewayUrl:                      options.GetString(AUTH_GATEWAY_URL),
+		AuthGatewayHttpClientTimeout:        options.GetDuration(AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT) * time.Second,
 		ConnectedClientRecorderImpl:         options.GetString(CONNECTED_CLIENT_RECORDER_IMPL),
 		InventoryKafkaBrokers:               options.GetStringSlice(INVENTORY_KAFKA_BROKERS),
 		InventoryKafkaTopic:                 options.GetString(INVENTORY_KAFKA_TOPIC),
