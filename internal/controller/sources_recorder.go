@@ -130,7 +130,7 @@ func (sri *SourcesRecorderImpl) RegisterWithSources(identity domain.Identity, ac
 		return err
 	}
 
-	logger.Debug("status code:", resp.StatusCode)
+	logger.Debug("Sources bulk create - HTTP status code:", resp.StatusCode)
 
 	if resp.StatusCode == http.StatusBadRequest {
 		logger.WithFields(logrus.Fields{"error": resp.Body}).Error("Unable to create sources")
@@ -179,7 +179,7 @@ func (sri *SourcesRecorderImpl) checkForExistingSourcesEntry(account domain.Acco
 		return false, err
 	}
 
-	logger.Debug("status code:", resp.StatusCode)
+	logger.Debug("Sources existence check - HTTP status code:", resp.StatusCode)
 
 	getSourcesResponse := getSourcesResponse{}
 
