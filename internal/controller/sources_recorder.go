@@ -3,7 +3,6 @@ package controller
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -64,7 +63,7 @@ func (sri *SourcesRecorderImpl) RegisterWithSources(identity domain.Identity, ac
 
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID, "account": account})
 
-	sourceEntryExists, err := sri.checkForExistingSourcesEntry(account, clientID, sourceRef)
+	sourceEntryExists, err := sri.checkForExistingSourcesEntry(logger, identity, sourceRef)
 
 	if err != nil {
 		// Just log the error and try to create the sources entry
@@ -79,14 +78,19 @@ func (sri *SourcesRecorderImpl) RegisterWithSources(identity domain.Identity, ac
 		logger.WithFields(logrus.Fields{
 			"source_ref":  sourceRef,
 			"source_name": sourceName,
-		}).Debug("Source already exists")
+		}).Debug("Sources entry already exists")
 		return nil
 	}
 
 	logger.WithFields(logrus.Fields{
 		"source_ref":  sourceRef,
 		"source_name": sourceName,
-	}).Debug("Source does not exist...proceeding with creation of sources entry")
+	}).Debug("Sources entry does not exist...proceeding with creation of sources entry")
+
+	return sri.createSourcesEntry(logger, identity, clientID, sourceRef, sourceName, sourceType, applicationType)
+}
+
+func (sri *SourcesRecorderImpl) createSourcesEntry(logger *logrus.Entry, identity domain.Identity, clientID domain.ClientID, sourceRef, sourceName, sourceType, applicationType string) error {
 
 	requestID, err := uuid.NewRandom()
 	if err != nil {
@@ -116,9 +120,8 @@ func (sri *SourcesRecorderImpl) RegisterWithSources(identity domain.Identity, ac
 
 	resp, err := makeHttpRequest(
 		context.TODO(),
-		account,
+		identity,
 		requestID.String(),
-		//probe,
 		http.MethodPost,
 		url,
 		bytes.NewBuffer(jsonBytes),
@@ -151,13 +154,13 @@ type getSourcesResponse struct {
 	Data     []interface{} `json:"data"`
 }
 
-func (sri *SourcesRecorderImpl) checkForExistingSourcesEntry(account domain.AccountID, clientID domain.ClientID, sourceRef string) (bool, error) {
+func (sri *SourcesRecorderImpl) checkForExistingSourcesEntry(logger *logrus.Entry, identity domain.Identity, sourceRef string) (bool, error) {
 	requestID, err := uuid.NewRandom()
 	if err != nil {
 		return false, err
 	}
 
-	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID, "request_id": requestID})
+	logger = logger.WithFields(logrus.Fields{"request_id": requestID})
 
 	url := fmt.Sprintf("%s/api/sources/v3.0/sources?source_ref=%s", sri.config.SourcesBaseUrl, sourceRef)
 
@@ -165,9 +168,8 @@ func (sri *SourcesRecorderImpl) checkForExistingSourcesEntry(account domain.Acco
 
 	resp, err := makeHttpRequest(
 		context.TODO(),
-		account,
+		identity,
 		requestID.String(),
-		//probe,
 		http.MethodGet,
 		url,
 		nil,
@@ -193,7 +195,7 @@ func (sri *SourcesRecorderImpl) checkForExistingSourcesEntry(account domain.Acco
 	return len(getSourcesResponse.Data) > 0, nil
 }
 
-func makeHttpRequest(ctx context.Context /*probe *receptorHttpProxyProbe,*/, account domain.AccountID, requestID, method, url string, body io.Reader, timeout time.Duration) (*http.Response, error) {
+func makeHttpRequest(ctx context.Context, identity domain.Identity, requestID, method, url string, body io.Reader, timeout time.Duration) (*http.Response, error) {
 
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -203,20 +205,13 @@ func makeHttpRequest(ctx context.Context /*probe *receptorHttpProxyProbe,*/, acc
 		return nil, err
 	}
 
-	identityJson := fmt.Sprintf("{\"identity\": {\"account_number\": \"%s\", \"internal\": {\"org_id\": \"%s\"}, \"user\": {\"is_org_admin\": true}}}", string(account), string(account))
-	identityJsonBase64 := base64.StdEncoding.EncodeToString([]byte(identityJson))
-
-	req.Header.Set("x-rh-identity", identityJsonBase64)
+	req.Header.Set("x-rh-identity", string(identity))
 
 	req.Header.Set("Content-Type", "application/json")
 
 	req.Header.Set("x-rh-insights-request-id", requestID)
 
-	startTime := time.Now()
 	resp, err := http.DefaultClient.Do(req.WithContext(ctx))
-	elapsedTime := time.Since(startTime)
-	fmt.Println("elapsedTime:", elapsedTime)
-	//probe.recordRemoteCallDuration(elapsedTime)
 
 	return resp, err
 }
@@ -225,6 +220,6 @@ type FakeSourcesRecorder struct {
 }
 
 func (f *FakeSourcesRecorder) RegisterWithSources(identity domain.Identity, account domain.AccountID, clientID domain.ClientID, sourceRef, sourceName, sourceType, applicationType string) error {
-	fmt.Println("FAKE ... registering with sources:", account, clientID, sourceRef, sourceName)
+	logger.Log.Debug("FAKE ... registering with sources:", account, clientID, sourceRef, sourceName)
 	return nil
 }
