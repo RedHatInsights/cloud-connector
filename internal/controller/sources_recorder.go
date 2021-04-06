@@ -122,6 +122,7 @@ func (sri *SourcesRecorderImpl) RegisterWithSources(identity domain.Identity, ac
 		http.MethodPost,
 		url,
 		bytes.NewBuffer(jsonBytes),
+		sri.config.SourcesHttpClientTimeout,
 	)
 
 	if err != nil {
@@ -170,6 +171,7 @@ func (sri *SourcesRecorderImpl) checkForExistingSourcesEntry(account domain.Acco
 		http.MethodGet,
 		url,
 		nil,
+		sri.config.SourcesHttpClientTimeout,
 	)
 
 	if err != nil {
@@ -191,9 +193,9 @@ func (sri *SourcesRecorderImpl) checkForExistingSourcesEntry(account domain.Acco
 	return len(getSourcesResponse.Data) > 0, nil
 }
 
-func makeHttpRequest(ctx context.Context /*probe *receptorHttpProxyProbe,*/, account domain.AccountID, requestID, method, url string, body io.Reader) (*http.Response, error) {
+func makeHttpRequest(ctx context.Context /*probe *receptorHttpProxyProbe,*/, account domain.AccountID, requestID, method, url string, body io.Reader, timeout time.Duration) (*http.Response, error) {
 
-	ctx, cancel := context.WithTimeout(ctx, time.Second*5) // FIXME:  make configurable
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	req, err := http.NewRequest(method, url, body)
