@@ -122,7 +122,7 @@ objects:
           - name: CLOUD_CONNECTOR_SLEEP_TIME_HACK
             value: "0"
 
-          image: ${IMAGE}:${IMAGE_TAG}
+          image: quay.io/cloudservices/cloud-connector:${IMAGE_TAG}
           livenessProbe:
             failureThreshold: 3
             httpGet:
