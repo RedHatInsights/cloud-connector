@@ -1,0 +1,251 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: cloud-connector
+objects:
+
+
+# API
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: cloud-connector
+      pod: cloud-connector-api
+    name: cloud-connector-api
+  spec:
+    replicas: ${{REPLICAS_API}}
+    selector:
+      matchLabels:
+        app: cloud-connector
+        pod: cloud-connector-api
+    strategy:
+      activeDeadlineSeconds: 21600
+      recreateParams:
+      resources: {}
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          app: cloud-connector
+          pod: cloud-connector-api
+      spec:
+        containers:
+        - command:
+          - ./cloud-connector
+          - mqtt_connection_handler
+          - -l
+          - :8080
+          env:
+          - name: CLOUD_CONNECTOR_LOG_LEVEL
+            value: ${{LOG_LEVEL}}
+          - name: CLOUD_CONNECTOR_LOG_FORMAT
+            value: logstash
+          - name: CLOUD_CONNECTOR_CW_AWS_SECRET_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                key: aws_secret_access_key
+                name: cloudwatch
+          - name: CLOUD_CONNECTOR_CW_AWS_ACCESS_KEY_ID
+            valueFrom:
+              secretKeyRef:
+                key: aws_access_key_id
+                name: cloudwatch
+          - name: CLOUD_CONNECTOR_AWS_REGION
+            valueFrom:
+              secretKeyRef:
+                key: aws_region
+                name: cloudwatch
+          - name: CLOUD_CONNECTOR_LOG_GROUP
+            valueFrom:
+              secretKeyRef:
+                key: log_group_name
+                name: cloudwatch
+
+          - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
+            value: ${{MQTT_BROKER_ADDRESS}}
+          - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+            value: jwt_rsa_generator
+          - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+            value: /tmp/jwt_keys/jwt_signing_key.pem
+          - name: CLOUD_CONNECTOR_MQTT_CLIENT_ID
+            valueFrom:
+              secretKeyRef:
+                key: mqtt.user
+                name: cloud-connector-mqtt-credentials
+
+          - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_HOST
+            value: postgres
+          - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_PORT
+            value: "5432"
+          - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_NAME
+            valueFrom:
+              secretKeyRef:
+                key: db.name
+                name: cloud-connector-db
+          - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_USER
+            valueFrom:
+              secretKeyRef:
+                key: db.user
+                name: cloud-connector-db
+          - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: db.password
+                name: cloud-connector-db
+
+          - name: CLOUD_CONNECTOR_SERVICE_TO_SERVICE_CREDENTIALS
+            valueFrom:
+              secretKeyRef:
+                key: connector-psk-map
+                name: cloud-connector-psks
+
+          - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_IMPL
+            value: bop
+          - name: CLOUD_CONNECTOR_AUTH_GATEWAY_URL
+            value: ${{AUTH_GATEWAY_URL}}
+
+          - name: CLOUD_CONNECTOR_INVENTORY_KAFKA_BROKERS
+            value: ${{KAFKA_BOOTSTRAP_HOST}}
+          - name: CLOUD_CONNECTOR_INVENTORY_KAFKA_TOPIC
+            value: ${{INVENTORY_KAFKA_TOPIC}}
+
+          - name: CLOUD_CONNECTOR_CONNECTED_CLIENT_RECORDER_IMPL
+            value: inventory
+
+          - name: CLOUD_CONNECTOR_SOURCES_RECORDER_IMPL
+            value: sources
+
+          - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
+            value: ${{MQTT_TOPIC_PREFIX}}
+
+          - name: CLOUD_CONNECTOR_SLEEP_TIME_HACK
+            value: "0"
+
+          image: ${IMAGE}:${IMAGE_TAG}
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /metrics
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          name: cloud-connector-api
+          ports:
+          - containerPort: 8080
+            name: web
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /metrics
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            limits:
+              cpu: ${CPU_LIMIT}
+              memory: ${MEMORY_LIMIT}
+            requests:
+              cpu: 250m
+              memory: 256Mi
+          volumeMounts:
+            - mountPath: /tmp/jwt_keys
+              name: volume-mqtt-jwt-keys
+              readOnly: true
+        imagePullSecrets:
+        - name: quay-cloudservices-pull
+        initContainers:
+         - args:
+           - ./migrate_db
+           - upgrade
+           env:
+           - name: CLOUD_CONNECTOR_LOG_LEVEL
+             value: DEBUG
+           - name: CLOUD_CONNECTOR_LOG_FORMAT
+             value: logstash
+           - name: CLOUD_CONNECTOR_CW_AWS_SECRET_ACCESS_KEY
+             valueFrom:
+               secretKeyRef:
+                 key: aws_secret_access_key
+                 name: cloudwatch
+           - name: CLOUD_CONNECTOR_CW_AWS_ACCESS_KEY_ID
+             valueFrom:
+               secretKeyRef:
+                 key: aws_access_key_id
+                 name: cloudwatch
+           - name: CLOUD_CONNECTOR_AWS_REGION
+             valueFrom:
+               secretKeyRef:
+                 key: aws_region
+                 name: cloudwatch
+           - name: CLOUD_CONNECTOR_LOG_GROUP
+             valueFrom:
+               secretKeyRef:
+                 key: log_group_name
+                 name: cloudwatch
+
+           - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_HOST
+             value: postgres
+           - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_PORT
+             value: "5432"
+           - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_NAME
+             valueFrom:
+               secretKeyRef:
+                 key: db.name
+                 name: cloud-connector-db
+           - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_USER
+             valueFrom:
+               secretKeyRef:
+                 key: db.user
+                 name: cloud-connector-db
+           - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_PASSWORD
+             valueFrom:
+               secretKeyRef:
+                 key: db.password
+                 name: cloud-connector-db
+
+           image: ${IMAGE}:${IMAGE_TAG}
+           name: cloud-connector-init
+           resources:
+             limits:
+               cpu: ${{CPU_LIMIT}}
+               memory: ${{MEMORY_LIMIT}}
+             requests:
+               cpu: 250m
+               memory: 256Mi
+
+        volumes:
+          - name: volume-mqtt-jwt-keys
+            secret:
+              defaultMode: 420
+              secretName: cloud-connector-mqtt-credentials
+
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: cloud-connector
+      pod: cloud-connector-api
+    name: cloud-connector
+    annotations:
+      prometheus.io/path: /metrics
+      prometheus.io/port: "8000"
+      prometheus.io/scrape: "true"
+  spec:
+    ports:
+    - appProtocol: http
+      name: public
+      port: 8000
+      protocol: TCP
+      targetPort: 8000
+    selector:
+      pod: cloud-connector-api
+    type: ClusterIP
