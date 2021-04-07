@@ -211,7 +211,7 @@ objects:
                  key: db.password
                  name: cloud-connector-db
 
-           image: ${IMAGE}:${IMAGE_TAG}
+           image: quay.io/cloudservices/cloud-connector:${IMAGE_TAG}
            name: cloud-connector-init
            resources:
              limits:
