@@ -3,15 +3,16 @@ package tls_utils
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 	"io/ioutil"
+
+	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 )
 
 type TlsConfigFunc func(*tls.Config) error
 
 func WithCert(certFilePath string, certKeyPath string) TlsConfigFunc {
 	return func(tlsConfig *tls.Config) error {
-		fmt.Println("TLS CONFIG - SETTING THE PUB/PRIV KEY PAIR")
+		logger.Log.Trace("TLS config - setting the pub/priv key pair")
 
 		cert, err := tls.LoadX509KeyPair(certFilePath, certKeyPath)
 		if err != nil {
@@ -26,7 +27,7 @@ func WithCert(certFilePath string, certKeyPath string) TlsConfigFunc {
 
 func WithCACerts(caCertFilePath string) TlsConfigFunc {
 	return func(tlsConfig *tls.Config) error {
-		fmt.Println("TLS CONFIG - SETTING CA CERTS")
+		logger.Log.Trace("TLS config - setting ca certs")
 
 		certpool := x509.NewCertPool()
 		pemCerts, err := ioutil.ReadFile(caCertFilePath)
@@ -44,7 +45,7 @@ func WithCACerts(caCertFilePath string) TlsConfigFunc {
 
 func WithSkipVerify() TlsConfigFunc {
 	return func(tlsConfig *tls.Config) error {
-		fmt.Println("TLS CONFIG - SETTING INSECURE SKIP VERIFY")
+		logger.Log.Trace("TLS config - setting insecure skip verify")
 
 		tlsConfig.InsecureSkipVerify = true
 

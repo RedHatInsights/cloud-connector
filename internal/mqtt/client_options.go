@@ -3,7 +3,6 @@ package mqtt
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
 	"net/http"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -29,7 +28,9 @@ func WithJwtAsHttpHeader(tokenGenerator jwt_utils.JwtGenerator) MqttClientOption
 		}
 
 		headers.Add(akamaiTokenHeader, jwtToken)
-		fmt.Println("SETTING THE JWT HTTP HEADER")
+
+		logger.Log.Trace("Setting the MQTT JWT HTTP header")
+
 		opts.SetHTTPHeaders(headers)
 
 		return nil
@@ -48,15 +49,18 @@ func WithJwtReconnectingHandler(tokenGenerator jwt_utils.JwtGenerator) MqttClien
 				opts.HTTPHeaders.Set(akamaiTokenHeader, jwtToken)
 			}
 		}
-		logger.Log.Info("Setting MQTT JWT reconnecting handler")
+
+		logger.Log.Trace("Setting MQTT JWT reconnecting handler")
+
 		opts.SetReconnectingHandler(tokenRefresher)
+
 		return nil
 	}
 }
 
 func WithTlsConfig(tlsConfig *tls.Config) MqttClientOptionsFunc {
 	return func(opts *MQTT.ClientOptions) error {
-		fmt.Println("SETTING THE TLS CONFIG")
+		logger.Log.Trace("Setting the TLS config")
 		opts.SetTLSConfig(tlsConfig)
 		return nil
 	}
@@ -64,8 +68,7 @@ func WithTlsConfig(tlsConfig *tls.Config) MqttClientOptionsFunc {
 
 func WithClientID(clientID string) MqttClientOptionsFunc {
 	return func(opts *MQTT.ClientOptions) error {
-		fmt.Printf("SETTING THE CLIENT ID: %s\n", clientID)
-
+		logger.Log.Trace("Setting the MQTT client-id: ", clientID)
 		opts.SetClientID(clientID)
 		return nil
 	}
@@ -73,8 +76,7 @@ func WithClientID(clientID string) MqttClientOptionsFunc {
 
 func WithCleanSession(cleanSession bool) MqttClientOptionsFunc {
 	return func(opts *MQTT.ClientOptions) error {
-		fmt.Printf("SETTING THE CLEAN SESSION: %v\n", cleanSession)
-
+		logger.Log.Tracef("Setting the clean session: %v\n", cleanSession)
 		opts.SetCleanSession(cleanSession)
 		return nil
 	}
@@ -82,8 +84,7 @@ func WithCleanSession(cleanSession bool) MqttClientOptionsFunc {
 
 func WithResumeSubs(resumeSubs bool) MqttClientOptionsFunc {
 	return func(opts *MQTT.ClientOptions) error {
-		fmt.Printf("SETTING THE RESUME SUBS: %v\n", resumeSubs)
-
+		logger.Log.Tracef("Setting the resume subs: %v\n", resumeSubs)
 		opts.SetResumeSubs(resumeSubs)
 		return nil
 	}
@@ -91,8 +92,7 @@ func WithResumeSubs(resumeSubs bool) MqttClientOptionsFunc {
 
 func WithDefaultPublishHandler(msgHdlr MQTT.MessageHandler) MqttClientOptionsFunc {
 	return func(opts *MQTT.ClientOptions) error {
-		fmt.Println("SETTING THE DEFAULT PUBLISH HANDLER")
-
+		logger.Log.Trace("Setting the default publish handler")
 		opts.SetDefaultPublishHandler(msgHdlr)
 		return nil
 	}
