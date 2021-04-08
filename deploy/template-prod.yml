@@ -75,9 +75,15 @@ objects:
                 name: cloud-connector-mqtt-credentials
 
           - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_HOST
-            value: postgres
+            valueFrom:
+              secretKeyRef:
+                key: db.host
+                name: cloud-connector-db
           - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_PORT
-            value: "5432"
+            valueFrom:
+              secretKeyRef:
+                key: db.port
+                name: cloud-connector-db
           - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_NAME
             valueFrom:
               secretKeyRef:
