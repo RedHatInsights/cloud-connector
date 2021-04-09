@@ -243,10 +243,10 @@ objects:
              requests:
                cpu: 250m
                memory: 256Mi
-            volumeMounts:
-              - mountPath: /tmp/rds-certs
-                name: volume-rds-certs
-                readOnly: true
+           volumeMounts:
+             - mountPath: /tmp/rds-certs
+               name: volume-rds-certs
+               readOnly: true
 
         volumes:
           - name: volume-mqtt-jwt-keys
