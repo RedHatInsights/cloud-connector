@@ -12,14 +12,31 @@ import (
 )
 
 func initializePostgresConnection(cfg *config.Config) (*sql.DB, error) {
-	psqlConnectionInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+	psqlConnectionInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s",
 		cfg.ConnectionDatabaseHost,
 		cfg.ConnectionDatabasePort,
 		cfg.ConnectionDatabaseUser,
 		cfg.ConnectionDatabasePassword,
 		cfg.ConnectionDatabaseName)
 
+	sslSettings, err := buildPostgresSslConfigString(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	psqlConnectionInfo += " " + sslSettings
+
 	return sql.Open("postgres", psqlConnectionInfo)
+}
+
+func buildPostgresSslConfigString(cfg *config.Config) (string, error) {
+	if cfg.ConnectionDatabaseSslMode == "disable" {
+		return "sslmode=disable", nil
+	} else if cfg.ConnectionDatabaseSslMode == "verify-full" {
+		return "sslmode=verify-full sslrootcert=" + cfg.ConnectionDatabaseSslRootCert, nil
+	} else {
+		return "", errors.New("Invalid SSL configuration for database connection: " + cfg.ConnectionDatabaseSslMode)
+	}
 }
 
 func initializeSqliteConnection(cfg *config.Config) (*sql.DB, error) {

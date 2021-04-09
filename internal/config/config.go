@@ -39,6 +39,8 @@ const (
 	CONNECTION_DATABASE_USER                   = "Connection_Database_User"
 	CONNECTION_DATABASE_PASSWORD               = "Connection_Database_Password"
 	CONNECTION_DATABASE_NAME                   = "Connection_Database_Name"
+	CONNECTION_DATABASE_SSL_MODE               = "Connection_Database_SSL_Mode"
+	CONNECTION_DATABASE_SSL_ROOT_CERT          = "Connection_Database_SSL_Root_Cert"
 	CONNECTION_DATABASE_SQLITE_FILE            = "Connection_Database_Sqlite_File"
 	AUTH_GATEWAY_URL                           = "Auth_Gateway_Url"
 	AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT           = "Auth_Gateway_HTTP_Client_Timeout"
@@ -87,6 +89,8 @@ type Config struct {
 	ConnectionDatabaseUser              string
 	ConnectionDatabasePassword          string
 	ConnectionDatabaseName              string
+	ConnectionDatabaseSslMode           string
+	ConnectionDatabaseSslRootCert       string
 	ConnectionDatabaseSqliteFile        string
 	AuthGatewayUrl                      string
 	AuthGatewayHttpClientTimeout        time.Duration
@@ -133,6 +137,8 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %d\n", CONNECTION_DATABASE_PORT, c.ConnectionDatabasePort)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_USER, c.ConnectionDatabaseUser)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_NAME, c.ConnectionDatabaseName)
+	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_SSL_MODE, c.ConnectionDatabaseSslMode)
+	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_SSL_ROOT_CERT, c.ConnectionDatabaseSslRootCert)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_SQLITE_FILE, c.ConnectionDatabaseSqliteFile)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTED_CLIENT_RECORDER_IMPL, c.ConnectedClientRecorderImpl)
 	fmt.Fprintf(&b, "%s: %s\n", INVENTORY_KAFKA_BROKERS, c.InventoryKafkaBrokers)
@@ -179,6 +185,8 @@ func GetConfig() *Config {
 	options.SetDefault(CONNECTION_DATABASE_USER, "insights")
 	options.SetDefault(CONNECTION_DATABASE_PASSWORD, "insights")
 	options.SetDefault(CONNECTION_DATABASE_NAME, "cloud-connector")
+	options.SetDefault(CONNECTION_DATABASE_SSL_MODE, "disable")
+	options.SetDefault(CONNECTION_DATABASE_SSL_ROOT_CERT, "db_ssl_root_cert.pem")
 	options.SetDefault(CONNECTION_DATABASE_SQLITE_FILE, "connections_metadata_sqlite.db")
 	options.SetDefault(CONNECTED_CLIENT_RECORDER_IMPL, "fake")
 	options.SetDefault(INVENTORY_KAFKA_BROKERS, []string{DEFAULT_KAFKA_BROKER_ADDRESS})
@@ -229,6 +237,8 @@ func GetConfig() *Config {
 		ConnectionDatabaseUser:              options.GetString(CONNECTION_DATABASE_USER),
 		ConnectionDatabasePassword:          options.GetString(CONNECTION_DATABASE_PASSWORD),
 		ConnectionDatabaseName:              options.GetString(CONNECTION_DATABASE_NAME),
+		ConnectionDatabaseSslMode:           options.GetString(CONNECTION_DATABASE_SSL_MODE),
+		ConnectionDatabaseSslRootCert:       options.GetString(CONNECTION_DATABASE_SSL_ROOT_CERT),
 		ConnectionDatabaseSqliteFile:        options.GetString(CONNECTION_DATABASE_SQLITE_FILE),
 		AuthGatewayUrl:                      options.GetString(AUTH_GATEWAY_URL),
 		AuthGatewayHttpClientTimeout:        options.GetDuration(AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT) * time.Second,
