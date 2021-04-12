@@ -261,6 +261,15 @@
             "PSKAuthKey": []
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionStatusRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK"
