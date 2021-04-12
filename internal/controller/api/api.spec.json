@@ -243,6 +243,39 @@
           }
         }
       }
+    },
+    "/connection/disconnect": {
+      "post": {
+        "tags": [
+          "api",
+          "connection"
+        ],
+        "summary": "Send a disconnect request to a connected client",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          },
+          {
+            "PSKAuthClientID": [],
+            "PSKAuthAccount": [],
+            "PSKAuthKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
