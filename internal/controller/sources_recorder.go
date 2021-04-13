@@ -133,6 +133,8 @@ func (sri *SourcesRecorderImpl) createSourcesEntry(logger *logrus.Entry, identit
 		return err
 	}
 
+	defer resp.Body.Close()
+
 	logger.Debug("Sources bulk create - HTTP status code:", resp.StatusCode)
 
 	if resp.StatusCode == http.StatusBadRequest {
@@ -180,6 +182,8 @@ func (sri *SourcesRecorderImpl) checkForExistingSourcesEntry(logger *logrus.Entr
 		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to lookup sources entry")
 		return false, err
 	}
+
+	defer resp.Body.Close()
 
 	logger.Debug("Sources existence check - HTTP status code:", resp.StatusCode)
 
