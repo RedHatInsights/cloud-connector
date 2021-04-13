@@ -62,11 +62,11 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 	logger.Debug("About to call Auth Gateway")
 	r, err := client.Do(req)
 	logger.Debug("Returned from call to Auth Gateway")
-	defer r.Body.Close()
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Call to Auth Gateway failed")
 		return "", "", err
 	}
+	defer r.Body.Close()
 	if r.StatusCode != 200 {
 		logger.Debugf("Call to Auth Gateway returned http status code %d", r.StatusCode)
 		b, _ := ioutil.ReadAll(r.Body)
