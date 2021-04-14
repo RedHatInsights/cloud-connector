@@ -70,12 +70,12 @@ func startMqttConnectionHandler(mgmtAddr string) {
 		mqtt.Subscriber{
 			Topic:      mqttTopicBuilder.BuildIncomingWildcardControlTopic(),
 			EntryPoint: controlMsgHandler,
-			Qos:        1,
+			Qos:        2,
 		},
 		mqtt.Subscriber{
 			Topic:      mqttTopicBuilder.BuildIncomingWildcardDataTopic(),
 			EntryPoint: dataMsgHandler,
-			Qos:        0,
+			Qos:        1,
 		},
 	}
 
