@@ -61,7 +61,7 @@ func startMqttConnectionHandler(mgmtAddr string) {
 	mqttTopicBuilder := mqtt.NewTopicBuilder(cfg.MqttTopicPrefix)
 	mqttTopicVerifier := mqtt.NewTopicVerifier(cfg.MqttTopicPrefix)
 
-	controlMsgHandler := mqtt.ControlMessageHandler(mqttTopicVerifier, sqlConnectionRegistrar, accountResolver, connectedClientRecorder, sourcesRecorder)
+	controlMsgHandler := mqtt.ControlMessageHandler(cfg, mqttTopicVerifier, mqttTopicBuilder, sqlConnectionRegistrar, accountResolver, connectedClientRecorder, sourcesRecorder)
 	dataMsgHandler := mqtt.DataMessageHandler()
 
 	defaultMsgHandler := mqtt.DefaultMessageHandler(mqttTopicVerifier, controlMsgHandler, dataMsgHandler)

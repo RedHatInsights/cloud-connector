@@ -109,7 +109,7 @@ func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Co
 	return mqttClient, nil
 }
 
-func ControlMessageHandler(topicVerifier *TopicVerifier, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(MQTT.Client, MQTT.Message) {
+func ControlMessageHandler(cfg *config.Config, topicVerifier *TopicVerifier, topicBuilder *TopicBuilder, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(MQTT.Client, MQTT.Message) {
 	return func(client MQTT.Client, message MQTT.Message) {
 		logger.Log.Debugf("Received control message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
 
@@ -138,7 +138,7 @@ func ControlMessageHandler(topicVerifier *TopicVerifier, connectionRegistrar con
 
 		switch controlMsg.MessageType {
 		case "connection-status":
-			handleConnectionStatusMessage(client, clientID, controlMsg, connectionRegistrar, accountResolver, connectedClientRecorder, sourcesRecorder)
+			handleConnectionStatusMessage(client, clientID, controlMsg, cfg, topicBuilder, connectionRegistrar, accountResolver, connectedClientRecorder, sourcesRecorder)
 		case "event":
 			handleEventMessage(client, clientID, controlMsg)
 		default:
@@ -147,7 +147,7 @@ func ControlMessageHandler(topicVerifier *TopicVerifier, connectionRegistrar con
 	}
 }
 
-func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
+func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage, cfg *config.Config, topicBuilder *TopicBuilder, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
 
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 
@@ -163,17 +163,18 @@ func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID,
 	}
 
 	if connectionState == "online" {
-		return handleOnlineMessage(client, clientID, msg, accountResolver, connectionRegistrar, connectedClientRecorder, sourcesRecorder)
+		return handleOnlineMessage(client, clientID, msg, cfg, topicBuilder, accountResolver, connectionRegistrar, connectedClientRecorder, sourcesRecorder)
 	} else if connectionState == "offline" {
 		return handleOfflineMessage(client, clientID, msg, connectionRegistrar)
 	} else {
+		logger.Debug("Invalid connection state from connection-status message.")
 		return errors.New("Invalid connection state")
 	}
 
 	return nil
 }
 
-func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage, accountResolver controller.AccountIdResolver, connectionRegistrar controller.ConnectionRegistrar, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
+func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage, cfg *config.Config, topicBuilder *TopicBuilder, accountResolver controller.AccountIdResolver, connectionRegistrar controller.ConnectionRegistrar, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
 
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 
@@ -182,7 +183,9 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 	identity, account, err := accountResolver.MapClientIdToAccountId(context.Background(), clientID)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to resolve client id to account number")
-		// FIXME:  tell the client to disconnect
+
+		sendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, clientID, cfg.InvalidHandshakeReconnectDelay)
+
 		return err
 	}
 
@@ -199,8 +202,11 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 		err = connectedClientRecorder.RecordConnectedClient(context.Background(), identity, account, clientID, handshakePayload[canonicalFactsKey])
 
 		if err != nil {
-			// FIXME:  If we cannot "register" the connection with inventory, then send a disconnect message
 			logger.WithFields(logrus.Fields{"error": err}).Error("Failed to record client id within the platform")
+
+			// If we cannot "register" the connection with inventory, then send a disconnect message
+			sendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, clientID, cfg.InvalidHandshakeReconnectDelay)
+
 			return err
 		}
 	}
