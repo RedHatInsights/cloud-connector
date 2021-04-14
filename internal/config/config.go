@@ -30,6 +30,10 @@ const (
 	MQTT_BROKER_JWT_GENERATOR_IMPL             = "MQTT_Broker_JWT_Generator_Impl"
 	MQTT_BROKER_JWT_FILE                       = "MQTT_Broker_JWT_File"
 	MQTT_TOPIC_PREFIX                          = "MQTT_Topic_Prefix"
+	MQTT_CONTROL_SUBSCRIPTION_QOS              = "MQTT_Control_Subscription_QoS"
+	MQTT_CONTROL_PUBLISH_QOS                   = "MQTT_Control_Publish_QoS"
+	MQTT_DATA_SUBSCRIPTION_QOS                 = "MQTT_Data_Subscription_QoS"
+	MQTT_DATA_PUBLISH_QOS                      = "MQTT_Data_Publish_QoS"
 	CLIENT_ID_TO_ACCOUNT_ID_IMPL               = "Client_Id_To_Account_Id_Impl"
 	CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE        = "Client_Id_To_Account_Id_Config_File"
 	CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID = "Client_Id_To_Account_Id_Default_Account_Id"
@@ -79,6 +83,10 @@ type Config struct {
 	MqttBrokerJwtGeneratorImpl          string
 	MqttBrokerJwtFile                   string
 	MqttTopicPrefix                     string
+	MqttControlSubscriptionQoS          int
+	MqttControlPublishQoS               int
+	MqttDataSubscriptionQoS             int
+	MqttDataPublishQoS                  int
 	KafkaBrokers                        []string
 	ClientIdToAccountIdImpl             string
 	ClientIdToAccountIdConfigFile       string
@@ -129,6 +137,10 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_JWT_GENERATOR_IMPL, c.MqttBrokerJwtGeneratorImpl)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_JWT_FILE, c.MqttBrokerJwtFile)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_TOPIC_PREFIX, c.MqttTopicPrefix)
+	fmt.Fprintf(&b, "%s: %d\n", MQTT_CONTROL_SUBSCRIPTION_QOS, c.MqttControlSubscriptionQoS)
+	fmt.Fprintf(&b, "%s: %d\n", MQTT_CONTROL_PUBLISH_QOS, c.MqttControlPublishQoS)
+	fmt.Fprintf(&b, "%s: %d\n", MQTT_DATA_SUBSCRIPTION_QOS, c.MqttDataSubscriptionQoS)
+	fmt.Fprintf(&b, "%s: %d\n", MQTT_DATA_PUBLISH_QOS, c.MqttDataPublishQoS)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_IMPL, c.ClientIdToAccountIdImpl)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE, c.ClientIdToAccountIdConfigFile)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID, c.ClientIdToAccountIdDefaultAccountId)
@@ -176,6 +188,10 @@ func GetConfig() *Config {
 	options.SetDefault(MQTT_BROKER_JWT_GENERATOR_IMPL, "jwt_file_reader")
 	options.SetDefault(MQTT_BROKER_JWT_FILE, "cloud-connector-mqtt-jwt.txt")
 	options.SetDefault(MQTT_TOPIC_PREFIX, "redhat")
+	options.SetDefault(MQTT_CONTROL_SUBSCRIPTION_QOS, 2)
+	options.SetDefault(MQTT_CONTROL_PUBLISH_QOS, 1)
+	options.SetDefault(MQTT_DATA_SUBSCRIPTION_QOS, 1)
+	options.SetDefault(MQTT_DATA_PUBLISH_QOS, 1)
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_IMPL, "config_file_based")
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE, "client_id_to_account_id_map.json")
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID, "111000")
@@ -228,6 +244,10 @@ func GetConfig() *Config {
 		MqttBrokerJwtGeneratorImpl:          options.GetString(MQTT_BROKER_JWT_GENERATOR_IMPL),
 		MqttBrokerJwtFile:                   options.GetString(MQTT_BROKER_JWT_FILE),
 		MqttTopicPrefix:                     options.GetString(MQTT_TOPIC_PREFIX),
+		MqttControlSubscriptionQoS:          options.GetInt(MQTT_CONTROL_SUBSCRIPTION_QOS),
+		MqttControlPublishQoS:               options.GetInt(MQTT_CONTROL_PUBLISH_QOS),
+		MqttDataSubscriptionQoS:             options.GetInt(MQTT_DATA_SUBSCRIPTION_QOS),
+		MqttDataPublishQoS:                  options.GetInt(MQTT_DATA_PUBLISH_QOS),
 		ClientIdToAccountIdImpl:             options.GetString(CLIENT_ID_TO_ACCOUNT_ID_IMPL),
 		ClientIdToAccountIdConfigFile:       options.GetString(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE),
 		ClientIdToAccountIdDefaultAccountId: options.GetString(CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID),

@@ -19,6 +19,7 @@ var (
 )
 
 type ReceptorMQTTProxy struct {
+	Config       *config.Config
 	AccountID    domain.AccountID
 	ClientID     domain.ClientID
 	Client       MQTT.Client
@@ -87,7 +88,7 @@ func (rhp *ReceptorMQTTProxy) sendControlMessage(ctx context.Context, msgType st
 
 	topic := rhp.TopicBuilder.BuildOutgoingControlTopic(rhp.ClientID)
 
-	err = rhp.sendMessage(logger, topic, 1, message)
+	err = rhp.sendMessage(logger, topic, byte(rhp.Config.MqttControlPublishQoS), message)
 
 	return &messageID, err
 }
@@ -120,7 +121,7 @@ func (rhp *ReceptorMQTTProxy) sendDataMessage(ctx context.Context, directive str
 			Content:     payload,
 		}
 
-		err = rhp.sendMessage(logger, topic, 1, message)
+		err = rhp.sendMessage(logger, topic, byte(rhp.Config.MqttDataPublishQoS), message)
 	}()
 
 	return &messageID, err
