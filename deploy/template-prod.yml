@@ -268,15 +268,15 @@ objects:
     name: cloud-connector
     annotations:
       prometheus.io/path: /metrics
-      prometheus.io/port: "8000"
+      prometheus.io/port: "8080"
       prometheus.io/scrape: "true"
   spec:
     ports:
     - appProtocol: http
       name: public
-      port: 8000
+      port: 8080
       protocol: TCP
-      targetPort: 8000
+      targetPort: 8080
     selector:
       pod: cloud-connector-api
     type: ClusterIP
