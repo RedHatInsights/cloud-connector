@@ -159,8 +159,8 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 	}
 
 	dispatchers := make(Connector.Dispatchers)
-	dispatchers["playbook"] = make(map[string]string)
-	dispatchers["playbook"]["ansible-runner-version"] = "1.2.3"
+	dispatchers["rhc-playbook-worker"] = make(map[string]string)
+	dispatchers["rhc-playbook-worker"]["ansible-runner-version"] = "1.2.3"
 	dispatchers["echo"] = make(map[string]string)
 
 	dispatchers["catalog"] = make(map[string]string)
