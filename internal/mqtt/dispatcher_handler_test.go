@@ -46,16 +46,16 @@ func TestProcessDispatchers(t *testing.T) {
 	sourcesRecorder := &mockSourcesRecorder{}
 
 	catalogMap := make(map[string]interface{})
-	catalogMap[CATALOG_APPLICATION_TYPE] = expectedApplicationType
-	catalogMap[CATALOG_SOURCE_TYPE] = expectedSourceType
-	catalogMap[CATALOG_SOURCE_REF] = expectedSourceRef
-	catalogMap[CATALOG_SOURCE_NAME] = expectedSourceName
+	catalogMap[catalogApplicationType] = expectedApplicationType
+	catalogMap[catalogSourceType] = expectedSourceType
+	catalogMap[catalogSourceRef] = expectedSourceRef
+	catalogMap[catalogSourceName] = expectedSourceName
 
 	dispatchersMap := make(map[string]interface{})
-	dispatchersMap[CATALOG_DISPATCHER_KEY] = catalogMap
+	dispatchersMap[catalogDispatcherKey] = catalogMap
 
 	contentMap := make(map[string]interface{})
-	contentMap[DISPATCHERS_KEY] = dispatchersMap
+	contentMap[dispatchersKey] = dispatchersMap
 
 	processDispatchers(sourcesRecorder, expectedIdentity, expectedAccount, expectedClientId, contentMap)
 

@@ -13,7 +13,7 @@ type ControlMessage struct {
 }
 
 type ConnectionStatusMessageContent struct {
-	CanonicalFacts  CanonicalFacts `json:"canonical_facts"`
+	CanonicalFacts  CanonicalFacts `json:"canonical_facts,omitempty"`
 	Dispatchers     Dispatchers    `json:"dispatchers"`
 	ConnectionState string         `json:"state"`
 }

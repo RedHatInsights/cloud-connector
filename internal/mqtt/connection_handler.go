@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/url"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -17,6 +16,17 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/jwt_utils"
 
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	canonicalFactsKey           = "canonical_facts"
+	dispatchersKey              = "dispatchers"
+	catalogDispatcherKey        = "catalog"
+	catalogApplicationType      = "ApplicationType"
+	catalogSourceName           = "SrcName"
+	catalogSourceRef            = "SourceRef"
+	catalogSourceType           = "SrcType"
+	playbookWorkerDispatcherKey = "rhc-worker-playbook"
 )
 
 type Subscriber struct {
@@ -180,20 +190,14 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 
 	handshakePayload := msg.Content.(map[string]interface{})
 
-	proxy := ReceptorMQTTProxy{AccountID: account, ClientID: clientID, Client: client, Dispatchers: handshakePayload[DISPATCHERS_KEY]}
+	proxy := ReceptorMQTTProxy{AccountID: account, ClientID: clientID, Client: client, Dispatchers: handshakePayload[dispatchersKey]}
 
 	registrationResults, err := connectionRegistrar.Register(context.Background(), account, clientID, &proxy)
 
-	if registrationResults == controller.NewConnection {
+	if registrationResults == controller.NewConnection && shouldHostBeRegisteredWithInventory(handshakePayload) == true {
 
-		canonicalFacts, gotCanonicalFacts := handshakePayload["canonical_facts"]
+		err = connectedClientRecorder.RecordConnectedClient(context.Background(), identity, account, clientID, handshakePayload[canonicalFactsKey])
 
-		if gotCanonicalFacts == false {
-			fmt.Println("FIXME: error!  hangup")
-			return errors.New("Invalid handshake")
-		}
-
-		err = connectedClientRecorder.RecordConnectedClient(context.Background(), identity, account, clientID, canonicalFacts)
 		if err != nil {
 			// FIXME:  If we cannot "register" the connection with inventory, then send a disconnect message
 			logger.WithFields(logrus.Fields{"error": err}).Error("Failed to record client id within the platform")
@@ -206,20 +210,35 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 	return nil
 }
 
-const (
-	DISPATCHERS_KEY          = "dispatchers"
-	CATALOG_DISPATCHER_KEY   = "catalog"
-	CATALOG_APPLICATION_TYPE = "ApplicationType"
-	CATALOG_SOURCE_NAME      = "SrcName"
-	CATALOG_SOURCE_REF       = "SourceRef"
-	CATALOG_SOURCE_TYPE      = "SrcType"
-)
+func shouldHostBeRegisteredWithInventory(handshakePayload map[string]interface{}) bool {
+	return doesHostHaveCanonicalFacts(handshakePayload) && doesHostHavePlaybookWorker(handshakePayload)
+}
+
+func doesHostHaveCanonicalFacts(handshakePayload map[string]interface{}) bool {
+	_, gotCanonicalFacts := handshakePayload[canonicalFactsKey]
+	return gotCanonicalFacts
+}
+
+func doesHostHavePlaybookWorker(handshakePayload map[string]interface{}) bool {
+
+	dispatchers, gotDispatchers := handshakePayload[dispatchersKey]
+
+	if gotDispatchers == false {
+		return false
+	}
+
+	dispatchersMap := dispatchers.(map[string]interface{})
+
+	_, foundPlaybookDispatcher := dispatchersMap[playbookWorkerDispatcherKey]
+
+	return foundPlaybookDispatcher
+}
 
 func processDispatchers(sourcesRecorder controller.SourcesRecorder, identity domain.Identity, account domain.AccountID, clientId domain.ClientID, handshakePayload map[string]interface{}) {
 
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientId, "account": account})
 
-	dispatchers, gotDispatchers := handshakePayload[DISPATCHERS_KEY]
+	dispatchers, gotDispatchers := handshakePayload[dispatchersKey]
 
 	if gotDispatchers == false {
 		logger.Debug("No dispatchers found")
@@ -228,7 +247,7 @@ func processDispatchers(sourcesRecorder controller.SourcesRecorder, identity dom
 
 	dispatchersMap := dispatchers.(map[string]interface{})
 
-	catalog, gotCatalog := dispatchersMap[CATALOG_DISPATCHER_KEY]
+	catalog, gotCatalog := dispatchersMap[catalogDispatcherKey]
 
 	if gotCatalog == false {
 		logger.Debug("No catalog dispatcher found")
@@ -237,10 +256,10 @@ func processDispatchers(sourcesRecorder controller.SourcesRecorder, identity dom
 
 	catalogMap := catalog.(map[string]interface{})
 
-	applicationType, gotApplicationType := catalogMap[CATALOG_APPLICATION_TYPE]
-	sourceType, gotSourceType := catalogMap[CATALOG_SOURCE_TYPE]
-	sourceRef, gotSourceRef := catalogMap[CATALOG_SOURCE_REF]
-	sourceName, gotSourceName := catalogMap[CATALOG_SOURCE_NAME]
+	applicationType, gotApplicationType := catalogMap[catalogApplicationType]
+	sourceType, gotSourceType := catalogMap[catalogSourceType]
+	sourceRef, gotSourceRef := catalogMap[catalogSourceRef]
+	sourceName, gotSourceName := catalogMap[catalogSourceName]
 
 	if gotApplicationType != true || gotSourceType != true || gotSourceRef != true || gotSourceName != true {
 		// MISSING FIELDS
