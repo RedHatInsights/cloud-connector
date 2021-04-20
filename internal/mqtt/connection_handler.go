@@ -294,7 +294,7 @@ func DataMessageHandler() func(MQTT.Client, MQTT.Message) {
 		logger.Log.Debugf("Received data message: %s\n", message.Payload())
 
 		if message.Payload() == nil || len(message.Payload()) == 0 {
-			logger.Log.Debugf("Received empty data message")
+			logger.Log.Trace("Received empty data message")
 			return
 		}
 	}
