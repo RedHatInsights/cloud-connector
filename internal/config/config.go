@@ -83,10 +83,10 @@ type Config struct {
 	MqttBrokerJwtGeneratorImpl          string
 	MqttBrokerJwtFile                   string
 	MqttTopicPrefix                     string
-	MqttControlSubscriptionQoS          int
-	MqttControlPublishQoS               int
-	MqttDataSubscriptionQoS             int
-	MqttDataPublishQoS                  int
+	MqttControlSubscriptionQoS          byte
+	MqttControlPublishQoS               byte
+	MqttDataSubscriptionQoS             byte
+	MqttDataPublishQoS                  byte
 	KafkaBrokers                        []string
 	ClientIdToAccountIdImpl             string
 	ClientIdToAccountIdConfigFile       string
@@ -244,10 +244,10 @@ func GetConfig() *Config {
 		MqttBrokerJwtGeneratorImpl:          options.GetString(MQTT_BROKER_JWT_GENERATOR_IMPL),
 		MqttBrokerJwtFile:                   options.GetString(MQTT_BROKER_JWT_FILE),
 		MqttTopicPrefix:                     options.GetString(MQTT_TOPIC_PREFIX),
-		MqttControlSubscriptionQoS:          options.GetInt(MQTT_CONTROL_SUBSCRIPTION_QOS),
-		MqttControlPublishQoS:               options.GetInt(MQTT_CONTROL_PUBLISH_QOS),
-		MqttDataSubscriptionQoS:             options.GetInt(MQTT_DATA_SUBSCRIPTION_QOS),
-		MqttDataPublishQoS:                  options.GetInt(MQTT_DATA_PUBLISH_QOS),
+		MqttControlSubscriptionQoS:          byte(options.GetInt(MQTT_CONTROL_SUBSCRIPTION_QOS)),
+		MqttControlPublishQoS:               byte(options.GetInt(MQTT_CONTROL_PUBLISH_QOS)),
+		MqttDataSubscriptionQoS:             byte(options.GetInt(MQTT_DATA_SUBSCRIPTION_QOS)),
+		MqttDataPublishQoS:                  byte(options.GetInt(MQTT_DATA_PUBLISH_QOS)),
 		ClientIdToAccountIdImpl:             options.GetString(CLIENT_ID_TO_ACCOUNT_ID_IMPL),
 		ClientIdToAccountIdConfigFile:       options.GetString(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE),
 		ClientIdToAccountIdDefaultAccountId: options.GetString(CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID),
