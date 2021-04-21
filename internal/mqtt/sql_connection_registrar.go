@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -67,11 +68,12 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, account domain.
 
 	var registrationResults controller.RegistrationResults
 	if rowsAffected == 0 {
-		fmt.Println("UPDATED!")
 		registrationResults = controller.ExistingConnection
 	} else if rowsAffected == 1 {
 		registrationResults = controller.NewConnection
-		fmt.Println("INSERTED!")
+	} else {
+		logger.Warn("Unable to determine registration results: rowsAffected:", rowsAffected)
+		return controller.NewConnection, errors.New("Unable to determine registration results")
 	}
 
 	logger.Debug("Registered a connection")
