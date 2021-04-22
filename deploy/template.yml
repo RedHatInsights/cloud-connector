@@ -115,6 +115,8 @@ objects:
 
           - name: CLOUD_CONNECTOR_SOURCES_RECORDER_IMPL
             value: sources
+          - name: CLOUD_CONNECTOR_SOURCES_BASE_URL
+            value: ${{SOURCES_BASE_URL}}
 
           - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
             value: ${{MQTT_TOPIC_PREFIX}}
