@@ -192,9 +192,9 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 
 	proxy := ReceptorMQTTProxy{AccountID: account, ClientID: clientID, Client: client, Dispatchers: handshakePayload[dispatchersKey]}
 
-	registrationResults, err := connectionRegistrar.Register(context.Background(), account, clientID, &proxy)
+	_, err = connectionRegistrar.Register(context.Background(), account, clientID, &proxy)
 
-	if registrationResults == controller.NewConnection && shouldHostBeRegisteredWithInventory(handshakePayload) == true {
+	if shouldHostBeRegisteredWithInventory(handshakePayload) == true {
 
 		err = connectedClientRecorder.RecordConnectedClient(context.Background(), identity, account, clientID, handshakePayload[canonicalFactsKey])
 
