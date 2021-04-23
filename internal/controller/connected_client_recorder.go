@@ -11,6 +11,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/queue"
+	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/identity_utils"
 
 	"github.com/google/uuid"
 	kafka "github.com/segmentio/kafka-go"
@@ -85,6 +86,12 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 
 	var systemProfile = map[string]string{"rhc_client_id": string(clientID)}
 	hostData["system_profile"] = systemProfile
+
+	certAuth, _ := identity_utils.AuthenticatedWithCertificate(identity)
+	if certAuth == true {
+		logger.Debug("Adding the owner_id to the inventory message")
+		systemProfile["owner_id"] = string(clientID)
+	}
 
 	metadata := platformMetadata{RequestID: requestID.String(), B64Identity: string(identity)}
 	envelope := inventoryMessageEnvelope{
