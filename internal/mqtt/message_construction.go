@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"encoding/json"
+	"strconv"
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -12,7 +13,7 @@ import (
 
 func buildReconnectMessage(delay int) (*uuid.UUID, *ControlMessage, error) {
 
-	args := map[string]int{"delay": delay}
+	args := map[string]string{"delay": strconv.Itoa(delay)}
 
 	content := CommandMessageContent{Command: "reconnect", Arguments: args}
 
