@@ -56,7 +56,7 @@ func (rhp *ReceptorMQTTProxy) Ping(ctx context.Context, accountNumber domain.Acc
 
 	qos := rhp.Config.MqttControlPublishQoS
 
-	_, err := sendControlMessage(rhp.Client, logger, topic, qos, rhp.ClientID, &commandMessageContent)
+	_, err := sendControlMessage(rhp.Client, logger, topic, qos, rhp.ClientID, "command", &commandMessageContent)
 
 	return err
 }
@@ -84,7 +84,7 @@ func (rhp *ReceptorMQTTProxy) Close(ctx context.Context) error {
 
 	qos := rhp.Config.MqttControlPublishQoS
 
-	_, err := sendControlMessage(rhp.Client, logger, topic, qos, rhp.ClientID, &commandMessageContent)
+	_, err := sendControlMessage(rhp.Client, logger, topic, qos, rhp.ClientID, "command", &commandMessageContent)
 
 	return err
 }

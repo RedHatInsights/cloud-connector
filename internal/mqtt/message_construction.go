@@ -17,10 +17,10 @@ func buildReconnectMessage(delay int) (*uuid.UUID, *ControlMessage, error) {
 
 	content := CommandMessageContent{Command: "reconnect", Arguments: args}
 
-	return buildControlMessage(&content)
+	return buildControlMessage("command", &content)
 }
 
-func buildControlMessage(content *CommandMessageContent) (*uuid.UUID, *ControlMessage, error) {
+func buildControlMessage(messageType string, content *CommandMessageContent) (*uuid.UUID, *ControlMessage, error) {
 
 	messageID, err := uuid.NewRandom()
 	if err != nil {
@@ -28,7 +28,7 @@ func buildControlMessage(content *CommandMessageContent) (*uuid.UUID, *ControlMe
 	}
 
 	message := ControlMessage{
-		MessageType: "control",
+		MessageType: messageType,
 		MessageID:   messageID.String(),
 		Version:     1,
 		Sent:        time.Now(),
@@ -77,9 +77,9 @@ func sendReconnectMessageToClient(mqttClient MQTT.Client, logger *logrus.Entry, 
 	return err
 }
 
-func sendControlMessage(mqttClient MQTT.Client, logger *logrus.Entry, topic string, qos byte, clientID domain.ClientID, content *CommandMessageContent) (*uuid.UUID, error) {
+func sendControlMessage(mqttClient MQTT.Client, logger *logrus.Entry, topic string, qos byte, clientID domain.ClientID, messageType string, content *CommandMessageContent) (*uuid.UUID, error) {
 
-	messageID, message, err := buildControlMessage(content)
+	messageID, message, err := buildControlMessage(messageType, content)
 
 	if err != nil {
 		return nil, err
