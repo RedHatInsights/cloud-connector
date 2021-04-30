@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
@@ -25,14 +26,19 @@ func processStaleConnections(cfg *config.Config, processConnection connectionPro
 		return err
 	}
 
-	statement, err := database.Prepare("SELECT account, client_id, canonical_facts FROM connections WHERE canonical_facts != '{}' AND dispatchers ? 'rhc-worker-playbook' AND stale_timestamp < NOW() - interval '5 minutes' order by stale_timestamp asc")
+	windowToUpdateBeforeGoingStale := 1 * time.Hour
+	offset := cfg.InventoryStaleTimestampOffset - windowToUpdateBeforeGoingStale
+	tooOldIfBeforeThisTime := time.Now().Add(-1 * offset)
+	fmt.Println("tooOldIfBeforeThisTime: ", tooOldIfBeforeThisTime)
+
+	statement, err := database.Prepare("SELECT account, client_id, canonical_facts FROM connections WHERE canonical_facts != '{}' AND dispatchers ? 'rhc-worker-playbook' AND stale_timestamp < $1 order by stale_timestamp asc")
 	if err != nil {
 		logger.LogFatalError("SQL Prepare failed", err)
 		return nil
 	}
 	defer statement.Close()
 
-	rows, err := statement.Query()
+	rows, err := statement.Query(tooOldIfBeforeThisTime)
 	if err != nil {
 		logger.LogFatalError("SQL query failed", err)
 		return nil
@@ -43,6 +49,7 @@ func processStaleConnections(cfg *config.Config, processConnection connectionPro
 		var account domain.AccountID
 		var clientID domain.ClientID
 		var canonicalFactsString string
+
 		if err := rows.Scan(&account, &clientID, &canonicalFactsString); err != nil {
 			logger.LogError("SQL scan failed.  Skipping row.", err)
 			continue
