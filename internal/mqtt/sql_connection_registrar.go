@@ -37,7 +37,7 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, account domain.
 	logger := logger.Log.WithFields(logrus.Fields{"account": account, "client_id": client_id})
 
 	update := "UPDATE connections SET dispatchers=$1, updated_at = NOW() WHERE account=$2 AND client_id=$3"
-	insert := "INSERT INTO connections (account, client_id, dispatchers) SELECT $4, $5, $6"
+	insert := "INSERT INTO connections (account, client_id, dispatchers, canonical_facts) SELECT $4, $5, $6, $7"
 	insertOrUpdate := fmt.Sprintf("WITH upsert AS (%s RETURNING *) %s WHERE NOT EXISTS (SELECT * FROM upsert)", update, insert)
 
 	statement, err := scm.database.Prepare(insertOrUpdate)
@@ -56,7 +56,10 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, account domain.
 		logger.Fatal(err)
 	}
 
-	results, err := statement.Exec(dispatchersString, account, client_id, account, client_id, dispatchersString)
+	canonicalFactsString := "{\"fqdn\": \"fred.flintstone.com\"}"
+	//canonicalFactsString = "{}"
+
+	results, err := statement.Exec(dispatchersString, account, client_id, account, client_id, dispatchersString, canonicalFactsString)
 	if err != nil {
 		logger.Fatal(err)
 	}
