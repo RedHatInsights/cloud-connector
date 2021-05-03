@@ -31,14 +31,14 @@ func processStaleConnections(cfg *config.Config, processConnection connectionPro
 	tooOldIfBeforeThisTime := time.Now().Add(-1 * offset)
 	fmt.Println("tooOldIfBeforeThisTime: ", tooOldIfBeforeThisTime)
 
-	statement, err := database.Prepare("SELECT account, client_id, canonical_facts FROM connections WHERE canonical_facts != '{}' AND dispatchers ? 'rhc-worker-playbook' AND stale_timestamp < $1 order by stale_timestamp asc")
+	statement, err := database.Prepare("SELECT account, client_id, canonical_facts FROM connections WHERE canonical_facts != '{}' AND dispatchers ? 'rhc-worker-playbook' AND stale_timestamp < $1 order by stale_timestamp asc limit $2")
 	if err != nil {
 		logger.LogFatalError("SQL Prepare failed", err)
 		return nil
 	}
 	defer statement.Close()
 
-	rows, err := statement.Query(tooOldIfBeforeThisTime)
+	rows, err := statement.Query(tooOldIfBeforeThisTime, cfg.InventoryStaleTimestampUpdaterChunkSize)
 	if err != nil {
 		logger.LogFatalError("SQL query failed", err)
 		return nil
