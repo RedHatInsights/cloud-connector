@@ -108,7 +108,7 @@ func startInventoryStaleTimestampUpdater() {
 
 func updateStaleTimestampInDB(databaseConn *sql.DB, account domain.AccountID, clientID domain.ClientID) {
 	fmt.Println("Updating the timestamp in the db!")
-	update := "UPDATE connections SET updated_at = NOW() WHERE account=$1 AND client_id=$2"
+	update := "UPDATE connections SET stale_timestamp = NOW() WHERE account=$1 AND client_id=$2"
 
 	statement, err := databaseConn.Prepare(update)
 	if err != nil {
