@@ -37,14 +37,14 @@ type EventMessage struct {
 type EventMessageContent string // FIXME:  interface{} ??
 
 type CanonicalFacts struct {
-	InsightsID            string   `json:"insights_id"`
-	MachineID             string   `json:"machine_id"`
-	SubscriptionManagerID string   `json:"subscription_manager_id"`
-	SatelliteID           string   `json:"satellite_id"`
-	Fqdn                  string   `json:"fqdn"`
-	BiosID                string   `json:"bios_uuid"`
-	IpAddresses           []string `json:"ip_addresses"`
-	MacAddresses          []string `json:"mac_addresses"`
+	InsightsID            string   `json:"insights_id,omitempty"`
+	MachineID             string   `json:"machine_id,omitempty"`
+	SubscriptionManagerID string   `json:"subscription_manager_id,omitempty"`
+	SatelliteID           string   `json:"satellite_id,omitempty"`
+	Fqdn                  string   `json:"fqdn,omitempty"`
+	BiosID                string   `json:"bios_uuid,omitempty"`
+	IpAddresses           []string `json:"ip_addresses,omitempty"`
+	MacAddresses          []string `json:"mac_addresses,omitempty"`
 }
 
 type CatalogServiceFacts struct {

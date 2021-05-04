@@ -38,7 +38,7 @@ func startMqttConnectionHandler(mgmtAddr string) {
 		logger.LogFatalError("Unable to configure TLS for MQTT Broker connection", err)
 	}
 
-	sqlConnectionRegistrar, err := mqtt.NewSqlConnectionRegistrar(cfg)
+	sqlConnectionRegistrar, err := controller.NewSqlConnectionRegistrar(cfg)
 	if err != nil {
 		logger.LogFatalError("Failed to create SQL Connection Registrar", err)
 	}
@@ -89,7 +89,7 @@ func startMqttConnectionHandler(mgmtAddr string) {
 		logger.LogFatalError("Unable to create proxy factory", err)
 	}
 
-	sqlConnectionLocator, err := mqtt.NewSqlConnectionLocator(cfg, proxyFactory)
+	sqlConnectionLocator, err := controller.NewSqlConnectionLocator(cfg, proxyFactory)
 	if err != nil {
 		logger.LogFatalError("Failed to create SQL Connection Locator", err)
 	}
