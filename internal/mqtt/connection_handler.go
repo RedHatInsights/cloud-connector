@@ -180,8 +180,6 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 
 	logger.Debug("handling online connection-status message")
 
-	rhcClient := domain.RhcClient{ClientID: clientID}
-
 	identity, account, err := accountResolver.MapClientIdToAccountId(context.Background(), clientID)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to resolve client id to account number")
@@ -195,9 +193,11 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 
 	handshakePayload := msg.Content.(map[string]interface{})
 
-	rhcClient.Account = account
-	rhcClient.Dispatchers = handshakePayload[dispatchersKey]
-	rhcClient.CanonicalFacts = handshakePayload[canonicalFactsKey]
+	rhcClient := domain.RhcClient{ClientID: clientID,
+		Account:        account,
+		Dispatchers:    handshakePayload[dispatchersKey],
+		CanonicalFacts: handshakePayload[canonicalFactsKey],
+	}
 
 	_, err = connectionRegistrar.Register(context.Background(), rhcClient)
 
