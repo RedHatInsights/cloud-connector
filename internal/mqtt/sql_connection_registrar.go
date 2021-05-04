@@ -32,7 +32,10 @@ func NewSqlConnectionRegistrar(cfg *config.Config) (*SqlConnectionRegistrar, err
 	}, nil
 }
 
-func (scm *SqlConnectionRegistrar) Register(ctx context.Context, account domain.AccountID, client_id domain.ClientID, client controller.Receptor) (controller.RegistrationResults, error) {
+func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domain.RhcClient) (controller.RegistrationResults, error) {
+
+	account := rhcClient.Account
+	client_id := rhcClient.ClientID
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": account, "client_id": client_id})
 
@@ -46,18 +49,21 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, account domain.
 	}
 	defer statement.Close()
 
-	dispatchers, err := client.GetDispatchers(ctx)
+	dispatchersString, err := json.Marshal(rhcClient.Dispatchers)
 	if err != nil {
-		logger.Fatal(err)
+		logger.Fatal(err) // FIXME:??
+	}
+	fmt.Println("\n\n")
+	fmt.Println("rhcClient.Dispatchers:", rhcClient.Dispatchers)
+	fmt.Println("dispatchersString:", dispatchersString)
+
+	canonicalFactsString, err := json.Marshal(rhcClient.CanonicalFacts)
+	if err != nil {
+		logger.Fatal(err) // FIXME:??
 	}
 
-	dispatchersString, err := json.Marshal(dispatchers)
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	canonicalFactsString := "{\"fqdn\": \"fred.flintstone.com\"}"
-	//canonicalFactsString = "{}"
+	fmt.Println("rhcClient.CanonicalFacts:", rhcClient.CanonicalFacts)
+	fmt.Println("canonicalFactsString:", canonicalFactsString)
 
 	results, err := statement.Exec(dispatchersString, account, client_id, account, client_id, dispatchersString, canonicalFactsString)
 	if err != nil {

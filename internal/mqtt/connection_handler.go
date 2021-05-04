@@ -180,6 +180,8 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 
 	logger.Debug("handling online connection-status message")
 
+	rhcClient := domain.RhcClient{ClientID: clientID}
+
 	identity, account, err := accountResolver.MapClientIdToAccountId(context.Background(), clientID)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to resolve client id to account number")
@@ -193,13 +195,15 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 
 	handshakePayload := msg.Content.(map[string]interface{})
 
-	proxy := ReceptorMQTTProxy{AccountID: account, ClientID: clientID, Client: client, Dispatchers: handshakePayload[dispatchersKey]}
+	rhcClient.Account = account
+	rhcClient.Dispatchers = handshakePayload[dispatchersKey]
+	rhcClient.CanonicalFacts = handshakePayload[canonicalFactsKey]
 
-	_, err = connectionRegistrar.Register(context.Background(), account, clientID, &proxy)
+	_, err = connectionRegistrar.Register(context.Background(), rhcClient)
 
 	if shouldHostBeRegisteredWithInventory(handshakePayload) == true {
 
-		err = connectedClientRecorder.RecordConnectedClient(context.Background(), identity, account, clientID, handshakePayload[canonicalFactsKey])
+		err = connectedClientRecorder.RecordConnectedClient(context.Background(), identity, rhcClient)
 
 		if err != nil {
 			logger.WithFields(logrus.Fields{"error": err}).Error("Failed to record client id within the platform")

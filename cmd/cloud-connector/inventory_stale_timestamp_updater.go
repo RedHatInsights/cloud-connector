@@ -97,7 +97,9 @@ func startInventoryStaleTimestampUpdater() {
 			err = json.Unmarshal([]byte(canonicalFactsString), &canonicalFacts)
 			fmt.Println("err:", err)
 
-			err = connectedClientRecorder.RecordConnectedClient(context.TODO(), identity, account, clientID, canonicalFacts)
+			rhcClient := domain.RhcClient{Account: account, ClientID: clientID} // FIXME: build this from the database
+
+			err = connectedClientRecorder.RecordConnectedClient(context.TODO(), identity, rhcClient)
 			fmt.Println("err:", err)
 
 			updateStaleTimestampInDB(databaseConn, account, clientID)
