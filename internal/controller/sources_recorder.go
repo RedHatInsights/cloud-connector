@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -164,7 +165,7 @@ func (sri *SourcesRecorderImpl) checkForExistingSourcesEntry(logger *logrus.Entr
 
 	logger = logger.WithFields(logrus.Fields{"request_id": requestID})
 
-	url := fmt.Sprintf("%s/api/sources/v3.0/sources?source_ref=%s", sri.config.SourcesBaseUrl, sourceRef)
+	url := fmt.Sprintf("%s/api/sources/v3.0/sources?source_ref=%s", sri.config.SourcesBaseUrl, url.QueryEscape(sourceRef))
 
 	logger.Debug("Sources url:", url)
 
