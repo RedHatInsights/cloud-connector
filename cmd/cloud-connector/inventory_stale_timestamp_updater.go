@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -28,7 +27,13 @@ func processStaleConnections(cfg *config.Config, databaseConn *sql.DB, processCo
 
 	logger.Log.Debug("Host's should be updated if their stale_timestamp is before ", tooOldIfBeforeThisTime)
 
-	statement, err := databaseConn.Prepare("SELECT account, client_id, canonical_facts FROM connections WHERE canonical_facts != '{}' AND dispatchers ? 'rhc-worker-playbook' AND stale_timestamp < $1 order by stale_timestamp asc limit $2")
+	statement, err := databaseConn.Prepare(
+		`SELECT account, client_id, canonical_facts FROM connections
+           WHERE canonical_facts != '{}' AND
+             dispatchers ? 'rhc-worker-playbook' AND
+             stale_timestamp < $1
+             order by stale_timestamp asc
+             limit $2`)
 	if err != nil {
 		logger.LogFatalError("SQL Prepare failed", err)
 		return nil
@@ -55,8 +60,8 @@ func processStaleConnections(cfg *config.Config, databaseConn *sql.DB, processCo
 		var canonicalFacts interface{}
 		err = json.Unmarshal([]byte(canonicalFactsString), &canonicalFacts)
 		if err != nil {
-			logger.LogErrorWithAccountAndClientId("Unable to parse canonical facts", err, account, clientID)
-			return err
+			logger.LogErrorWithAccountAndClientId("Unable to parse canonical facts.  Skipping connection.", err, account, clientID)
+			continue
 		}
 
 		rhcClient := domain.RhcClient{Account: account, ClientID: clientID, CanonicalFacts: canonicalFacts} // FIXME: build this from the database
@@ -106,7 +111,10 @@ func startInventoryStaleTimestampUpdater() {
 			}
 
 			err = connectedClientRecorder.RecordConnectedClient(context.TODO(), identity, rhcClient)
-			fmt.Println("err:", err)
+			if err != nil {
+				logger.LogErrorWithAccountAndClientId("Unable to sent host info to inventory", err, rhcClient.Account, rhcClient.ClientID)
+				return err
+			}
 
 			updateStaleTimestampInDB(log, databaseConn, rhcClient)
 
