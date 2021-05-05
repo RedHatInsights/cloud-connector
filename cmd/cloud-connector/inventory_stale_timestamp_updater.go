@@ -12,20 +12,21 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/db"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+
+	"github.com/sirupsen/logrus"
 )
 
 const serviceName = "Cloud-Connector Inventory Stale Timestamp Updater"
 
-// FIXME: remember "limit" to chunk size
-
-type connectionProcessor func(domain.AccountID, domain.ClientID, string) error
+type connectionProcessor func(domain.RhcClient) error
 
 func processStaleConnections(cfg *config.Config, databaseConn *sql.DB, processConnection connectionProcessor) error {
 
 	windowToUpdateBeforeGoingStale := 1 * time.Hour
 	offset := cfg.InventoryStaleTimestampOffset - windowToUpdateBeforeGoingStale
 	tooOldIfBeforeThisTime := time.Now().Add(-1 * offset)
-	fmt.Println("tooOldIfBeforeThisTime: ", tooOldIfBeforeThisTime)
+
+	logger.Log.Debug("Host's should be updated if their stale_timestamp is before ", tooOldIfBeforeThisTime)
 
 	statement, err := databaseConn.Prepare("SELECT account, client_id, canonical_facts FROM connections WHERE canonical_facts != '{}' AND dispatchers ? 'rhc-worker-playbook' AND stale_timestamp < $1 order by stale_timestamp asc limit $2")
 	if err != nil {
@@ -51,7 +52,16 @@ func processStaleConnections(cfg *config.Config, databaseConn *sql.DB, processCo
 			continue
 		}
 
-		processConnection(account, clientID, canonicalFactsString)
+		var canonicalFacts interface{}
+		err = json.Unmarshal([]byte(canonicalFactsString), &canonicalFacts)
+		if err != nil {
+			logger.LogErrorWithAccountAndClientId("Unable to parse canonical facts", err, account, clientID)
+			return err
+		}
+
+		rhcClient := domain.RhcClient{Account: account, ClientID: clientID, CanonicalFacts: canonicalFacts} // FIXME: build this from the database
+
+		processConnection(rhcClient)
 	}
 
 	return nil
@@ -76,57 +86,55 @@ func startInventoryStaleTimestampUpdater() {
 		logger.LogFatalError("Failed to create Account ID Resolver", err)
 	}
 
-	logger.Log.Info(accountResolver)
-
 	connectedClientRecorder, err := controller.NewConnectedClientRecorder(cfg.ConnectedClientRecorderImpl, cfg)
 	if err != nil {
 		logger.LogFatalError("Failed to create Connected Client Recorder", err)
 	}
 
-	logger.Log.Info(connectedClientRecorder)
-
 	processStaleConnections(cfg, databaseConn,
-		func(account domain.AccountID, clientID domain.ClientID, canonicalFactsString string) error {
-			logger.Log.Infof("FOUND STALE CONNECTION: %s %s %s\n", account, clientID, canonicalFactsString)
+		func(rhcClient domain.RhcClient) error {
 
-			identity, account2, err := accountResolver.MapClientIdToAccountId(context.TODO(), clientID)
+			log := logger.Log.WithFields(logrus.Fields{"client_id": rhcClient.ClientID, "account": rhcClient.Account})
 
-			fmt.Println("account2:", account2)
+			log.Debug("Processing stale connection")
 
-			var canonicalFacts interface{}
-			err = json.Unmarshal([]byte(canonicalFactsString), &canonicalFacts)
-			fmt.Println("err:", err)
-
-			rhcClient := domain.RhcClient{Account: account, ClientID: clientID} // FIXME: build this from the database
+			identity, _, err := accountResolver.MapClientIdToAccountId(context.TODO(), rhcClient.ClientID)
+			if err != nil {
+				// FIXME: Send disconnect here??  Need to determine the type of failure!
+				logger.LogErrorWithAccountAndClientId("Unable to retrieve identity for connection", err, rhcClient.Account, rhcClient.ClientID)
+				return err
+			}
 
 			err = connectedClientRecorder.RecordConnectedClient(context.TODO(), identity, rhcClient)
 			fmt.Println("err:", err)
 
-			updateStaleTimestampInDB(databaseConn, account, clientID)
+			updateStaleTimestampInDB(log, databaseConn, rhcClient)
 
 			return nil
 		})
 }
 
-func updateStaleTimestampInDB(databaseConn *sql.DB, account domain.AccountID, clientID domain.ClientID) {
-	fmt.Println("Updating the timestamp in the db!")
+func updateStaleTimestampInDB(log *logrus.Entry, databaseConn *sql.DB, rhcClient domain.RhcClient) {
+
+	log.Debug("Updating stale timestamp")
+
 	update := "UPDATE connections SET stale_timestamp = NOW() WHERE account=$1 AND client_id=$2"
 
 	statement, err := databaseConn.Prepare(update)
 	if err != nil {
-		logger.Log.Fatal(err)
+		log.Fatal(err)
 	}
 	defer statement.Close()
 
-	results, err := statement.Exec(account, clientID)
+	results, err := statement.Exec(rhcClient.Account, rhcClient.ClientID)
 	if err != nil {
-		logger.Log.Fatal(err)
+		log.Fatal(err)
 	}
 
 	rowsAffected, err := results.RowsAffected()
 	if err != nil {
-		logger.Log.Fatal(err)
+		log.Fatal(err)
 	}
 
-	fmt.Println("rowsAffected:", rowsAffected)
+	log.Debug("rowsAffected:", rowsAffected)
 }
