@@ -47,6 +47,7 @@ const (
 	CONNECTION_DATABASE_SSL_MODE                 = "Connection_Database_SSL_Mode"
 	CONNECTION_DATABASE_SSL_ROOT_CERT            = "Connection_Database_SSL_Root_Cert"
 	CONNECTION_DATABASE_SQLITE_FILE              = "Connection_Database_Sqlite_File"
+	CONNECTION_DATABASE_QUERY_TIMEOUT            = "Connection_Database_Query_Timeout"
 	AUTH_GATEWAY_URL                             = "Auth_Gateway_Url"
 	AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT             = "Auth_Gateway_HTTP_Client_Timeout"
 	DEFAULT_KAFKA_BROKER_ADDRESS                 = "kafka:29092"
@@ -103,6 +104,7 @@ type Config struct {
 	ConnectionDatabaseSslMode               string
 	ConnectionDatabaseSslRootCert           string
 	ConnectionDatabaseSqliteFile            string
+	ConnectionDatabaseQueryTimeout          time.Duration
 	AuthGatewayUrl                          string
 	AuthGatewayHttpClientTimeout            time.Duration
 	ConnectedClientRecorderImpl             string
@@ -157,6 +159,7 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_SSL_MODE, c.ConnectionDatabaseSslMode)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_SSL_ROOT_CERT, c.ConnectionDatabaseSslRootCert)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_SQLITE_FILE, c.ConnectionDatabaseSqliteFile)
+	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_QUERY_TIMEOUT, c.ConnectionDatabaseQueryTimeout)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTED_CLIENT_RECORDER_IMPL, c.ConnectedClientRecorderImpl)
 	fmt.Fprintf(&b, "%s: %s\n", INVENTORY_KAFKA_BROKERS, c.InventoryKafkaBrokers)
 	fmt.Fprintf(&b, "%s: %s\n", INVENTORY_KAFKA_TOPIC, c.InventoryKafkaTopic)
@@ -211,6 +214,7 @@ func GetConfig() *Config {
 	options.SetDefault(CONNECTION_DATABASE_SSL_MODE, "disable")
 	options.SetDefault(CONNECTION_DATABASE_SSL_ROOT_CERT, "db_ssl_root_cert.pem")
 	options.SetDefault(CONNECTION_DATABASE_SQLITE_FILE, "connections_metadata_sqlite.db")
+	options.SetDefault(CONNECTION_DATABASE_QUERY_TIMEOUT, 5)
 	options.SetDefault(CONNECTED_CLIENT_RECORDER_IMPL, "fake")
 	options.SetDefault(INVENTORY_KAFKA_BROKERS, []string{DEFAULT_KAFKA_BROKER_ADDRESS})
 	options.SetDefault(INVENTORY_KAFKA_TOPIC, "platform.inventory.host-ingress-p1")
@@ -269,6 +273,7 @@ func GetConfig() *Config {
 		ConnectionDatabaseSslMode:               options.GetString(CONNECTION_DATABASE_SSL_MODE),
 		ConnectionDatabaseSslRootCert:           options.GetString(CONNECTION_DATABASE_SSL_ROOT_CERT),
 		ConnectionDatabaseSqliteFile:            options.GetString(CONNECTION_DATABASE_SQLITE_FILE),
+		ConnectionDatabaseQueryTimeout:          options.GetDuration(CONNECTION_DATABASE_QUERY_TIMEOUT) * time.Second,
 		AuthGatewayUrl:                          options.GetString(AUTH_GATEWAY_URL),
 		AuthGatewayHttpClientTimeout:            options.GetDuration(AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT) * time.Second,
 		ConnectedClientRecorderImpl:             options.GetString(CONNECTED_CLIENT_RECORDER_IMPL),

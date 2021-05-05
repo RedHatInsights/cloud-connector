@@ -17,11 +17,14 @@ import (
 
 const serviceName = "Cloud-Connector Inventory Stale Timestamp Updater"
 
-type connectionProcessor func(domain.RhcClient) error
+type connectionProcessor func(context.Context, domain.RhcClient) error
 
-func processStaleConnections(staleTimeCutoff time.Time, chunkSize int, databaseConn *sql.DB, processConnection connectionProcessor) error {
+func processStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, staleTimeCutoff time.Time, chunkSize int, processConnection connectionProcessor) error {
 
 	logger.Log.Debug("Host's should be updated if their stale_timestamp is before ", staleTimeCutoff)
+
+	queryCtx, cancel := context.WithTimeout(ctx, sqlTimeout)
+	defer cancel()
 
 	statement, err := databaseConn.Prepare(
 		`SELECT account, client_id, canonical_facts FROM connections
@@ -36,7 +39,7 @@ func processStaleConnections(staleTimeCutoff time.Time, chunkSize int, databaseC
 	}
 	defer statement.Close()
 
-	rows, err := statement.Query(staleTimeCutoff, chunkSize)
+	rows, err := statement.QueryContext(queryCtx, staleTimeCutoff, chunkSize)
 	if err != nil {
 		logger.LogFatalError("SQL query failed", err)
 		return nil
@@ -62,7 +65,7 @@ func processStaleConnections(staleTimeCutoff time.Time, chunkSize int, databaseC
 
 		rhcClient := domain.RhcClient{Account: account, ClientID: clientID, CanonicalFacts: canonicalFacts} // FIXME: build this from the database
 
-		processConnection(rhcClient)
+		processConnection(ctx, rhcClient)
 	}
 
 	return nil
@@ -99,38 +102,42 @@ func startInventoryStaleTimestampUpdater() {
 		logger.LogFatalError("Failed to create Connected Client Recorder", err)
 	}
 
+	sqlTimeout := cfg.ConnectionDatabaseQueryTimeout
 	tooOldIfBeforeThisTime := calculateStaleCutoffTime(cfg.InventoryStaleTimestampOffset)
 	chunkSize := cfg.InventoryStaleTimestampUpdaterChunkSize
 
-	processStaleConnections(tooOldIfBeforeThisTime, chunkSize, databaseConn,
-		func(rhcClient domain.RhcClient) error {
+	processStaleConnections(context.TODO(), databaseConn, sqlTimeout, tooOldIfBeforeThisTime, chunkSize,
+		func(ctx context.Context, rhcClient domain.RhcClient) error {
 
 			log := logger.Log.WithFields(logrus.Fields{"client_id": rhcClient.ClientID, "account": rhcClient.Account})
 
 			log.Debug("Processing stale connection")
 
-			identity, _, err := accountResolver.MapClientIdToAccountId(context.TODO(), rhcClient.ClientID)
+			identity, _, err := accountResolver.MapClientIdToAccountId(ctx, rhcClient.ClientID)
 			if err != nil {
 				// FIXME: Send disconnect here??  Need to determine the type of failure!
 				logger.LogErrorWithAccountAndClientId("Unable to retrieve identity for connection", err, rhcClient.Account, rhcClient.ClientID)
 				return err
 			}
 
-			err = connectedClientRecorder.RecordConnectedClient(context.TODO(), identity, rhcClient)
+			err = connectedClientRecorder.RecordConnectedClient(ctx, identity, rhcClient)
 			if err != nil {
 				logger.LogErrorWithAccountAndClientId("Unable to sent host info to inventory", err, rhcClient.Account, rhcClient.ClientID)
 				return err
 			}
 
-			updateStaleTimestampInDB(log, databaseConn, rhcClient)
+			updateStaleTimestampInDB(log, ctx, databaseConn, sqlTimeout, rhcClient)
 
 			return nil
 		})
 }
 
-func updateStaleTimestampInDB(log *logrus.Entry, databaseConn *sql.DB, rhcClient domain.RhcClient) {
+func updateStaleTimestampInDB(log *logrus.Entry, ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, rhcClient domain.RhcClient) {
 
 	log.Debug("Updating stale timestamp")
+
+	ctx, cancel := context.WithTimeout(ctx, sqlTimeout)
+	defer cancel()
 
 	update := "UPDATE connections SET stale_timestamp = NOW() WHERE account=$1 AND client_id=$2"
 
@@ -140,7 +147,7 @@ func updateStaleTimestampInDB(log *logrus.Entry, databaseConn *sql.DB, rhcClient
 	}
 	defer statement.Close()
 
-	results, err := statement.Exec(rhcClient.Account, rhcClient.ClientID)
+	results, err := statement.ExecContext(ctx, rhcClient.Account, rhcClient.ClientID)
 	if err != nil {
 		log.Fatal(err)
 	}
