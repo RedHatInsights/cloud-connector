@@ -200,6 +200,10 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 	}
 
 	_, err = connectionRegistrar.Register(context.Background(), rhcClient)
+	if err != nil {
+		sendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, clientID, cfg.InvalidHandshakeReconnectDelay)
+		return err
+	}
 
 	if shouldHostBeRegisteredWithInventory(handshakePayload) == true {
 

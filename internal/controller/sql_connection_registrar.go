@@ -50,19 +50,15 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 
 	dispatchersString, err := json.Marshal(rhcClient.Dispatchers)
 	if err != nil {
-		logger.Fatal(err) // FIXME:??
+		logger.WithFields(logrus.Fields{"error": err, "dispatchers": rhcClient.Dispatchers}).Error("Unable to marshal dispatchers")
+		return NewConnection, err
 	}
-	fmt.Printf("\n\n")
-	fmt.Println("rhcClient.Dispatchers:", rhcClient.Dispatchers)
-	fmt.Println("dispatchersString:", dispatchersString)
 
 	canonicalFactsString, err := json.Marshal(rhcClient.CanonicalFacts)
 	if err != nil {
-		logger.Fatal(err) // FIXME:??
+		logger.WithFields(logrus.Fields{"error": err, "canonical_facts": rhcClient.CanonicalFacts}).Error("Unable to marshal canonicalfacts")
+		return NewConnection, err
 	}
-
-	fmt.Println("rhcClient.CanonicalFacts:", rhcClient.CanonicalFacts)
-	fmt.Println("canonicalFactsString:", canonicalFactsString)
 
 	results, err := statement.Exec(dispatchersString, account, client_id, account, client_id, dispatchersString, canonicalFactsString)
 	if err != nil {
