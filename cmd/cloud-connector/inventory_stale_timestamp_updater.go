@@ -19,13 +19,9 @@ const serviceName = "Cloud-Connector Inventory Stale Timestamp Updater"
 
 type connectionProcessor func(domain.RhcClient) error
 
-func processStaleConnections(cfg *config.Config, databaseConn *sql.DB, processConnection connectionProcessor) error {
+func processStaleConnections(staleTimeCutoff time.Time, chunkSize int, databaseConn *sql.DB, processConnection connectionProcessor) error {
 
-	windowToUpdateBeforeGoingStale := 1 * time.Hour
-	offset := cfg.InventoryStaleTimestampOffset - windowToUpdateBeforeGoingStale
-	tooOldIfBeforeThisTime := time.Now().Add(-1 * offset)
-
-	logger.Log.Debug("Host's should be updated if their stale_timestamp is before ", tooOldIfBeforeThisTime)
+	logger.Log.Debug("Host's should be updated if their stale_timestamp is before ", staleTimeCutoff)
 
 	statement, err := databaseConn.Prepare(
 		`SELECT account, client_id, canonical_facts FROM connections
@@ -40,7 +36,7 @@ func processStaleConnections(cfg *config.Config, databaseConn *sql.DB, processCo
 	}
 	defer statement.Close()
 
-	rows, err := statement.Query(tooOldIfBeforeThisTime, cfg.InventoryStaleTimestampUpdaterChunkSize)
+	rows, err := statement.Query(staleTimeCutoff, chunkSize)
 	if err != nil {
 		logger.LogFatalError("SQL query failed", err)
 		return nil
@@ -72,6 +68,13 @@ func processStaleConnections(cfg *config.Config, databaseConn *sql.DB, processCo
 	return nil
 }
 
+func calculateStaleCutoffTime(staleTimeOffset time.Duration) time.Time {
+	windowToUpdateBeforeGoingStale := 1 * time.Hour
+	offset := staleTimeOffset - windowToUpdateBeforeGoingStale
+	tooOldIfBeforeThisTime := time.Now().Add(-1 * offset)
+	return tooOldIfBeforeThisTime
+}
+
 func startInventoryStaleTimestampUpdater() {
 
 	logger.InitLogger()
@@ -96,7 +99,10 @@ func startInventoryStaleTimestampUpdater() {
 		logger.LogFatalError("Failed to create Connected Client Recorder", err)
 	}
 
-	processStaleConnections(cfg, databaseConn,
+	tooOldIfBeforeThisTime := calculateStaleCutoffTime(cfg.InventoryStaleTimestampOffset)
+	chunkSize := cfg.InventoryStaleTimestampUpdaterChunkSize
+
+	processStaleConnections(tooOldIfBeforeThisTime, chunkSize, databaseConn,
 		func(rhcClient domain.RhcClient) error {
 
 			log := logger.Log.WithFields(logrus.Fields{"client_id": rhcClient.ClientID, "account": rhcClient.Account})
