@@ -113,6 +113,8 @@ func ControlMessageHandler(cfg *config.Config, topicVerifier *TopicVerifier, top
 	return func(client MQTT.Client, message MQTT.Message) {
 		logger.Log.Debugf("Received control message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
 
+		metrics.controlMessageReceivedCounter.Inc()
+
 		_, clientID, err := topicVerifier.VerifyIncomingTopic(message.Topic())
 		if err != nil {
 			logger.Log.WithFields(logrus.Fields{"error": err}).Error("Failed to verify topic")
@@ -298,6 +300,8 @@ func handleEventMessage(client MQTT.Client, clientID domain.ClientID, msg Contro
 func DataMessageHandler() func(MQTT.Client, MQTT.Message) {
 	return func(client MQTT.Client, message MQTT.Message) {
 		logger.Log.Debugf("Received data message: %s\n", message.Payload())
+
+		metrics.dataMessageReceivedCounter.Inc()
 
 		if message.Payload() == nil || len(message.Payload()) == 0 {
 			logger.Log.Trace("Received empty data message")

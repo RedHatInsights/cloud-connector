@@ -107,8 +107,8 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 	}
 
 	go func() {
-		metrics.responseKafkaWriterGoRoutineGauge.Inc()
-		defer metrics.responseKafkaWriterGoRoutineGauge.Dec()
+		metrics.inventoryKafkaWriterGoRoutineGauge.Inc()
+		defer metrics.inventoryKafkaWriterGoRoutineGauge.Dec()
 
 		err = ibccr.KafkaWriter.WriteMessages(ctx,
 			kafka.Message{
@@ -121,10 +121,10 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 			logger.WithFields(logrus.Fields{"error": err}).Error("Error writing response message to kafka")
 
 			if errors.Is(err, context.Canceled) != true {
-				metrics.responseKafkaWriterFailureCounter.Inc()
+				metrics.inventoryKafkaWriterFailureCounter.Inc()
 			}
 		} else {
-			metrics.responseKafkaWriterSuccessCounter.Inc()
+			metrics.inventoryKafkaWriterSuccessCounter.Inc()
 		}
 	}()
 

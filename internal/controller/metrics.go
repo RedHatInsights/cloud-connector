@@ -1,45 +1,48 @@
 package controller
 
 import (
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type Metrics struct {
-	responseKafkaWriterGoRoutineGauge prometheus.Gauge
-	responseKafkaWriterSuccessCounter prometheus.Counter
-	responseKafkaWriterFailureCounter prometheus.Counter
-	messageDirectiveCounter           *prometheus.CounterVec
-	redisConnectionError              prometheus.Counter
+	inventoryKafkaWriterGoRoutineGauge prometheus.Gauge
+	inventoryKafkaWriterSuccessCounter prometheus.Counter
+	inventoryKafkaWriterFailureCounter prometheus.Counter
+
+	authGatewayAccountLookupStatusCodeCounter *prometheus.CounterVec
+	authGatewayAccountLookupDuration          prometheus.Histogram
 }
 
 func NewMetrics() *Metrics {
 	metrics := new(Metrics)
 
-	metrics.responseKafkaWriterGoRoutineGauge = promauto.NewGauge(prometheus.GaugeOpts{
-		Name: "cloud_connector_kafka_response_writer_go_routine_count",
+	metrics.inventoryKafkaWriterGoRoutineGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "cloud_connector_inventory_kafka_writer_go_routine_count",
 		Help: "The total number of active kakfa response writer go routines",
 	})
 
-	metrics.responseKafkaWriterSuccessCounter = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "cloud_connector_kafka_response_writer_success_count",
+	metrics.inventoryKafkaWriterSuccessCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "cloud_connector_inventory_kakfa_writer_success_count",
 		Help: "The number of responses were sent to the kafka topic",
 	})
 
-	metrics.responseKafkaWriterFailureCounter = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "cloud_connector_kafka_response_writer_failure_count",
+	metrics.inventoryKafkaWriterFailureCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "cloud_connector_inventory_kafka_writer_failure_count",
 		Help: "The number of responses that failed to get produced to kafka topic",
 	})
 
-	metrics.redisConnectionError = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "cloud_connector_redis_connection_error_count",
-		Help: "The number of times a redis connection error has occurred",
-	})
+	metrics.authGatewayAccountLookupStatusCodeCounter = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "cloud_connector_auth_gateway_account_lookup_status_code_counter",
+		Help: "The number of http status codes received from the auth gateway account lookup",
+	}, []string{"status_code"})
 
-	metrics.messageDirectiveCounter = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "cloud_connector_message_directive_count",
-		Help: "The number of messages recieved by the receptor controller per directive",
-	}, []string{"directive"})
+	metrics.authGatewayAccountLookupDuration = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name: "cloud_connector_auth_gateway_account_lookup_duration",
+		Help: "The amount of time the auth gateway account lookup took",
+	})
 
 	return metrics
 }
@@ -47,3 +50,10 @@ func NewMetrics() *Metrics {
 var (
 	metrics = NewMetrics()
 )
+
+func recordDuration(duration prometheus.Histogram) func() {
+	startTime := time.Now()
+	return func() {
+		duration.Observe(time.Since(startTime).Seconds())
+	}
+}
