@@ -9,7 +9,7 @@ import (
 
 var (
 	statusCodeCounter = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "receptor_contoller_http_status_code_counter",
+		Name: "cloud_connector_http_status_code_counter",
 		Help: "The number of http status codes per interface",
 	}, []string{"status_code"})
 )
