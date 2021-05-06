@@ -9,12 +9,14 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/redhatinsights/platform-go-middlewares/identity"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
 
@@ -45,6 +47,8 @@ type BOPAccountIdResolver struct {
 
 func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, error) {
 
+	defer recordDuration(metrics.authGatewayAccountLookupDuration)()
+
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 
 	logger.Debugf("Looking up the client %s account number in via Gateway", clientID)
@@ -67,6 +71,10 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 		return "", "", err
 	}
 	defer r.Body.Close()
+
+	metrics.authGatewayAccountLookupStatusCodeCounter.With(prometheus.Labels{
+		"status_code": strconv.Itoa(r.StatusCode)}).Inc()
+
 	if r.StatusCode != 200 {
 		logger.Debugf("Call to Auth Gateway returned http status code %d", r.StatusCode)
 		b, _ := ioutil.ReadAll(r.Body)

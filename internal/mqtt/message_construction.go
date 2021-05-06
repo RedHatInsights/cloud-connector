@@ -8,6 +8,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
 
@@ -54,6 +55,8 @@ func buildDataMessage(directive string, metadata interface{}, payload interface{
 		Directive:   directive,
 		Content:     payload,
 	}
+
+	metrics.sentMessageDirectiveCounter.With(prometheus.Labels{"directive": directive}).Inc()
 
 	return &messageID, &message, err
 }
