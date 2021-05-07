@@ -6,13 +6,19 @@ import (
 )
 
 type Metrics struct {
-	controlMessageReceivedCounter prometheus.Counter
-	dataMessageReceivedCounter    prometheus.Counter
-	sentMessageDirectiveCounter   *prometheus.CounterVec
+	controlMessageReceivedCounter    prometheus.Counter
+	dataMessageReceivedCounter       prometheus.Counter
+	sentMessageDirectiveCounter      *prometheus.CounterVec
+	mqttMessagesWaitingToBeProcessed prometheus.Gauge
 }
 
 func NewMetrics() *Metrics {
 	metrics := new(Metrics)
+
+	metrics.mqttMessagesWaitingToBeProcessed = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "cloud_connector_mqtt_messages_waiting_to_be_processed_count",
+		Help: "Number of inflight mqtt message (and go routines) waiting to be processed",
+	})
 
 	metrics.controlMessageReceivedCounter = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "cloud_connector_mqtt_control_message_received_count",

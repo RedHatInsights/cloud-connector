@@ -343,7 +343,9 @@ func throttlingMessageHandlerDispatcher(maxInFlight int, f MQTT.MessageHandler) 
 	concurrencyGuard := make(chan struct{}, maxInFlight)
 	return func(c MQTT.Client, m MQTT.Message) {
 		go func() {
+			metrics.mqttMessagesWaitingToBeProcessed.Inc()
 			concurrencyGuard <- struct{}{}
+			metrics.mqttMessagesWaitingToBeProcessed.Dec()
 			f(c, m)
 			<-concurrencyGuard
 		}()
