@@ -34,7 +34,7 @@ const (
 )
 
 type ConnectionRegistrar interface {
-	Register(context.Context, domain.AccountID, domain.ClientID, Receptor) (RegistrationResults, error)
+	Register(context.Context, domain.RhcClient) (RegistrationResults, error)
 	Unregister(context.Context, domain.ClientID)
 }
 

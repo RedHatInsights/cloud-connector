@@ -1,4 +1,4 @@
-package mqtt
+package controller
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
-	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/db"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
@@ -14,10 +13,10 @@ import (
 
 type SqlConnectionLocator struct {
 	database     *sql.DB
-	proxyFactory controller.ReceptorProxyFactory
+	proxyFactory ReceptorProxyFactory
 }
 
-func NewSqlConnectionLocator(cfg *config.Config, proxyFactory controller.ReceptorProxyFactory) (*SqlConnectionLocator, error) {
+func NewSqlConnectionLocator(cfg *config.Config, proxyFactory ReceptorProxyFactory) (*SqlConnectionLocator, error) {
 
 	database, err := db.InitializeDatabaseConnection(cfg)
 	if err != nil {
@@ -30,8 +29,8 @@ func NewSqlConnectionLocator(cfg *config.Config, proxyFactory controller.Recepto
 	}, nil
 }
 
-func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account domain.AccountID, client_id domain.ClientID) controller.Receptor {
-	var conn controller.Receptor
+func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account domain.AccountID, client_id domain.ClientID) Receptor {
+	var conn Receptor
 	var err error
 
 	statement, err := scm.database.Prepare("SELECT client_id, dispatchers FROM connections WHERE account = $1 AND client_id = $2")
@@ -67,9 +66,9 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account doma
 	return conn
 }
 
-func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, account domain.AccountID) map[domain.ClientID]controller.Receptor {
+func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, account domain.AccountID) map[domain.ClientID]Receptor {
 
-	connectionsPerAccount := make(map[domain.ClientID]controller.Receptor)
+	connectionsPerAccount := make(map[domain.ClientID]Receptor)
 
 	statement, err := scm.database.Prepare("SELECT client_id, dispatchers FROM connections WHERE account = $1")
 	if err != nil {
@@ -111,9 +110,9 @@ func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, ac
 	return connectionsPerAccount
 }
 
-func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context) map[domain.AccountID]map[domain.ClientID]controller.Receptor {
+func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context) map[domain.AccountID]map[domain.ClientID]Receptor {
 
-	connectionMap := make(map[domain.AccountID]map[domain.ClientID]controller.Receptor)
+	connectionMap := make(map[domain.AccountID]map[domain.ClientID]Receptor)
 
 	statement, err := scm.database.Prepare("SELECT account, client_id, dispatchers FROM connections")
 	if err != nil {
@@ -151,7 +150,7 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context) map[doma
 		}
 
 		if _, exists := connectionMap[account]; !exists {
-			connectionMap[account] = make(map[domain.ClientID]controller.Receptor)
+			connectionMap[account] = make(map[domain.ClientID]Receptor)
 		}
 
 		connectionMap[account][clientId] = proxy

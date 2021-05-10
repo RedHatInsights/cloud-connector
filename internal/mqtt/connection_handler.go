@@ -195,13 +195,21 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 
 	handshakePayload := msg.Content.(map[string]interface{})
 
-	proxy := ReceptorMQTTProxy{AccountID: account, ClientID: clientID, Client: client, Dispatchers: handshakePayload[dispatchersKey]}
+	rhcClient := domain.RhcClient{ClientID: clientID,
+		Account:        account,
+		Dispatchers:    handshakePayload[dispatchersKey],
+		CanonicalFacts: handshakePayload[canonicalFactsKey],
+	}
 
-	_, err = connectionRegistrar.Register(context.Background(), account, clientID, &proxy)
+	_, err = connectionRegistrar.Register(context.Background(), rhcClient)
+	if err != nil {
+		sendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, clientID, cfg.InvalidHandshakeReconnectDelay)
+		return err
+	}
 
 	if shouldHostBeRegisteredWithInventory(handshakePayload) == true {
 
-		err = connectedClientRecorder.RecordConnectedClient(context.Background(), identity, account, clientID, handshakePayload[canonicalFactsKey])
+		err = connectedClientRecorder.RecordConnectedClient(context.Background(), identity, rhcClient)
 
 		if err != nil {
 			logger.WithFields(logrus.Fields{"error": err}).Error("Failed to record client id within the platform")

@@ -19,7 +19,7 @@ import (
 )
 
 type ConnectedClientRecorder interface {
-	RecordConnectedClient(context.Context, domain.Identity, domain.AccountID, domain.ClientID, interface{}) error
+	RecordConnectedClient(context.Context, domain.Identity, domain.RhcClient) error
 }
 
 func NewConnectedClientRecorder(impl string, cfg *config.Config) (ConnectedClientRecorder, error) {
@@ -66,7 +66,10 @@ type InventoryBasedConnectedClientRecorder struct {
 	ReporterName         string
 }
 
-func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx context.Context, identity domain.Identity, account domain.AccountID, clientID domain.ClientID, canonicalFacts interface{}) error {
+func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx context.Context, identity domain.Identity, rhcClient domain.RhcClient) error {
+
+	account := rhcClient.Account
+	clientID := rhcClient.ClientID
 
 	requestID, _ := uuid.NewUUID()
 
@@ -76,7 +79,7 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 
 	staleTimestamp := time.Now().Add(ibccr.StaleTimestampOffset)
 
-	originalHostData := canonicalFacts.(map[string]interface{})
+	originalHostData := rhcClient.CanonicalFacts.(map[string]interface{})
 
 	hostData := cleanupCanonicalFacts(logger, originalHostData)
 
@@ -160,10 +163,10 @@ func cleanupCanonicalFacts(logger *logrus.Entry, canonicalFacts map[string]inter
 type FakeConnectedClientRecorder struct {
 }
 
-func (fccr *FakeConnectedClientRecorder) RecordConnectedClient(ctx context.Context, identity domain.Identity, account domain.AccountID, clientID domain.ClientID, canonicalFacts interface{}) error {
-	logger := logger.Log.WithFields(logrus.Fields{"account": account, "client_id": clientID})
+func (fccr *FakeConnectedClientRecorder) RecordConnectedClient(ctx context.Context, identity domain.Identity, rhcClient domain.RhcClient) error {
+	logger := logger.Log.WithFields(logrus.Fields{"account": rhcClient.Account, "client_id": rhcClient.ClientID})
 
-	logger.Debug("FAKE: connected client recorder: ", canonicalFacts)
+	logger.Debug("FAKE: connected client recorder: ", rhcClient.CanonicalFacts)
 
 	return nil
 }

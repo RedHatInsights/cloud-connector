@@ -16,3 +16,11 @@ func (aid AccountID) String() string {
 
 //type Dispatchers map[string]map[string]string
 type Dispatchers interface{}
+type CanonicalFacts interface{}
+
+type RhcClient struct {
+	Account        AccountID
+	ClientID       ClientID
+	CanonicalFacts CanonicalFacts
+	Dispatchers    Dispatchers
+}
