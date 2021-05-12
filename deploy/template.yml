@@ -40,7 +40,7 @@ objects:
           - name: CLOUD_CONNECTOR_LOG_LEVEL
             value: ${{LOG_LEVEL}}
           - name: CLOUD_CONNECTOR_LOG_FORMAT
-            value: logstash
+            value: ${{LOG_FORMAT}}
           - name: CLOUD_CONNECTOR_CW_AWS_SECRET_ACCESS_KEY
             valueFrom:
               secretKeyRef:
@@ -101,7 +101,7 @@ objects:
                 name: cloud-connector-psks
 
           - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_IMPL
-            value: bop
+            value: ${{CLIENT_ID_TO_ACCOUNT_ID_IMPL}}
           - name: CLOUD_CONNECTOR_AUTH_GATEWAY_URL
             value: ${{AUTH_GATEWAY_URL}}
 
@@ -114,7 +114,7 @@ objects:
             value: inventory
 
           - name: CLOUD_CONNECTOR_SOURCES_RECORDER_IMPL
-            value: sources
+            value: ${{SOURCES_RECORDER_IMPL}}
           - name: CLOUD_CONNECTOR_SOURCES_BASE_URL
             value: ${{SOURCES_BASE_URL}}
 
@@ -171,7 +171,7 @@ objects:
            - name: CLOUD_CONNECTOR_LOG_LEVEL
              value: DEBUG
            - name: CLOUD_CONNECTOR_LOG_FORMAT
-             value: logstash
+             value: ${{LOG_FORMAT}}
            - name: CLOUD_CONNECTOR_CW_AWS_SECRET_ACCESS_KEY
              valueFrom:
                secretKeyRef:
@@ -278,7 +278,7 @@ objects:
               - name: CLOUD_CONNECTOR_LOG_LEVEL
                 value: ${{LOG_LEVEL}}
               - name: CLOUD_CONNECTOR_LOG_FORMAT
-                value: logstash
+                value: ${{LOG_FORMAT}}
               - name: CLOUD_CONNECTOR_CW_AWS_SECRET_ACCESS_KEY
                 valueFrom:
                   secretKeyRef:
@@ -321,7 +321,7 @@ objects:
                     name: cloud-connector-db
 
               - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_IMPL
-                value: bop
+                value: ${{CLIENT_ID_TO_ACCOUNT_ID_IMPL}}
               - name: CLOUD_CONNECTOR_AUTH_GATEWAY_URL
                 value: ${{AUTH_GATEWAY_URL}}
 
@@ -474,6 +474,8 @@ parameters:
 
 - name: LOG_LEVEL
   value: DEBUG
+- name: LOG_FORMAT
+  value: logstash
 - name: CPU_LIMIT
   value: 500m
 - name: MEMORY_LIMIT
@@ -501,10 +503,16 @@ parameters:
   required: true
   value: redhat
 
+- name: CLIENT_ID_TO_ACCOUNT_ID_IMPL
+  required: true
+  value: bop
 - name: AUTH_GATEWAY_URL
   required: true
   value: "http://apicast.3scale-staging.svc.cluster.local:8890/internal/certauth"
 
+- name: SOURCES_RECORDER_IMPL
+  required: true
+  value: sources
 - name: SOURCES_BASE_URL
   required: true
   value: "http://sources-api.sources-ci.svc.cluster.local:8080"
