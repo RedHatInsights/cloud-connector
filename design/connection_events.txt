@@ -1,0 +1,16 @@
+- platform.cloud-connector.connections
+
+- event
+  - type
+    - new connection
+    - updated connection
+    - deleted connection
+  - account
+  - client_id
+  - canonical_facts
+  - dispatchers
+  - status
+
+  - header
+    - account?
+    - type??
