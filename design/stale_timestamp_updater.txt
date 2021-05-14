@@ -1,0 +1,46 @@
+LOGIC FLOW:
+- lookup a chunk of connections / hosts that need their stale timestamp updated
+  - return list of account, client_id, CF
+    - order by oldest
+    - must have CFs
+    - must have "rhc-worker-playbook" dispatcher
+  - if the db is down...fail
+
+- for each host
+  - calculate stale timestamp
+  - retreive identity using cert / account lookup
+    - fail if account lookup service is down
+    - ignore host if account lookup fails
+      - should this cause a reconnect message to be sent??
+  - create inventory message
+    - identity is required
+    - send CFs
+  - send over kafka
+  - if the kafka is down...fail
+  - update sent_stale_timestamp in database
+
+MIGRATION:
+- set the initial stale timestamp to what?? just set it to NOW()
+- some entries will not have canonical facts...this is fine and expected (maybe not now but in the future)
+- create indexes on the json searches
+
+TESTS
+- test migration
+  - have a couple of clients connected
+  - migrate db to new version
+  - run the stale timestamp updater
+  - hosts without CF (hosts that were connected during migration) should be skipped
+- test with connections with no CFs
+  - hosts without CFs should be skipped by the stale timestamp updater
+- test with connections with no "rhc-worker-playbook" dispatcher
+  - hosts without "rhc-worker-playbook" dispatcher should be skipped by the stale timestamp updater
+- test with db down
+- test with kafka down
+- test with failed account lookup
+- test with account lookup service down
+- make sure stale_timestamp is updated in the db
+- make sure the stale_timestamp is updated in inventory
+- test with invalid canonical facts
+  - log and skip
+- test with invalid dispatchers
+  - log and skip
