@@ -284,6 +284,103 @@ objects:
     type: ClusterIP
 
 
+- apiVersion: batch/v1beta1
+  kind: CronJob
+  metadata:
+    labels:
+      app: cloud-connector
+    name: cloud-connector-stale-timestamp-updater
+  spec:
+    schedule: ${STALE_TIMESTAMP_UPDATER_SCHEDULE}
+    concurrencyPolicy: Replace
+    suspend: ${{STALE_TIMESTAMP_UPDATER_SUSPEND}}
+    successfulJobsHistoryLimit: 3
+    failedJobsHistoryLimit: 3
+    jobTemplate:
+      spec:
+        template:
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - command:
+              - ./cloud-connector
+              - inventory_stale_timestamp_updater
+              env:
+              - name: CLOUD_CONNECTOR_LOG_LEVEL
+                value: ${{LOG_LEVEL}}
+              - name: CLOUD_CONNECTOR_LOG_FORMAT
+                value: ${{LOG_FORMAT}}
+              - name: CLOUD_CONNECTOR_CW_AWS_SECRET_ACCESS_KEY
+                valueFrom:
+                  secretKeyRef:
+                    key: aws_secret_access_key
+                    name: cloudwatch
+              - name: CLOUD_CONNECTOR_CW_AWS_ACCESS_KEY_ID
+                valueFrom:
+                  secretKeyRef:
+                    key: aws_access_key_id
+                    name: cloudwatch
+              - name: CLOUD_CONNECTOR_AWS_REGION
+                valueFrom:
+                  secretKeyRef:
+                    key: aws_region
+                    name: cloudwatch
+              - name: CLOUD_CONNECTOR_LOG_GROUP
+                valueFrom:
+                  secretKeyRef:
+                    key: log_group_name
+                    name: cloudwatch
+
+              - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_HOST
+                valueFrom:
+                  secretKeyRef:
+                    key: db.host
+                    name: cloud-connector-db
+              - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_PORT
+                valueFrom:
+                  secretKeyRef:
+                    key: db.port
+                    name: cloud-connector-db
+              - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_NAME
+                valueFrom:
+                  secretKeyRef:
+                    key: db.name
+                    name: cloud-connector-db
+              - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_USER
+                valueFrom:
+                  secretKeyRef:
+                    key: db.user
+                    name: cloud-connector-db
+              - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    key: db.password
+                    name: cloud-connector-db
+
+              - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_IMPL
+                value: ${{CLIENT_ID_TO_ACCOUNT_ID_IMPL}}
+              - name: CLOUD_CONNECTOR_AUTH_GATEWAY_URL
+                value: ${{AUTH_GATEWAY_URL}}
+
+              - name: CLOUD_CONNECTOR_INVENTORY_KAFKA_BROKERS
+                value: ${{KAFKA_BOOTSTRAP_HOST}}
+              - name: CLOUD_CONNECTOR_INVENTORY_KAFKA_TOPIC
+                value: ${{INVENTORY_KAFKA_TOPIC}}
+
+              - name: CLOUD_CONNECTOR_CONNECTED_CLIENT_RECORDER_IMPL
+                value: inventory
+
+              image: quay.io/cloudservices/cloud-connector:${IMAGE_TAG}
+              name: cloud-connector-stale-timestamp-updater
+              resources:
+                limits:
+                  cpu: 200m
+                  memory: 128Mi
+                requests:
+                  cpu: 100m
+                  memory: 64Mi
+
+
 parameters:
 - name: IMAGE_TAG
   required: true
