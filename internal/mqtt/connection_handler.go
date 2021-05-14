@@ -307,7 +307,7 @@ func handleEventMessage(client MQTT.Client, clientID domain.ClientID, msg Contro
 
 func DataMessageHandler() func(MQTT.Client, MQTT.Message) {
 	return func(client MQTT.Client, message MQTT.Message) {
-		logger.Log.Debugf("Received data message: %s\n", message.Payload())
+		logger.Log.Debugf("Received data message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
 
 		metrics.dataMessageReceivedCounter.Inc()
 
