@@ -356,6 +356,10 @@ objects:
                   secretKeyRef:
                     key: db.password
                     name: cloud-connector-db
+              - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_SSL_MODE
+                value: verify-full
+              - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_SSL_ROOT_CERT
+                value: /tmp/rds-certs/rds-cacert
 
               - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_IMPL
                 value: ${{CLIENT_ID_TO_ACCOUNT_ID_IMPL}}
@@ -379,6 +383,16 @@ objects:
                 requests:
                   cpu: 100m
                   memory: 64Mi
+              volumeMounts:
+                - mountPath: /tmp/rds-certs
+                  name: volume-rds-certs
+                  readOnly: true
+
+            volumes:
+              - name: volume-rds-certs
+                secret:
+                  defaultMode: 420
+                  secretName: rds-client-ca
 
 
 parameters:
