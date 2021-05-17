@@ -476,6 +476,7 @@ parameters:
   value: DEBUG
 - name: LOG_FORMAT
   value: logstash
+
 - name: CPU_LIMIT
   value: 500m
 - name: MEMORY_LIMIT
