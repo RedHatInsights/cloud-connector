@@ -6,9 +6,11 @@ import (
 )
 
 type Metrics struct {
-	controlMessageReceivedCounter prometheus.Counter
-	dataMessageReceivedCounter    prometheus.Counter
-	sentMessageDirectiveCounter   *prometheus.CounterVec
+	controlMessageReceivedCounter  prometheus.Counter
+	dataMessageReceivedCounter     prometheus.Counter
+	sentMessageDirectiveCounter    *prometheus.CounterVec
+	messagePublishedSuccessCounter prometheus.Counter
+	messagePublishedFailureCounter prometheus.Counter
 }
 
 func NewMetrics() *Metrics {
@@ -28,6 +30,16 @@ func NewMetrics() *Metrics {
 		Name: "cloud_connector_mqtt_sent_message_directive_count",
 		Help: "The number of messages recieved by the receptor controller per directive",
 	}, []string{"directive"})
+
+	metrics.messagePublishedSuccessCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "cloud_connector_mqtt_message_published_success_count",
+		Help: "The number of messages published successfully",
+	})
+
+	metrics.messagePublishedFailureCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "cloud_connector_mqtt_message_published_failure_count",
+		Help: "The number of messages published failures",
+	})
 
 	return metrics
 }

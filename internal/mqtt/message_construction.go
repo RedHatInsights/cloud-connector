@@ -114,7 +114,11 @@ func sendMessage(mqttClient MQTT.Client, logger *logrus.Entry, clientID domain.C
 		if t.Error() != nil {
 			logger := logger.WithFields(logrus.Fields{"error": t.Error()})
 			logger.Error("Error sending a message to MQTT broker")
+			metrics.messagePublishedFailureCounter.Inc()
+			return
 		}
+
+		metrics.messagePublishedSuccessCounter.Inc()
 	}()
 
 	return nil
