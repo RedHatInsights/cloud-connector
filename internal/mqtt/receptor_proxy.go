@@ -58,7 +58,7 @@ func (rhp *ReceptorMQTTProxy) Ping(ctx context.Context, accountNumber domain.Acc
 
 	_, err := sendControlMessage(rhp.Client, logger, topic, qos, rhp.ClientID, "command", &commandMessageContent)
 
-	panic(errors.New("testing panic"))
+	logger.Fatal("testing logger.Fatal()")
 
 	return err
 }
