@@ -10,7 +10,6 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/queue"
 
-	"github.com/google/uuid"
 	kafka "github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 
@@ -29,10 +28,10 @@ func NewConnectedClientEventAnnouncer(impl string, cfg *config.Config) (Connecte
 	switch impl {
 	case "kafka":
 		kafkaProducerCfg := &queue.ProducerConfig{
-			Brokers:    cfg.InventoryKafkaBrokers,
-			Topic:      cfg.InventoryKafkaTopic,
-			BatchSize:  cfg.InventoryKafkaBatchSize,
-			BatchBytes: cfg.InventoryKafkaBatchBytes,
+			Brokers:    cfg.ConnectionEventsKafkaBrokers,
+			Topic:      cfg.ConnectionEventsKafkaTopic,
+			BatchSize:  cfg.ConnectionEventsKafkaBatchSize,
+			BatchBytes: cfg.ConnectionEventsKafkaBatchBytes,
 		}
 
 		kafkaProducer := queue.StartProducer(kafkaProducerCfg)
@@ -71,32 +70,28 @@ type KafkaBasedConnectedClientEventAnnouncer struct {
 	kafkaWriterFailureCounter prometheus.Counter
 }
 
-func (ibccr *KafkaBasedConnectedClientEventAnnouncer) AnnounceEvent(ctx context.Context, eventType EventType, rhcClient domain.RhcClient) error {
+func (kbccea *KafkaBasedConnectedClientEventAnnouncer) AnnounceEvent(ctx context.Context, eventType EventType, rhcClient domain.RhcClient) error {
 
 	account := rhcClient.Account
 	clientID := rhcClient.ClientID
 
-	requestID, _ := uuid.NewUUID()
-
-	logger := logger.Log.WithFields(logrus.Fields{"request_id": requestID.String(),
-		"account":   account,
-		"client_id": clientID})
+	logger := logger.Log.WithFields(logrus.Fields{"account": account, "client_id": clientID})
 
 	envelope := struct{}{}
 
-	jsonInventoryMessage, err := json.Marshal(envelope)
+	jsonMessage, err := json.Marshal(envelope)
 	if err != nil {
-		logger.WithFields(logrus.Fields{"error": err}).Error("JSON marshal of inventory message failed")
+		logger.WithFields(logrus.Fields{"error": err}).Error("JSON marshal of connection event message failed")
 		return err
 	}
 
 	go func() {
-		metrics.inventoryKafkaWriterGoRoutineGauge.Inc()
-		defer metrics.inventoryKafkaWriterGoRoutineGauge.Dec()
+		kbccea.kafkaWriterGoRoutineGauge.Inc()
+		defer kbccea.kafkaWriterGoRoutineGauge.Dec()
 
-		err = ibccr.kafkaWriter.WriteMessages(ctx,
+		err = kbccea.kafkaWriter.WriteMessages(ctx,
 			kafka.Message{
-				Value: jsonInventoryMessage,
+				Value: jsonMessage,
 			})
 
 		logger.Debug("Connected client event kafka message written")
@@ -105,10 +100,10 @@ func (ibccr *KafkaBasedConnectedClientEventAnnouncer) AnnounceEvent(ctx context.
 			logger.WithFields(logrus.Fields{"error": err}).Error("Error writing response message to kafka")
 
 			if errors.Is(err, context.Canceled) != true {
-				metrics.inventoryKafkaWriterFailureCounter.Inc()
+				kbccea.kafkaWriterFailureCounter.Inc()
 			}
 		} else {
-			metrics.inventoryKafkaWriterSuccessCounter.Inc()
+			kbccea.kafkaWriterSuccessCounter.Inc()
 		}
 	}()
 
@@ -121,7 +116,7 @@ type FakeConnectedClientEventAnnouncer struct {
 func (fccr *FakeConnectedClientEventAnnouncer) AnnounceEvent(ctx context.Context, eventType EventType, rhcClient domain.RhcClient) error {
 	logger := logger.Log.WithFields(logrus.Fields{"account": rhcClient.Account, "client_id": rhcClient.ClientID})
 
-	logger.Debug("FAKE: connected client event type: ", eventType, "- ", rhcClient.CanonicalFacts)
+	logger.Debug("FAKE: connected client event type: ", eventType, " - ", rhcClient.CanonicalFacts)
 
 	return nil
 }
