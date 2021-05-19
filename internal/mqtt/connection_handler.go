@@ -78,12 +78,10 @@ func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Co
 		return nil, err
 	}
 
-	throttledDefaultMessageHandler := throttlingMessageHandlerDispatcher(10, defaultMessageHandler)
-
 	// Add a default publish message handler as some messages will get delivered before the topic
 	// subscriptions are setup completely
 	// See "Common Problems" here: https://github.com/eclipse/paho.mqtt.golang#common-problems
-	brokerConfigFuncs = append(brokerConfigFuncs, WithDefaultPublishHandler(throttledDefaultMessageHandler))
+	brokerConfigFuncs = append(brokerConfigFuncs, WithDefaultPublishHandler(defaultMessageHandler))
 
 	connOpts, err := NewBrokerOptions(brokerUrl, brokerConfigFuncs...)
 	if err != nil {
@@ -95,9 +93,7 @@ func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Co
 		for _, subscriber := range subscribers {
 			logger.Log.Infof("Subscribing to MQTT topic: %s - QOS: %d\n", subscriber.Topic, subscriber.Qos)
 
-			throttledMessageHandler := throttlingMessageHandlerDispatcher(10, subscriber.EntryPoint)
-
-			if token := client.Subscribe(subscriber.Topic, subscriber.Qos, throttledMessageHandler); token.Wait() && token.Error() != nil {
+			if token := client.Subscribe(subscriber.Topic, subscriber.Qos, subscriber.EntryPoint); token.Wait() && token.Error() != nil {
 				logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Fatalf("Subscribing to MQTT topic (%s) failed", subscriber.Topic)
 			}
 		}
@@ -336,7 +332,7 @@ func DefaultMessageHandler(topicVerifier *TopicVerifier, controlMessageHandler, 
 	}
 }
 
-func throttlingMessageHandlerDispatcher(maxInFlight int, f MQTT.MessageHandler) MQTT.MessageHandler {
+func ThrottlingMessageHandlerDispatcher(maxInFlight int, f MQTT.MessageHandler) MQTT.MessageHandler {
 	// WARNING:  Messages buffered here can be lost if the process is restarted.  We probably need
 	//  to come up with a better message buffering mechanism that allows control messages (at least)
 	//  to not be lost when a restart occurs.

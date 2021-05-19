@@ -62,9 +62,13 @@ func startMqttConnectionHandler(mgmtAddr string) {
 	mqttTopicVerifier := mqtt.NewTopicVerifier(cfg.MqttTopicPrefix)
 
 	controlMsgHandler := mqtt.ControlMessageHandler(cfg, mqttTopicVerifier, mqttTopicBuilder, sqlConnectionRegistrar, accountResolver, connectedClientRecorder, sourcesRecorder)
+	controlMsgHandler = mqtt.ThrottlingMessageHandlerDispatcher(10, controlMsgHandler)
+
 	dataMsgHandler := mqtt.DataMessageHandler()
+	dataMsgHandler = mqtt.ThrottlingMessageHandlerDispatcher(10, dataMsgHandler)
 
 	defaultMsgHandler := mqtt.DefaultMessageHandler(mqttTopicVerifier, controlMsgHandler, dataMsgHandler)
+	defaultMsgHandler = mqtt.ThrottlingMessageHandlerDispatcher(10, defaultMsgHandler)
 
 	subscribers := []mqtt.Subscriber{
 		mqtt.Subscriber{
