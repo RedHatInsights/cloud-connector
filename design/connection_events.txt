@@ -1,16 +1,64 @@
-- platform.cloud-connector.connections
+- platform.cloud-connector.connection_events
+
+- kafka message key is the rhc_client_id
 
 - event
   - type
-    - new connection
-    - updated connection
-    - deleted connection
+    - created
+    - updated
+    - deleted
   - account
-  - client_id
+  - rhc_client_id
   - canonical_facts
+     - is this needed???
   - dispatchers
-  - status
 
   - header
+    - type
+      - created
+      - updated
+      - deleted
     - account?
-    - type??
+
+
+
+Created event
+The created event is produced any time a new host record is created.
+
+{
+   "type": "created",
+   "rhc_client_id": "<id>",
+   "account": "<account_number>",
+   "dispatchers": {}
+   "timestamp": "<create timestamp>"
+}
+type: identifies the type of the event
+
+
+Updated event
+The updated event is produced any time changes are made to an existing host record.
+
+{
+   "type": "updated",
+   "rhc_client_id": "<id>",
+   "account": "<account_number>",
+   "dispatchers": {},
+   "timestamp": "<update timestamp>"
+}
+
+The full representation of the updated connection (even fields that did not change) is always sent. 
+The format is identical to the created event. The only difference is the event type.
+
+Delete event
+The delete event is produced when a host record is removed from HBI.
+
+{
+  "type": "deleted",
+  "rhc_client_id": "<host id>",
+  "account": "<account number>",
+  "timestamp": "<delete timestamp>",
+}
+
+type: identifies the event type
+timestamp: the time at which the host was deleted
+account: the account number associated with the host that was deleted

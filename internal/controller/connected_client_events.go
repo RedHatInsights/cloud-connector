@@ -85,13 +85,19 @@ func (kbccea *KafkaBasedConnectedClientEventAnnouncer) AnnounceEvent(ctx context
 		return err
 	}
 
+	headers := []kafka.Header{
+		{Key: "rhc_client_id", Value: []byte(clientID)},
+		{Key: "type", Value: []byte(eventType)},
+	}
+
 	go func() {
 		kbccea.kafkaWriterGoRoutineGauge.Inc()
 		defer kbccea.kafkaWriterGoRoutineGauge.Dec()
 
 		err = kbccea.kafkaWriter.WriteMessages(ctx,
 			kafka.Message{
-				Value: jsonMessage,
+				Value:   jsonMessage,
+				Headers: headers,
 			})
 
 		logger.Debug("Connected client event kafka message written")
