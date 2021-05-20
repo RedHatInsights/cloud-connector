@@ -47,7 +47,8 @@ type BOPAccountIdResolver struct {
 
 func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, error) {
 
-	defer recordDuration(metrics.authGatewayAccountLookupDuration)()
+	callDurationTimer := prometheus.NewTimer(metrics.authGatewayAccountLookupDuration)
+	defer callDurationTimer.ObserveDuration()
 
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 

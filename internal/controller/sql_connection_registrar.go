@@ -12,11 +12,35 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/db"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/sirupsen/logrus"
 )
 
 type SqlConnectionRegistrar struct {
 	database *sql.DB
+	metrics  *sqlConnectionRegistrarMetrics
+}
+
+type sqlConnectionRegistrarMetrics struct {
+	sqlConnectionRegistrationDuration   prometheus.Histogram
+	sqlConnectionUnregistrationDuration prometheus.Histogram
+}
+
+func initializeSqlConnectionRegistrationMetrics() *sqlConnectionRegistrarMetrics {
+	metrics := new(sqlConnectionRegistrarMetrics)
+
+	metrics.sqlConnectionRegistrationDuration = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name: "cloud_connector_sql_register_connection_duration",
+		Help: "The amount of time the it took to register a connection in the db",
+	})
+
+	metrics.sqlConnectionUnregistrationDuration = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name: "cloud_connector_sql_unregister_connection_duration",
+		Help: "The amount of time the it took to unregister a connection in the db",
+	})
+
+	return metrics
 }
 
 func NewSqlConnectionRegistrar(cfg *config.Config) (*SqlConnectionRegistrar, error) {
@@ -28,10 +52,14 @@ func NewSqlConnectionRegistrar(cfg *config.Config) (*SqlConnectionRegistrar, err
 
 	return &SqlConnectionRegistrar{
 		database: database,
+		metrics:  initializeSqlConnectionRegistrationMetrics(),
 	}, nil
 }
 
 func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domain.RhcClient) (RegistrationResults, error) {
+
+	callDurationTimer := prometheus.NewTimer(scm.metrics.sqlConnectionRegistrationDuration)
+	defer callDurationTimer.ObserveDuration()
 
 	account := rhcClient.Account
 	client_id := rhcClient.ClientID
@@ -85,6 +113,10 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 }
 
 func (scm *SqlConnectionRegistrar) Unregister(ctx context.Context, client_id domain.ClientID) {
+
+	callDurationTimer := prometheus.NewTimer(scm.metrics.sqlConnectionUnregistrationDuration)
+	defer callDurationTimer.ObserveDuration()
+
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": client_id})
 
 	statement, err := scm.database.Prepare("DELETE FROM connections WHERE client_id = $1")

@@ -1,8 +1,6 @@
 package controller
 
 import (
-	"time"
-
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -50,10 +48,3 @@ func NewMetrics() *Metrics {
 var (
 	metrics = NewMetrics()
 )
-
-func recordDuration(duration prometheus.Histogram) func() {
-	startTime := time.Now()
-	return func() {
-		duration.Observe(time.Since(startTime).Seconds())
-	}
-}
