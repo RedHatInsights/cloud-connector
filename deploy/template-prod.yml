@@ -330,6 +330,8 @@ objects:
                   secretKeyRef:
                     key: log_group_name
                     name: cloudwatch
+              - name: CLOUD_CONNECTOR_LOG_BATCH_FREQUENCY
+                value: 0s
 
               - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_HOST
                 valueFrom:

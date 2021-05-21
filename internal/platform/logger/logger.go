@@ -100,6 +100,7 @@ func InitLogger() {
 		logconfig.SetDefault("AWS_REGION", "us-east-1")
 		logconfig.SetDefault("LOG_STREAM", hostname)
 		logconfig.SetDefault("LOG_FORMAT", "text")
+		logconfig.SetDefault("LOG_BATCH_FREQUENCY", 10*time.Second)
 		logconfig.SetEnvPrefix("CLOUD_CONNECTOR")
 		logconfig.AutomaticEnv()
 		key := logconfig.GetString("CW_AWS_ACCESS_KEY_ID")
@@ -108,6 +109,7 @@ func InitLogger() {
 		group := logconfig.GetString("LOG_GROUP")
 		stream := logconfig.GetString("LOG_STREAM")
 		format := logconfig.GetString("LOG_FORMAT")
+		batchFrequency := logconfig.GetDuration("LOG_BATCH_FREQUENCY")
 
 		switch strings.ToUpper(logconfig.GetString("LOG_LEVEL")) {
 		case "TRACE":
@@ -138,7 +140,7 @@ func InitLogger() {
 				logLevel, group, stream)
 			cred := credentials.NewStaticCredentials(key, secret, "")
 			awsconf := aws.NewConfig().WithRegion(region).WithCredentials(cred)
-			hook, err := lc.NewBatchingHook(group, stream, awsconf, 10*time.Second)
+			hook, err := lc.NewBatchingHook(group, stream, awsconf, batchFrequency)
 			if err != nil {
 				Log.WithFields(logrus.Fields{"error": err}).Warn("Unable to configure CloudWatch hook")
 			}
