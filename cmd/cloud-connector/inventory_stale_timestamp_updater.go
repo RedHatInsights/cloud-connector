@@ -68,6 +68,9 @@ func processStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 		processConnection(ctx, rhcClient)
 	}
 
+	// This sleep is a hack to see if the CloudWatch logs will eventually show up
+	time.Sleep(2 * time.Second)
+
 	return nil
 }
 

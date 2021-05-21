@@ -136,8 +136,8 @@ func InitLogger() {
 		}
 
 		if key != "" {
-			Log.Infof("Configuring CloudWatch logging (level=%s, group=%s, stream=%s)",
-				logLevel, group, stream)
+			Log.Infof("Configuring CloudWatch logging (level=%s, group=%s, stream=%s, batchFrequency=%d)",
+				logLevel, group, stream, batchFrequency)
 			cred := credentials.NewStaticCredentials(key, secret, "")
 			awsconf := aws.NewConfig().WithRegion(region).WithCredentials(cred)
 			hook, err := lc.NewBatchingHook(group, stream, awsconf, batchFrequency)
