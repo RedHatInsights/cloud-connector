@@ -190,7 +190,7 @@ func GetConfig() *Config {
 	options.SetDefault(SERVICE_TO_SERVICE_CREDENTIALS, "")
 	options.SetDefault(PROFILE, false)
 	options.SetDefault(MQTT_BROKER_ADDRESS, MQTT_BROKER_ADDRESS_DEFAULT)
-	options.SetDefault(MQTT_CLIENT_ID, "connector-service")
+	options.SetDefault(MQTT_CLIENT_ID, "")
 	options.SetDefault(MQTT_CLEAN_SESSION, false)
 	options.SetDefault(MQTT_RESUME_SUBS, true)
 	options.SetDefault(MQTT_BROKER_TLS_SKIP_VERIFY, false)

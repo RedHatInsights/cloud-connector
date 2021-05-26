@@ -15,7 +15,6 @@ func NewRootCommand() *cobra.Command {
 		Use: "cloud-connector",
 	}
 
-	// mqttConnectionHandlerCmd represents the mqttConnectionHandler command
 	var mqttConnectionHandlerCmd = &cobra.Command{
 		Use:   "mqtt_connection_handler",
 		Short: "MQTT Connection Handler",
@@ -23,6 +22,7 @@ func NewRootCommand() *cobra.Command {
 			startMqttConnectionHandler(listenAddr)
 		},
 	}
+	mqttConnectionHandlerCmd.Flags().StringVarP(&listenAddr, "listen-addr", "l", ":8081", "Hostname:port")
 
 	var inventoryStaleTimestampeUpdaterCmd = &cobra.Command{
 		Use:   "inventory_stale_timestamp_updater",
@@ -32,11 +32,18 @@ func NewRootCommand() *cobra.Command {
 		},
 	}
 
+	var apiServerCmd = &cobra.Command{
+		Use:   "api_server",
+		Short: "Run the Cloud-Connector API Server",
+		Run: func(cmd *cobra.Command, args []string) {
+			startCloudConnectorApiServer(listenAddr)
+		},
+	}
+	apiServerCmd.Flags().StringVarP(&listenAddr, "listen-addr", "l", ":8081", "Hostname:port")
+
 	rootCmd.AddCommand(mqttConnectionHandlerCmd)
-
 	rootCmd.AddCommand(inventoryStaleTimestampeUpdaterCmd)
-
-	mqttConnectionHandlerCmd.Flags().StringVarP(&listenAddr, "listen-addr", "l", ":8081", "Hostname:port")
+	rootCmd.AddCommand(apiServerCmd)
 
 	return rootCmd
 }
