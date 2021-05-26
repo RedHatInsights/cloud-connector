@@ -15,18 +15,29 @@ func NewRootCommand() *cobra.Command {
 		Use: "cloud-connector",
 	}
 
-	var mqttConnectionHandlerCmd = &cobra.Command{
-		Use:   "mqtt_connection_handler",
-		Short: "MQTT Connection Handler",
+	var mqttMessageConsumerCmd = &cobra.Command{
+		Use:   "mqtt_message_consumer",
+		Short: "Run the mqtt message consumer",
 		Run: func(cmd *cobra.Command, args []string) {
-			startMqttConnectionHandler(listenAddr)
+			startMqttMessageConsumer(listenAddr)
 		},
 	}
-	mqttConnectionHandlerCmd.Flags().StringVarP(&listenAddr, "listen-addr", "l", ":8081", "Hostname:port")
+	mqttMessageConsumerCmd.Flags().StringVarP(&listenAddr, "listen-addr", "l", ":8081", "Hostname:port")
+
+    /*
+	var kafkaMessageConsumerCmd = &cobra.Command{
+		Use:   "kafka_message_consumer",
+		Short: "Run the kafka message consumer",
+		Run: func(cmd *cobra.Command, args []string) {
+			startKafkaMessageConsumer(listenAddr)
+		},
+	}
+	kafkaMessageConsumerCmd.Flags().StringVarP(&listenAddr, "listen-addr", "l", ":8081", "Hostname:port")
+    */
 
 	var inventoryStaleTimestampeUpdaterCmd = &cobra.Command{
 		Use:   "inventory_stale_timestamp_updater",
-		Short: "Inventory Stale Timestamp Updater",
+		Short: "Run the Inventory stale timestamp updater",
 		Run: func(cmd *cobra.Command, args []string) {
 			startInventoryStaleTimestampUpdater()
 		},
@@ -41,7 +52,7 @@ func NewRootCommand() *cobra.Command {
 	}
 	apiServerCmd.Flags().StringVarP(&listenAddr, "listen-addr", "l", ":8081", "Hostname:port")
 
-	rootCmd.AddCommand(mqttConnectionHandlerCmd)
+	rootCmd.AddCommand(mqttMessageConsumerCmd)
 	rootCmd.AddCommand(inventoryStaleTimestampeUpdaterCmd)
 	rootCmd.AddCommand(apiServerCmd)
 
