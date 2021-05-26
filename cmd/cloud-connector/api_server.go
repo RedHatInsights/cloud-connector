@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"errors"
+	"fmt"
 	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
@@ -17,12 +18,14 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/jwt_utils"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/tls_utils"
+	"github.com/redhatinsights/platform-go-middlewares/request_id"
 
+	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
 
-func buildMessageHandlermMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config) ([]mqtt.MqttClientOptionsFunc, error) {
+func buildApiServerMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config) ([]mqtt.MqttClientOptionsFunc, error) {
 
 	u, err := url.Parse(brokerUrl)
 	if err != nil {
@@ -36,6 +39,25 @@ func buildMessageHandlermMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *t
 		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithTlsConfig(tlsConfig))
 	}
 
+	// FIXME:
+	useHostnameAsClientId := false
+
+	fmt.Println("\nFIXME!!!!  Set the client id to be the hostname??\n")
+	if useHostnameAsClientId == true {
+		hostname, err := os.Hostname()
+		if err != nil {
+			panic(err)
+		}
+
+		cfg.MqttClientId = hostname // FIXME:  hack
+	}
+
+	if cfg.MqttClientId != "" {
+		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithClientID(cfg.MqttClientId))
+	}
+
+	// Gotta set the client id before handing the config object off to the jwt generator
+
 	if u.Scheme == "wss" { //Rethink this check - jwt also works over TLS
 		jwtGenerator, err := jwt_utils.NewJwtGenerator(cfg.MqttBrokerJwtGeneratorImpl, cfg)
 		if err != nil {
@@ -46,10 +68,6 @@ func buildMessageHandlermMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *t
 		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithJwtReconnectingHandler(jwtGenerator))
 	}
 
-	if cfg.MqttClientId != "" {
-		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithClientID(cfg.MqttClientId))
-	}
-
 	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithCleanSession(cfg.MqttCleanSession))
 
 	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithResumeSubs(cfg.MqttResumeSubs))
@@ -57,7 +75,7 @@ func buildMessageHandlermMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *t
 	return brokerConfigFuncs, nil
 }
 
-func startMqttConnectionHandler(mgmtAddr string) {
+func startCloudConnectorApiServer(mgmtAddr string) {
 
 	logger.InitLogger()
 
@@ -76,61 +94,58 @@ func startMqttConnectionHandler(mgmtAddr string) {
 		logger.LogFatalError("Unable to configure TLS for MQTT Broker connection", err)
 	}
 
-	sqlConnectionRegistrar, err := controller.NewSqlConnectionRegistrar(cfg)
-	if err != nil {
-		logger.LogFatalError("Failed to create SQL Connection Registrar", err)
-	}
-
-	accountResolver, err := controller.NewAccountIdResolver(cfg.ClientIdToAccountIdImpl, cfg)
-	if err != nil {
-		logger.LogFatalError("Failed to create Account ID Resolver", err)
-	}
-
-	connectedClientRecorder, err := controller.NewConnectedClientRecorder(cfg.ConnectedClientRecorderImpl, cfg)
-	if err != nil {
-		logger.LogFatalError("Failed to create Connected Client Recorder", err)
-	}
-
-	sourcesRecorder, err := controller.NewSourcesRecorder(cfg.SourcesRecorderImpl, cfg)
-	if err != nil {
-		logger.LogFatalError("Failed to create Sources Recorder", err)
-	}
-
-	mqttTopicBuilder := mqtt.NewTopicBuilder(cfg.MqttTopicPrefix)
-	mqttTopicVerifier := mqtt.NewTopicVerifier(cfg.MqttTopicPrefix)
-
-	controlMsgHandler := mqtt.ControlMessageHandler(cfg, mqttTopicVerifier, mqttTopicBuilder, sqlConnectionRegistrar, accountResolver, connectedClientRecorder, sourcesRecorder)
-	dataMsgHandler := mqtt.DataMessageHandler()
-
-	defaultMsgHandler := mqtt.DefaultMessageHandler(mqttTopicVerifier, controlMsgHandler, dataMsgHandler)
-
-	subscribers := []mqtt.Subscriber{
-		mqtt.Subscriber{
-			Topic:      mqttTopicBuilder.BuildIncomingWildcardControlTopic(),
-			EntryPoint: controlMsgHandler,
-			Qos:        cfg.MqttControlSubscriptionQoS,
-		},
-		mqtt.Subscriber{
-			Topic:      mqttTopicBuilder.BuildIncomingWildcardDataTopic(),
-			EntryPoint: dataMsgHandler,
-			Qos:        cfg.MqttDataSubscriptionQoS,
-		},
-	}
-
-	brokerOptions, err := buildMessageHandlermMqttBrokerConfigFuncList(cfg.MqttBrokerAddress, tlsConfig, cfg)
+	brokerOptions, err := buildApiServerMqttBrokerConfigFuncList(cfg.MqttBrokerAddress, tlsConfig, cfg)
 	if err != nil {
 		logger.LogFatalError("Unable to configure MQTT Broker connection", err)
 	}
 
-	_, err = mqtt.RegisterSubscribers(cfg.MqttBrokerAddress, subscribers, defaultMsgHandler, brokerOptions...)
+	connectedChan := make(chan struct{})
+
+	mqttClient, err := mqtt.CreateBrokerConnection(cfg.MqttBrokerAddress,
+		func(MQTT.Client) {
+			fmt.Println("CONNECTED!!")
+			connectedChan <- struct{}{}
+		},
+		brokerOptions...,
+	)
 	if err != nil {
-		logger.LogFatalError("Failed to connect to MQTT broker", err)
+		logger.LogFatalError("Unable to establish MQTT Broker connection", err)
+	}
+
+	select {
+	case <-connectedChan:
+		fmt.Println("CONNECTED!!")
+		break
+	case <-time.After(2 * time.Second):
+		logger.Log.Fatal("Failed ot connect")
+	}
+
+	mqttTopicBuilder := mqtt.NewTopicBuilder(cfg.MqttTopicPrefix)
+
+	proxyFactory, err := mqtt.NewReceptorMQTTProxyFactory(cfg, mqttClient, mqttTopicBuilder)
+	if err != nil {
+		logger.LogFatalError("Unable to create proxy factory", err)
+	}
+
+	sqlConnectionLocator, err := controller.NewSqlConnectionLocator(cfg, proxyFactory)
+	if err != nil {
+		logger.LogFatalError("Failed to create SQL Connection Locator", err)
 	}
 
 	apiMux := mux.NewRouter()
+	apiMux.Use(request_id.ConfiguredRequestID("x-rh-insights-request-id"))
+
+	apiSpecServer := api.NewApiSpecServer(apiMux, cfg.UrlBasePath, cfg.OpenApiSpecFilePath)
+	apiSpecServer.Routes()
 
 	monitoringServer := api.NewMonitoringServer(apiMux, cfg)
 	monitoringServer.Routes()
+
+	mgmtServer := api.NewManagementServer(sqlConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
+	mgmtServer.Routes()
+
+	jr := api.NewMessageReceiver(sqlConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
+	jr.Routes()
 
 	apiSrv := utils.StartHTTPServer(mgmtAddr, "management", apiMux)
 
@@ -147,25 +162,4 @@ func startMqttConnectionHandler(mgmtAddr string) {
 	utils.ShutdownHTTPServer(ctx, "management", apiSrv)
 
 	logger.Log.Info("Cloud-Connector shutting down")
-}
-
-func buildBrokerTlsConfigFuncList(cfg *config.Config) ([]tls_utils.TlsConfigFunc, error) {
-
-	tlsConfigFuncs := []tls_utils.TlsConfigFunc{}
-
-	if cfg.MqttBrokerTlsCertFile != "" && cfg.MqttBrokerTlsKeyFile != "" {
-		tlsConfigFuncs = append(tlsConfigFuncs, tls_utils.WithCert(cfg.MqttBrokerTlsCertFile, cfg.MqttBrokerTlsKeyFile))
-	} else if cfg.MqttBrokerTlsCertFile != "" || cfg.MqttBrokerTlsKeyFile != "" {
-		return tlsConfigFuncs, errors.New("Cert or key file specified without the other")
-	}
-
-	if cfg.MqttBrokerTlsCACertFile != "" {
-		tlsConfigFuncs = append(tlsConfigFuncs, tls_utils.WithCACerts(cfg.MqttBrokerTlsCACertFile))
-	}
-
-	if cfg.MqttBrokerTlsSkipVerify == true {
-		tlsConfigFuncs = append(tlsConfigFuncs, tls_utils.WithSkipVerify())
-	}
-
-	return tlsConfigFuncs, nil
 }

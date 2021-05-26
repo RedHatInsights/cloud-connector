@@ -2,10 +2,8 @@ package mqtt
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"net/url"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 
@@ -13,7 +11,6 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
-	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/jwt_utils"
 
 	"github.com/sirupsen/logrus"
 )
@@ -35,53 +32,12 @@ type Subscriber struct {
 	Qos        byte
 }
 
-func buildBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config) ([]MqttClientOptionsFunc, error) {
+func CreateBrokerConnection(brokerUrl string, onConnectHandler func(MQTT.Client), brokerConfigFuncs ...MqttClientOptionsFunc) (MQTT.Client, error) {
 
-	u, err := url.Parse(brokerUrl)
-	if err != nil {
-		logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to determine protocol for the MQTT connection")
-		return nil, err
-	}
-
-	brokerConfigFuncs := []MqttClientOptionsFunc{}
-
-	if tlsConfig != nil {
-		brokerConfigFuncs = append(brokerConfigFuncs, WithTlsConfig(tlsConfig))
-	}
-
-	if u.Scheme == "wss" { //Rethink this check - jwt also works over TLS
-		jwtGenerator, err := jwt_utils.NewJwtGenerator(cfg.MqttBrokerJwtGeneratorImpl, cfg)
-		if err != nil {
-			logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to instantiate a JWT generator for the MQTT connection")
-			return nil, err
-		}
-		brokerConfigFuncs = append(brokerConfigFuncs, WithJwtAsHttpHeader(jwtGenerator))
-		brokerConfigFuncs = append(brokerConfigFuncs, WithJwtReconnectingHandler(jwtGenerator))
-	}
-
-	if cfg.MqttClientId != "" {
-		brokerConfigFuncs = append(brokerConfigFuncs, WithClientID(cfg.MqttClientId))
-	}
-
-	brokerConfigFuncs = append(brokerConfigFuncs, WithCleanSession(cfg.MqttCleanSession))
-
-	brokerConfigFuncs = append(brokerConfigFuncs, WithResumeSubs(cfg.MqttResumeSubs))
-
-	return brokerConfigFuncs, nil
+	return createBrokerConnection(brokerUrl, onConnectHandler, brokerConfigFuncs...)
 }
 
-func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config, subscribers []Subscriber, defaultMessageHandler func(MQTT.Client, MQTT.Message)) (MQTT.Client, error) {
-
-	brokerConfigFuncs, err := buildBrokerConfigFuncList(brokerUrl, tlsConfig, cfg)
-	if err != nil {
-		logger.Log.WithFields(logrus.Fields{"error": err}).Error("MQTT Broker configuration error")
-		return nil, err
-	}
-
-	// Add a default publish message handler as some messages will get delivered before the topic
-	// subscriptions are setup completely
-	// See "Common Problems" here: https://github.com/eclipse/paho.mqtt.golang#common-problems
-	brokerConfigFuncs = append(brokerConfigFuncs, WithDefaultPublishHandler(defaultMessageHandler))
+func createBrokerConnection(brokerUrl string, onConnectHandler func(MQTT.Client), brokerConfigFuncs ...MqttClientOptionsFunc) (MQTT.Client, error) {
 
 	connOpts, err := NewBrokerOptions(brokerUrl, brokerConfigFuncs...)
 	if err != nil {
@@ -89,14 +45,7 @@ func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Co
 		return nil, err
 	}
 
-	connOpts.SetOnConnectHandler(func(client MQTT.Client) {
-		for _, subscriber := range subscribers {
-			logger.Log.Infof("Subscribing to MQTT topic: %s - QOS: %d\n", subscriber.Topic, subscriber.Qos)
-			if token := client.Subscribe(subscriber.Topic, subscriber.Qos, subscriber.EntryPoint); token.Wait() && token.Error() != nil {
-				logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Fatalf("Subscribing to MQTT topic (%s) failed", subscriber.Topic)
-			}
-		}
-	})
+	connOpts.SetOnConnectHandler(onConnectHandler)
 
 	mqttClient := MQTT.NewClient(connOpts)
 	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
@@ -107,6 +56,26 @@ func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Co
 	logger.Log.Info("Connected to MQTT broker: ", brokerUrl)
 
 	return mqttClient, nil
+}
+
+func RegisterSubscribers(brokerUrl string, subscribers []Subscriber, defaultMessageHandler func(MQTT.Client, MQTT.Message), brokerConfigFuncs ...MqttClientOptionsFunc) (MQTT.Client, error) {
+
+	// Add a default publish message handler as some messages will get delivered before the topic
+	// subscriptions are setup completely
+	// See "Common Problems" here: https://github.com/eclipse/paho.mqtt.golang#common-problems
+	brokerConfigFuncs = append(brokerConfigFuncs, WithDefaultPublishHandler(defaultMessageHandler))
+
+	return createBrokerConnection(
+		brokerUrl,
+		func(client MQTT.Client) {
+			for _, subscriber := range subscribers {
+				logger.Log.Infof("Subscribing to MQTT topic: %s - QOS: %d\n", subscriber.Topic, subscriber.Qos)
+				if token := client.Subscribe(subscriber.Topic, subscriber.Qos, subscriber.EntryPoint); token.Wait() && token.Error() != nil {
+					logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Fatalf("Subscribing to MQTT topic (%s) failed", subscriber.Topic)
+				}
+			}
+		},
+		brokerConfigFuncs...)
 }
 
 func ControlMessageHandler(cfg *config.Config, topicVerifier *TopicVerifier, topicBuilder *TopicBuilder, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(MQTT.Client, MQTT.Message) {
