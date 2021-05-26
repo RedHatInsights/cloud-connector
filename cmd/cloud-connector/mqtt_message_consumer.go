@@ -57,7 +57,7 @@ func buildMessageHandlermMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *t
 	return brokerConfigFuncs, nil
 }
 
-func startMqttConnectionHandler(mgmtAddr string) {
+func startMqttMessageConsumer(mgmtAddr string) {
 
 	logger.InitLogger()
 
