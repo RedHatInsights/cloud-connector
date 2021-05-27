@@ -22,7 +22,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func buildMessageHandlermMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config) ([]mqtt.MqttClientOptionsFunc, error) {
+func buildMessageHandlerMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config) ([]mqtt.MqttClientOptionsFunc, error) {
 
 	u, err := url.Parse(brokerUrl)
 	if err != nil {
@@ -117,7 +117,7 @@ func startMqttMessageConsumer(mgmtAddr string) {
 		},
 	}
 
-	brokerOptions, err := buildMessageHandlermMqttBrokerConfigFuncList(cfg.MqttBrokerAddress, tlsConfig, cfg)
+	brokerOptions, err := buildMessageHandlerMqttBrokerConfigFuncList(cfg.MqttBrokerAddress, tlsConfig, cfg)
 	if err != nil {
 		logger.LogFatalError("Unable to configure MQTT Broker connection", err)
 	}
