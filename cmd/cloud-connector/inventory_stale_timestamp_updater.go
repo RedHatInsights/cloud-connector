@@ -11,6 +11,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/db"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/RedHatInsights/cloud-connector/internal/platform/queue"
 
 	"github.com/sirupsen/logrus"
 )
@@ -97,7 +98,16 @@ func startInventoryStaleTimestampUpdater() {
 		logger.LogFatalError("Failed to create Account ID Resolver", err)
 	}
 
-	connectedClientRecorder, err := controller.NewConnectedClientRecorder(cfg.ConnectedClientRecorderImpl, cfg)
+	kafkaProducerCfg := &queue.ProducerConfig{
+		Brokers:    cfg.InventoryKafkaBrokers,
+		Topic:      cfg.InventoryKafkaTopic,
+		BatchSize:  cfg.InventoryKafkaBatchSize,
+		BatchBytes: cfg.InventoryKafkaBatchBytes,
+	}
+
+	kafkaProducer := queue.StartProducer(kafkaProducerCfg)
+
+	connectedClientRecorder, err := controller.NewInventoryBasedConnectedClientRecorder(kafkaProducer, cfg.InventoryStaleTimestampOffset, cfg.InventoryReporterName)
 	if err != nil {
 		logger.LogFatalError("Failed to create Connected Client Recorder", err)
 	}
@@ -130,6 +140,11 @@ func startInventoryStaleTimestampUpdater() {
 
 			return nil
 		})
+
+	// Explicitly close the kafka producer...this should cause a flush of any buffered messages
+	if err := kafkaProducer.Close(); err != nil {
+		logger.LogFatalError("Failed to close the kafka writer", err)
+	}
 }
 
 func updateStaleTimestampInDB(log *logrus.Entry, ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, rhcClient domain.RhcClient) {

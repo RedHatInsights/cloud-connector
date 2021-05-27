@@ -49,6 +49,16 @@ func NewConnectedClientRecorder(impl string, cfg *config.Config) (ConnectedClien
 	}
 }
 
+func NewInventoryBasedConnectedClientRecorder(kafkaWriter *kafka.Writer, staleTimestampOffset time.Duration, reporterName string) (ConnectedClientRecorder, error) {
+	connectedClientRecorder := InventoryBasedConnectedClientRecorder{
+		KafkaWriter:          kafkaWriter,
+		StaleTimestampOffset: staleTimestampOffset,
+		ReporterName:         reporterName,
+	}
+
+	return &connectedClientRecorder, nil
+}
+
 type inventoryMessageEnvelope struct {
 	Operation        string      `json:"operation"`
 	PlatformMetadata interface{} `json:"platform_metadata"`
