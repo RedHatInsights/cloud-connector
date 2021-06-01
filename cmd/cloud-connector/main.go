@@ -24,7 +24,6 @@ func NewRootCommand() *cobra.Command {
 	}
 	mqttMessageConsumerCmd.Flags().StringVarP(&listenAddr, "listen-addr", "l", ":8081", "Hostname:port")
 
-    /*
 	var kafkaMessageConsumerCmd = &cobra.Command{
 		Use:   "kafka_message_consumer",
 		Short: "Run the kafka message consumer",
@@ -33,7 +32,6 @@ func NewRootCommand() *cobra.Command {
 		},
 	}
 	kafkaMessageConsumerCmd.Flags().StringVarP(&listenAddr, "listen-addr", "l", ":8081", "Hostname:port")
-    */
 
 	var inventoryStaleTimestampeUpdaterCmd = &cobra.Command{
 		Use:   "inventory_stale_timestamp_updater",
