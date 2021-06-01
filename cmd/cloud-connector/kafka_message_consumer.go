@@ -2,20 +2,24 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/controller/api"
 	"github.com/RedHatInsights/cloud-connector/internal/mqtt"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
-    "github.com/RedHatInsights/cloud-connector/internal/platform/queue"
+	"github.com/RedHatInsights/cloud-connector/internal/platform/queue"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/tls_utils"
 
+	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gorilla/mux"
+	kafka "github.com/segmentio/kafka-go"
 )
 
 func startKafkaMessageConsumer(mgmtAddr string) {
@@ -37,7 +41,7 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 		logger.LogFatalError("Unable to configure TLS for MQTT Broker connection", err)
 	}
 
-	sqlConnectionRegistrar, err := controller.NewSqlConnectionRegistrar(cfg)
+	connectionRegistrar, err := controller.NewSqlConnectionRegistrar(cfg)
 	if err != nil {
 		logger.LogFatalError("Failed to create SQL Connection Registrar", err)
 	}
@@ -63,9 +67,9 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	// FIXME:
 	//start kafka consumer
 	rhcMessageKafkaConsumer := queue.ConsumerConfig{
-		Brokers: []string{"localhost:29092"},
-		Topic:   "platform.cloud-connector.rhc-messages",
-		GroupID: "cloud-connector-rhc-message-consumer",
+		Brokers: []string{"localhost:29092"},              // FIXME:
+		Topic:   "platform.cloud-connector.mqtt_messages", // FIXME: configurable
+		GroupID: "cloud-connector-rhc-message-consumer",   // FIXME:
 	}
 	kafkaReader := queue.StartConsumer(&rhcMessageKafkaConsumer)
 
@@ -73,6 +77,38 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	if err != nil {
 		logger.LogFatalError("Unable to configure MQTT Broker connection", err)
 	}
+
+	connectedChan := make(chan struct{})
+
+	mqttClient, err := mqtt.CreateBrokerConnection(cfg.MqttBrokerAddress,
+		func(MQTT.Client) {
+			fmt.Println("CONNECTED!!")
+			connectedChan <- struct{}{}
+		},
+		brokerOptions...,
+	)
+	if err != nil {
+		logger.LogFatalError("Unable to establish MQTT Broker connection", err)
+	}
+
+	select {
+	case <-connectedChan:
+		fmt.Println("CONNECTED!!")
+		break
+	case <-time.After(2 * time.Second):
+		logger.Log.Fatal("Failed ot connect")
+	}
+
+	messageProcessor := handleMessage(
+		mqttClient,
+		mqttTopicVerifier,
+		mqttTopicBuilder,
+		connectionRegistrar,
+		accountResolver,
+		connectedClientRecorder,
+		sourcesRecorder)
+
+	go consumeMqttMessagesFromKafka(kafkaReader, messageProcessor)
 
 	apiMux := mux.NewRouter()
 
@@ -94,4 +130,30 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	utils.ShutdownHTTPServer(ctx, "management", apiSrv)
 
 	logger.Log.Info("Cloud-Connector shutting down")
+}
+
+func handleMessage(mqttClient MQTT.Client, topicVerifier *mqtt.TopicVerifier, topicBuilder *mqtt.TopicBuilder, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(*kafka.Message) error {
+	return func(*kafka.Message) error {
+		return nil
+	}
+}
+
+func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*kafka.Message) error) {
+
+	for {
+		m, err := kafkaReader.ReadMessage(context.Background())
+		if err != nil {
+			logger.LogError("Failed to read message from kafka", err)
+			break
+		}
+		logger.Log.Infof("message at offset %d: %s = %s\n", m.Offset, string(m.Key), string(m.Value))
+
+		process(&m)
+	}
+
+	logger.Log.Infof("Stopped reading kafka messages")
+
+	if err := kafkaReader.Close(); err != nil {
+		logger.LogError("Failed to close kafka reader", err)
+	}
 }
