@@ -1,0 +1,19 @@
+- mqtt client id should be the pod name??
+- pass in the mqtt client id into mqtt code instead of pulling it from the config
+- move jwt generator config outside of mqtt code
+- move all of the mqtt broker config outside of mqtt code??
+
+
+kafka
+-----
+- platform.cloud-connector.mqtt_messages
+
+- message format
+  
+  - message key - rhc_client_id (from topic)
+
+  - kafka headers
+    - topic
+    - rhc_client_id
+
+  - message - json encoded message
