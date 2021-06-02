@@ -10,10 +10,10 @@ import (
 	"syscall"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
-	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/controller/api"
 	"github.com/RedHatInsights/cloud-connector/internal/mqtt"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/RedHatInsights/cloud-connector/internal/platform/queue"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/jwt_utils"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/tls_utils"
@@ -76,30 +76,20 @@ func startMqttMessageConsumer(mgmtAddr string) {
 		logger.LogFatalError("Unable to configure TLS for MQTT Broker connection", err)
 	}
 
-	sqlConnectionRegistrar, err := controller.NewSqlConnectionRegistrar(cfg)
-	if err != nil {
-		logger.LogFatalError("Failed to create SQL Connection Registrar", err)
-	}
-
-	accountResolver, err := controller.NewAccountIdResolver(cfg.ClientIdToAccountIdImpl, cfg)
-	if err != nil {
-		logger.LogFatalError("Failed to create Account ID Resolver", err)
-	}
-
-	connectedClientRecorder, err := controller.NewConnectedClientRecorder(cfg.ConnectedClientRecorderImpl, cfg)
-	if err != nil {
-		logger.LogFatalError("Failed to create Connected Client Recorder", err)
-	}
-
-	sourcesRecorder, err := controller.NewSourcesRecorder(cfg.SourcesRecorderImpl, cfg)
-	if err != nil {
-		logger.LogFatalError("Failed to create Sources Recorder", err)
-	}
-
 	mqttTopicBuilder := mqtt.NewTopicBuilder(cfg.MqttTopicPrefix)
 	mqttTopicVerifier := mqtt.NewTopicVerifier(cfg.MqttTopicPrefix)
 
-	controlMsgHandler := mqtt.ControlMessageHandler(cfg, mqttTopicVerifier, mqttTopicBuilder, sqlConnectionRegistrar, accountResolver, connectedClientRecorder, sourcesRecorder)
+	// FIXME:
+	kafkaProducerCfg := &queue.ProducerConfig{
+		Brokers:    cfg.InventoryKafkaBrokers,
+		Topic:      "platform.cloud-connector.mqtt_messages",
+		BatchSize:  cfg.InventoryKafkaBatchSize,
+		BatchBytes: cfg.InventoryKafkaBatchBytes,
+	}
+
+	kafkaProducer := queue.StartProducer(kafkaProducerCfg)
+
+	controlMsgHandler := mqtt.ControlMessageHandler(context.TODO(), kafkaProducer)
 	dataMsgHandler := mqtt.DataMessageHandler()
 
 	defaultMsgHandler := mqtt.DefaultMessageHandler(mqttTopicVerifier, controlMsgHandler, dataMsgHandler)

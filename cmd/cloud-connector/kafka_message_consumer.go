@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -100,6 +101,7 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	}
 
 	messageProcessor := handleMessage(
+		cfg,
 		mqttClient,
 		mqttTopicVerifier,
 		mqttTopicBuilder,
@@ -132,8 +134,42 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	logger.Log.Info("Cloud-Connector shutting down")
 }
 
-func handleMessage(mqttClient MQTT.Client, topicVerifier *mqtt.TopicVerifier, topicBuilder *mqtt.TopicBuilder, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(*kafka.Message) error {
-	return func(*kafka.Message) error {
+func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mqtt.TopicVerifier, topicBuilder *mqtt.TopicBuilder, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(*kafka.Message) error {
+
+	handler := mqtt.HandleControlMessage(
+		cfg,
+		mqttClient,
+		topicVerifier,
+		topicBuilder,
+		connectionRegistrar,
+		accountResolver,
+		connectedClientRecorder,
+		sourcesRecorder)
+
+	return func(msg *kafka.Message) error {
+
+		// FIXME: move all this ugly header handling logic to a helper method
+
+		fmt.Printf("%% Message %s\n", string(msg.Value))
+		if msg.Headers == nil {
+			return errors.New("FIXME: no headers in kafka message!!")
+		}
+
+		var topic string
+
+		for _, header := range msg.Headers {
+			if header.Key == "topic" {
+				topic = string(header.Value)
+				break
+			}
+		}
+
+		if len(topic) == 0 {
+			return errors.New("FIXME: could not find topic header in kafka message!!")
+		}
+
+		handler(mqttClient, topic, string(msg.Value))
+
 		return nil
 	}
 }
