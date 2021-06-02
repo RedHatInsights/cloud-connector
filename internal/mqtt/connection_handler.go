@@ -86,7 +86,7 @@ func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer) func(
 			err := kafkaWriter.WriteMessages(ctx,
 				kafka.Message{
 					Value:   message.Payload(),
-                    Headers: []kafka.Header{{"topic", []byte(message.Topic())}},  // FIXME:  hard coded string??
+					Headers: []kafka.Header{{"topic", []byte(message.Topic())}}, // FIXME:  hard coded string??
 				})
 
 			logger.Debug("Kafka message written")
