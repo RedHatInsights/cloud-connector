@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/RedHatInsights/cloud-connector/internal/cloud_connector"
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/controller/api"
@@ -137,7 +138,7 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 
 func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mqtt.TopicVerifier, topicBuilder *mqtt.TopicBuilder, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(*kafka.Message) error {
 
-	handler := mqtt.HandleControlMessage(
+	handler := cloud_connector.HandleControlMessage(
 		cfg,
 		mqttClient,
 		topicVerifier,

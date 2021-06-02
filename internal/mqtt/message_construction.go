@@ -61,7 +61,7 @@ func buildDataMessage(directive string, metadata interface{}, payload interface{
 	return &messageID, &message, err
 }
 
-func sendReconnectMessageToClient(mqttClient MQTT.Client, logger *logrus.Entry, topicBuilder *TopicBuilder, qos byte, clientID domain.ClientID, delay int) error {
+func SendReconnectMessageToClient(mqttClient MQTT.Client, logger *logrus.Entry, topicBuilder *TopicBuilder, qos byte, clientID domain.ClientID, delay int) error {
 
 	messageID, message, err := buildReconnectMessage(delay)
 

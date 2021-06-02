@@ -65,7 +65,7 @@ func (rhp *ReceptorMQTTProxy) Reconnect(ctx context.Context, accountNumber domai
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": rhp.AccountID})
 
-	err := sendReconnectMessageToClient(rhp.Client, logger, rhp.TopicBuilder, rhp.Config.MqttControlPublishQoS, rhp.ClientID, delay)
+	err := SendReconnectMessageToClient(rhp.Client, logger, rhp.TopicBuilder, rhp.Config.MqttControlPublishQoS, rhp.ClientID, delay)
 
 	return err
 }

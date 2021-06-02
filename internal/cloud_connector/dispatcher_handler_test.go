@@ -1,4 +1,4 @@
-package mqtt
+package cloud_connector
 
 import (
 	"testing"
