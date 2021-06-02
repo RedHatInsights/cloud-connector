@@ -112,7 +112,7 @@ func startMqttMessageConsumer(mgmtAddr string) {
 		logger.LogFatalError("Unable to configure MQTT Broker connection", err)
 	}
 
-	_, err = mqtt.RegisterSubscribers(cfg.MqttBrokerAddress, subscribers, defaultMsgHandler, brokerOptions...)
+	mqttClient, err := mqtt.RegisterSubscribers(cfg.MqttBrokerAddress, subscribers, defaultMsgHandler, brokerOptions...)
 	if err != nil {
 		logger.LogFatalError("Failed to connect to MQTT broker", err)
 	}
@@ -135,6 +135,9 @@ func startMqttMessageConsumer(mgmtAddr string) {
 	defer cancel()
 
 	utils.ShutdownHTTPServer(ctx, "management", apiSrv)
+
+	mqttClient.Disconnect(1000) // FIXME: configurable??
+	kafkaProducer.Close()
 
 	logger.Log.Info("Cloud-Connector shutting down")
 }
