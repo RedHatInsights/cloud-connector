@@ -65,6 +65,10 @@ const (
 	JWT_TOKEN_EXPIRY                             = "JWT_Token_Expiry_Minutes"
 	JWT_PRIVATE_KEY_FILE                         = "JWT_Private_Key_File"
 	JWT_PUBLIC_KEY_FILE                          = "JWT_Public_Key_File"
+	CONNECTION_EVENTS_KAFKA_BROKERS              = "Connection_Events_Kafka_Brokers"
+	CONNECTION_EVENTS_KAFKA_TOPIC                = "Connection_Events_Kafka_Topic"
+	CONNECTION_EVENTS_KAFKA_BATCH_SIZE           = "Connection_Events_Kafka_Batch_Size"
+	CONNECTION_EVENTS_KAFKA_BATCH_BYTES          = "Connection_Events_Kafka_Batch_Bytes"
 )
 
 type Config struct {
@@ -122,6 +126,10 @@ type Config struct {
 	JwtPrivateKeyFile                       string
 	JwtPublicKeyFile                        string
 	SleepTimeHack                           time.Duration
+	ConnectionEventsKafkaBrokers            []string
+	ConnectionEventsKafkaTopic              string
+	ConnectionEventsKafkaBatchSize          int
+	ConnectionEventsKafkaBatchBytes         int
 }
 
 func (c Config) String() string {
@@ -177,6 +185,10 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", AUTH_GATEWAY_URL, c.AuthGatewayUrl)
 	fmt.Fprintf(&b, "%s: %s\n", AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT, c.AuthGatewayHttpClientTimeout)
 	fmt.Fprintf(&b, "%s: %s\n", "Sleep_Time_Hack", c.SleepTimeHack)
+	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_EVENTS_KAFKA_BROKERS, c.ConnectionEventsKafkaBrokers)
+	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_EVENTS_KAFKA_TOPIC, c.ConnectionEventsKafkaTopic)
+	fmt.Fprintf(&b, "%s: %d\n", CONNECTION_EVENTS_KAFKA_BATCH_SIZE, c.ConnectionEventsKafkaBatchSize)
+	fmt.Fprintf(&b, "%s: %d\n", CONNECTION_EVENTS_KAFKA_BATCH_BYTES, c.ConnectionEventsKafkaBatchBytes)
 	return b.String()
 }
 
@@ -233,6 +245,11 @@ func GetConfig() *Config {
 	options.SetDefault(AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT, 15)
 
 	options.SetDefault("Sleep_Time_Hack", 0)
+
+	options.SetDefault(CONNECTION_EVENTS_KAFKA_BROKERS, []string{DEFAULT_KAFKA_BROKER_ADDRESS})
+	options.SetDefault(CONNECTION_EVENTS_KAFKA_TOPIC, "platform.cloud-connector.connections")
+	options.SetDefault(CONNECTION_EVENTS_KAFKA_BATCH_SIZE, 100)
+	options.SetDefault(CONNECTION_EVENTS_KAFKA_BATCH_BYTES, 1048576)
 
 	options.SetEnvPrefix(ENV_PREFIX)
 	options.AutomaticEnv()
@@ -291,6 +308,10 @@ func GetConfig() *Config {
 		JwtPrivateKeyFile:                       options.GetString(JWT_PRIVATE_KEY_FILE),
 		JwtPublicKeyFile:                        options.GetString(JWT_PUBLIC_KEY_FILE),
 		SleepTimeHack:                           options.GetDuration("Sleep_Time_Hack") * time.Second,
+		ConnectionEventsKafkaBrokers:            options.GetStringSlice(CONNECTION_EVENTS_KAFKA_BROKERS),
+		ConnectionEventsKafkaTopic:              options.GetString(CONNECTION_EVENTS_KAFKA_TOPIC),
+		ConnectionEventsKafkaBatchSize:          options.GetInt(CONNECTION_EVENTS_KAFKA_BATCH_SIZE),
+		ConnectionEventsKafkaBatchBytes:         options.GetInt(CONNECTION_EVENTS_KAFKA_BATCH_BYTES),
 	}
 }
 
