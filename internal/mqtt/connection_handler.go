@@ -80,33 +80,23 @@ func RegisterSubscribers(brokerUrl string, subscribers []Subscriber, defaultMess
 
 func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer) func(MQTT.Client, MQTT.Message) {
 	return func(client MQTT.Client, message MQTT.Message) {
-		logger := logger.Log
-		go func() {
 
+		logger := logger.Log
+
+		go func() {
 			err := kafkaWriter.WriteMessages(ctx,
 				kafka.Message{
-					Value:   message.Payload(),
 					Headers: []kafka.Header{{"topic", []byte(message.Topic())}}, // FIXME:  hard coded string??
+					Value:   message.Payload(),
 				})
 
-			logger.Debug("Kafka message written")
+			logger.Trace("MQTT message written to kafka")
 
 			if err != nil {
-				logger.WithFields(logrus.Fields{"error": err}).Error("Error writing response message to kafka")
+				logger.WithFields(logrus.Fields{"error": err}).Error("Error writing MQTT message to kafka")
 
-				logger.Fatal("kafka down...i'm out") // FIXME: ???
-
-				/*
-				   if errors.Is(err, context.Canceled) != true {
-				       metrics.inventoryKafkaWriterFailureCounter.Inc()
-				   }
-				*/
+				logger.Fatal("kafka ") // FIXME: ???
 			}
-			/*
-			   else {
-			       metrics.inventoryKafkaWriterSuccessCounter.Inc()
-			   }
-			*/
 		}()
 	}
 }
