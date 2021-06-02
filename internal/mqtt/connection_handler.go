@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 
-	MQTT "github.com/eclipse/paho.mqtt.golang"
-
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
+	MQTT "github.com/eclipse/paho.mqtt.golang"
+	kafka "github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 )
 
@@ -78,13 +78,47 @@ func RegisterSubscribers(brokerUrl string, subscribers []Subscriber, defaultMess
 		brokerConfigFuncs...)
 }
 
-func ControlMessageHandler(cfg *config.Config, topicVerifier *TopicVerifier, topicBuilder *TopicBuilder, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(MQTT.Client, MQTT.Message) {
+func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer) func(MQTT.Client, MQTT.Message) {
 	return func(client MQTT.Client, message MQTT.Message) {
-		logger.Log.Debugf("Received control message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
+		logger := logger.Log
+		go func() {
+
+			err := kafkaWriter.WriteMessages(ctx,
+				kafka.Message{
+					Value:   message.Payload(),
+                    Headers: []kafka.Header{{"topic", []byte(message.Topic())}},  // FIXME:  hard coded string??
+				})
+
+			logger.Debug("Kafka message written")
+
+			if err != nil {
+				logger.WithFields(logrus.Fields{"error": err}).Error("Error writing response message to kafka")
+
+				logger.Fatal("kafka down...i'm out") // FIXME: ???
+
+				/*
+				   if errors.Is(err, context.Canceled) != true {
+				       metrics.inventoryKafkaWriterFailureCounter.Inc()
+				   }
+				*/
+			}
+			/*
+			   else {
+			       metrics.inventoryKafkaWriterSuccessCounter.Inc()
+			   }
+			*/
+		}()
+	}
+}
+
+func HandleControlMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *TopicVerifier, topicBuilder *TopicBuilder, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(MQTT.Client, string, string) {
+
+	return func(client MQTT.Client, topic string, payload string) {
+		logger.Log.Debugf("Received control message on topic: %s\nMessage: %s\n", topic, payload)
 
 		metrics.controlMessageReceivedCounter.Inc()
 
-		_, clientID, err := topicVerifier.VerifyIncomingTopic(message.Topic())
+		_, clientID, err := topicVerifier.VerifyIncomingTopic(topic)
 		if err != nil {
 			logger.Log.WithFields(logrus.Fields{"error": err}).Error("Failed to verify topic")
 			return
@@ -92,7 +126,7 @@ func ControlMessageHandler(cfg *config.Config, topicVerifier *TopicVerifier, top
 
 		logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 
-		if message.Payload() == nil || len(message.Payload()) == 0 {
+		if len(payload) == 0 {
 			// This will happen when a retained message is removed
 			logger.Trace("client sent an empty payload")
 			return
@@ -100,7 +134,7 @@ func ControlMessageHandler(cfg *config.Config, topicVerifier *TopicVerifier, top
 
 		var controlMsg ControlMessage
 
-		if err := json.Unmarshal(message.Payload(), &controlMsg); err != nil {
+		if err := json.Unmarshal([]byte(payload), &controlMsg); err != nil {
 			logger.WithFields(logrus.Fields{"error": err}).Error("Failed to unmarshal control message")
 			return
 		}

@@ -42,7 +42,7 @@ func buildApiServerMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Con
 	// FIXME:
 	useHostnameAsClientId := false
 
-	fmt.Println("\nFIXME!!!!  Set the client id to be the hostname??\n")
+	fmt.Println("\nFIXME!!!!  Set the client id to be the hostname??")
 	if useHostnameAsClientId == true {
 		hostname, err := os.Hostname()
 		if err != nil {

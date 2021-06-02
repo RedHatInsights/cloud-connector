@@ -53,6 +53,7 @@ func NewRootCommand() *cobra.Command {
 	rootCmd.AddCommand(mqttMessageConsumerCmd)
 	rootCmd.AddCommand(inventoryStaleTimestampeUpdaterCmd)
 	rootCmd.AddCommand(apiServerCmd)
+	rootCmd.AddCommand(kafkaMessageConsumerCmd)
 
 	return rootCmd
 }
