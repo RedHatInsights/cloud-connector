@@ -35,11 +35,6 @@ type Subscriber struct {
 
 func CreateBrokerConnection(brokerUrl string, onConnectHandler func(MQTT.Client), brokerConfigFuncs ...MqttClientOptionsFunc) (MQTT.Client, error) {
 
-	return createBrokerConnection(brokerUrl, onConnectHandler, brokerConfigFuncs...)
-}
-
-func createBrokerConnection(brokerUrl string, onConnectHandler func(MQTT.Client), brokerConfigFuncs ...MqttClientOptionsFunc) (MQTT.Client, error) {
-
 	connOpts, err := NewBrokerOptions(brokerUrl, brokerConfigFuncs...)
 	if err != nil {
 		logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to build MQTT ClientOptions")
@@ -66,7 +61,7 @@ func RegisterSubscribers(brokerUrl string, subscribers []Subscriber, defaultMess
 	// See "Common Problems" here: https://github.com/eclipse/paho.mqtt.golang#common-problems
 	brokerConfigFuncs = append(brokerConfigFuncs, WithDefaultPublishHandler(defaultMessageHandler))
 
-	return createBrokerConnection(
+	return CreateBrokerConnection(
 		brokerUrl,
 		func(client MQTT.Client) {
 			for _, subscriber := range subscribers {
