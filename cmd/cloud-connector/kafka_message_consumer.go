@@ -69,7 +69,7 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	// FIXME:
 	//start kafka consumer
 	rhcMessageKafkaConsumer := queue.ConsumerConfig{
-		Brokers: []string{"localhost:29092"},              // FIXME:
+		Brokers: cfg.InventoryKafkaBrokers,                // FIXME:
 		Topic:   "platform.cloud-connector.mqtt_messages", // FIXME: configurable
 		GroupID: "cloud-connector-rhc-message-consumer",   // FIXME:
 	}
@@ -167,11 +167,14 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 			}
 		}
 
-		if len(topic) == 0 {
-			return errors.New("FIXME: could not find topic header in kafka message!!")
-		}
+		logger := logger.Log.WithFields(logrus.Fields{"mqtt_message_id": mqttMessageID})
 
-		logger.Log.WithFields(logrus.Fields{"mqtt_message_id": mqttMessageID}).Debug("Read message off of kafka topic")
+		logger.Debug("Read message off of kafka topic")
+
+		if len(topic) == 0 {
+			logger.Debug("Unable to process message.  Message does not have topic header")
+			return nil
+		}
 
 		handler(mqttClient, topic, string(msg.Value))
 
