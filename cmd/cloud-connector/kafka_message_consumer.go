@@ -21,6 +21,7 @@ import (
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gorilla/mux"
 	kafka "github.com/segmentio/kafka-go"
+	"github.com/sirupsen/logrus"
 )
 
 func startKafkaMessageConsumer(mgmtAddr string) {
@@ -156,17 +157,21 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 		}
 
 		var topic string
+		var mqttMessageID string
 
 		for _, header := range msg.Headers {
 			if header.Key == "topic" {
 				topic = string(header.Value)
-				break
+			} else if header.Key == "mqtt_message_id" {
+				mqttMessageID = string(header.Value)
 			}
 		}
 
 		if len(topic) == 0 {
 			return errors.New("FIXME: could not find topic header in kafka message!!")
 		}
+
+		logger.Log.WithFields(logrus.Fields{"mqtt_message_id": mqttMessageID}).Debug("Read message off of kafka topic")
 
 		handler(mqttClient, topic, string(msg.Value))
 

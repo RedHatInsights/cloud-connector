@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
@@ -78,24 +79,50 @@ func RegisterSubscribers(brokerUrl string, subscribers []Subscriber, defaultMess
 		brokerConfigFuncs...)
 }
 
-func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer) func(MQTT.Client, MQTT.Message) {
+func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topicVerifier *TopicVerifier) func(MQTT.Client, MQTT.Message) {
 	return func(client MQTT.Client, message MQTT.Message) {
 
-		logger := logger.Log
+		mqttMessageID := fmt.Sprintf("%d", message.MessageID())
+
+		_, clientID, err := topicVerifier.VerifyIncomingTopic(message.Topic())
+		if err != nil {
+			logger.Log.WithFields(logrus.Fields{"error": err}).Error("Failed to verify topic")
+			return
+		}
+
+		logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID, "mqtt_message_id": mqttMessageID})
+
+		if len(message.Payload()) == 0 {
+			// This will happen when a retained message is removed
+			// This can also happen when rhcd is "priming the pump" as required by the akamai broker
+			logger.Trace("client sent an empty payload")
+			return
+		}
 
 		go func() {
 			err := kafkaWriter.WriteMessages(ctx,
 				kafka.Message{
-					Headers: []kafka.Header{{"topic", []byte(message.Topic())}}, // FIXME:  hard coded string??
-					Value:   message.Payload(),
+					Headers: []kafka.Header{
+						{"topic", []byte(message.Topic())},
+						{"mqtt_message_id", []byte(mqttMessageID)},
+					}, // FIXME:  hard coded string??
+					Value: message.Payload(),
 				})
 
-			logger.Trace("MQTT message written to kafka")
+			logger.Debug("MQTT message written to kafka")
 
 			if err != nil {
 				logger.WithFields(logrus.Fields{"error": err}).Error("Error writing MQTT message to kafka")
 
-				logger.Fatal("kafka ") // FIXME: ???
+				if errors.Is(err, context.Canceled) == true {
+					// The context was canceled.  This likely happened due to the process shutting down,
+					// so just return and allow things to shutdown cleanly
+					return
+				}
+
+				// If writing to kafka fails, then just fall over and do not read anymore
+				// messages from the mqtt broker
+				logger.Fatal("Failed writing to kafka")
 			}
 		}()
 	}

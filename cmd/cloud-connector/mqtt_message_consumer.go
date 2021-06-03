@@ -89,7 +89,7 @@ func startMqttMessageConsumer(mgmtAddr string) {
 
 	kafkaProducer := queue.StartProducer(kafkaProducerCfg)
 
-	controlMsgHandler := mqtt.ControlMessageHandler(context.TODO(), kafkaProducer)
+	controlMsgHandler := mqtt.ControlMessageHandler(context.TODO(), kafkaProducer, mqttTopicVerifier)
 	dataMsgHandler := mqtt.DataMessageHandler()
 
 	defaultMsgHandler := mqtt.DefaultMessageHandler(mqttTopicVerifier, controlMsgHandler, dataMsgHandler)
