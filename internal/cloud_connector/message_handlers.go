@@ -27,18 +27,11 @@ const (
 	playbookWorkerDispatcherKey = "rhc-worker-playbook"
 )
 
-func HandleControlMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mqtt.TopicVerifier, topicBuilder *mqtt.TopicBuilder, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(MQTT.Client, string, string) {
+func HandleControlMessage(cfg *config.Config, mqttClient MQTT.Client, topicBuilder *mqtt.TopicBuilder, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(MQTT.Client, domain.ClientID, string) {
 
-	return func(client MQTT.Client, topic string, payload string) {
-		logger.Log.Debugf("Received control message on topic: %s\nMessage: %s\n", topic, payload)
+	return func(client MQTT.Client, clientID domain.ClientID, payload string) {
 
 		//metrics.controlMessageReceivedCounter.Inc()
-
-		_, clientID, err := topicVerifier.VerifyIncomingTopic(topic)
-		if err != nil {
-			logger.Log.WithFields(logrus.Fields{"error": err}).Error("Failed to verify topic")
-			return
-		}
 
 		logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 

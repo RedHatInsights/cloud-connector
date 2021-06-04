@@ -141,7 +141,6 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 	handler := cloud_connector.HandleControlMessage(
 		cfg,
 		mqttClient,
-		topicVerifier,
 		topicBuilder,
 		connectionRegistrar,
 		accountResolver,
@@ -177,7 +176,22 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 			return nil
 		}
 
-		handler(mqttClient, topic, string(msg.Value))
+		payload := string(msg.Value)
+
+		logger.Debugf("Received control message on topic: %s\nMessage: %s\n", topic, payload)
+
+		topicType, clientID, err := topicVerifier.VerifyIncomingTopic(topic)
+
+		if err != nil {
+			logger.WithFields(logrus.Fields{"error": err}).Debug("Error during topic parsing")
+		}
+
+		if topicType != mqtt.ControlTopicType {
+			logger.Debug("Invalid topic type read from kafka.  Skipping message...")
+			return nil
+		}
+
+		handler(mqttClient, clientID, payload)
 
 		return nil
 	}
