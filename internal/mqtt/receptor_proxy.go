@@ -9,8 +9,10 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,6 +30,8 @@ type ReceptorMQTTProxy struct {
 }
 
 func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
+
+	metrics.sentMessageDirectiveCounter.With(prometheus.Labels{"directive": directive}).Inc()
 
 	messageID, message, err := protocol.BuildDataMessage(directive, metadata, payload)
 
