@@ -31,7 +31,7 @@ func HandleControlMessage(cfg *config.Config, mqttClient MQTT.Client, topicBuild
 
 	return func(client MQTT.Client, clientID domain.ClientID, payload string) {
 
-		//metrics.controlMessageReceivedCounter.Inc()
+		metrics.controlMessageReceivedCounter.Inc()
 
 		logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 
