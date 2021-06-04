@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 
+	"github.com/RedHatInsights/cloud-connector/internal/cloud_connector/protocol"
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -47,7 +48,7 @@ func HandleControlMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerif
 			return
 		}
 
-		var controlMsg mqtt.ControlMessage
+		var controlMsg protocol.ControlMessage
 
 		if err := json.Unmarshal([]byte(payload), &controlMsg); err != nil {
 			logger.WithFields(logrus.Fields{"error": err}).Error("Failed to unmarshal control message")
@@ -67,7 +68,7 @@ func HandleControlMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerif
 	}
 }
 
-func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID, msg mqtt.ControlMessage, cfg *config.Config, topicBuilder *mqtt.TopicBuilder, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
+func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID, msg protocol.ControlMessage, cfg *config.Config, topicBuilder *mqtt.TopicBuilder, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
 
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 
@@ -94,7 +95,7 @@ func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID,
 	return nil
 }
 
-func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg mqtt.ControlMessage, cfg *config.Config, topicBuilder *mqtt.TopicBuilder, accountResolver controller.AccountIdResolver, connectionRegistrar controller.ConnectionRegistrar, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
+func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg protocol.ControlMessage, cfg *config.Config, topicBuilder *mqtt.TopicBuilder, accountResolver controller.AccountIdResolver, connectionRegistrar controller.ConnectionRegistrar, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
 
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 
@@ -207,7 +208,7 @@ func processDispatchers(sourcesRecorder controller.SourcesRecorder, identity dom
 	}
 }
 
-func handleOfflineMessage(client MQTT.Client, clientID domain.ClientID, msg mqtt.ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
+func handleOfflineMessage(client MQTT.Client, clientID domain.ClientID, msg protocol.ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 
 	logger.Debug("handling offline connection-status message")
@@ -217,7 +218,7 @@ func handleOfflineMessage(client MQTT.Client, clientID domain.ClientID, msg mqtt
 	return nil
 }
 
-func handleEventMessage(client MQTT.Client, clientID domain.ClientID, msg mqtt.ControlMessage) error {
+func handleEventMessage(client MQTT.Client, clientID domain.ClientID, msg protocol.ControlMessage) error {
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 	logger.Debugf("Received an event message from client: %v\n", msg)
 	return nil

@@ -5,7 +5,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-type Metrics struct {
+type mqttMetrics struct {
 	controlMessageReceivedCounter  prometheus.Counter
 	dataMessageReceivedCounter     prometheus.Counter
 	sentMessageDirectiveCounter    *prometheus.CounterVec
@@ -13,8 +13,8 @@ type Metrics struct {
 	messagePublishedFailureCounter prometheus.Counter
 }
 
-func NewMetrics() *Metrics {
-	metrics := new(Metrics)
+func newMqttMetrics() *mqttMetrics {
+	metrics := new(mqttMetrics)
 
 	metrics.controlMessageReceivedCounter = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "cloud_connector_mqtt_control_message_received_count",
@@ -45,5 +45,5 @@ func NewMetrics() *Metrics {
 }
 
 var (
-	metrics = NewMetrics()
+	metrics = newMqttMetrics()
 )

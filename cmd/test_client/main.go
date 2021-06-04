@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	Connector "github.com/RedHatInsights/cloud-connector/internal/mqtt"
+	Connector "github.com/RedHatInsights/cloud-connector/internal/cloud_connector/protocol"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
 )

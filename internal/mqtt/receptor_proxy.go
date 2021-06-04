@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/RedHatInsights/cloud-connector/internal/cloud_connector/protocol"
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
@@ -28,7 +29,7 @@ type ReceptorMQTTProxy struct {
 
 func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
 
-	messageID, message, err := buildDataMessage(directive, metadata, payload)
+	messageID, message, err := protocol.BuildDataMessage(directive, metadata, payload)
 
 	logger := logger.Log.WithFields(logrus.Fields{"message_id": messageID, "account": rhp.AccountID, "client_id": rhp.ClientID})
 
@@ -48,7 +49,7 @@ func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber dom
 
 func (rhp *ReceptorMQTTProxy) Ping(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID) error {
 
-	commandMessageContent := CommandMessageContent{Command: "ping"}
+	commandMessageContent := protocol.CommandMessageContent{Command: "ping"}
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": rhp.AccountID})
 
@@ -76,7 +77,7 @@ func (rhp *ReceptorMQTTProxy) GetDispatchers(ctx context.Context) (domain.Dispat
 
 func (rhp *ReceptorMQTTProxy) Close(ctx context.Context) error {
 
-	commandMessageContent := CommandMessageContent{Command: "disconnect"}
+	commandMessageContent := protocol.CommandMessageContent{Command: "disconnect"}
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": rhp.AccountID})
 

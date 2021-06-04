@@ -62,6 +62,8 @@ func RegisterSubscribers(brokerUrl string, subscribers []Subscriber, defaultMess
 func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topicVerifier *TopicVerifier) func(MQTT.Client, MQTT.Message) {
 	return func(client MQTT.Client, message MQTT.Message) {
 
+		metrics.controlMessageReceivedCounter.Inc()
+
 		mqttMessageID := fmt.Sprintf("%d", message.MessageID())
 
 		_, clientID, err := topicVerifier.VerifyIncomingTopic(message.Topic())
