@@ -23,6 +23,7 @@ type Dispatchers map[string]map[string]string
 type CommandMessageContent struct {
 	Command   string      `json:"command"`
 	Arguments interface{} `json:"arguments"`
+	Message   string      `json:"message"`
 }
 
 type EventMessage struct {

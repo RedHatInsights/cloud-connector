@@ -12,11 +12,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func buildReconnectMessage(delay int) (*uuid.UUID, *ControlMessage, error) {
+func buildReconnectMessage(message string, delay int) (*uuid.UUID, *ControlMessage, error) {
 
 	args := map[string]string{"delay": strconv.Itoa(delay)}
 
-	content := CommandMessageContent{Command: "reconnect", Arguments: args}
+	content := CommandMessageContent{Command: "reconnect", Arguments: args, Message: message}
 
 	return buildControlMessage("command", &content)
 }
@@ -61,9 +61,9 @@ func buildDataMessage(directive string, metadata interface{}, payload interface{
 	return &messageID, &message, err
 }
 
-func sendReconnectMessageToClient(mqttClient MQTT.Client, logger *logrus.Entry, topicBuilder *TopicBuilder, qos byte, clientID domain.ClientID, delay int) error {
+func sendReconnectMessageToClient(mqttClient MQTT.Client, logger *logrus.Entry, topicBuilder *TopicBuilder, qos byte, clientID domain.ClientID, msg string, delay int) error {
 
-	messageID, message, err := buildReconnectMessage(delay)
+	messageID, message, err := buildReconnectMessage(msg, delay)
 
 	if err != nil {
 		return err

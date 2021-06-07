@@ -151,6 +151,7 @@ expected.
 | ----------- | ------------ | ------------ | ------------- |
 | `command`   | string(enum) | no           | `"reconnect"` |
 | `arguments` | object       | yes          | `{}`          |
+| `message`   | string       | yes          | `"authentication failure"`|
 
 `command` must be one of the following values:
 
@@ -172,7 +173,8 @@ A complete example of a `Command` message:
         "command": "reconnect",
         "arguments": {
             "delay": 5
-        }
+        },
+        "message": "authentication failure"
     }
 }
 ```

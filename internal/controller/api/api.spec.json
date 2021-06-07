@@ -265,7 +265,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ConnectionStatusRequest"
+                "$ref": "#/components/schemas/ConnectionDisconnectRequest"
               }
             }
           }
@@ -430,9 +430,27 @@
           },
           "delay": {
             "type": "number"
+          },
+          "message": {
+            "type": "string"
           }
         }
       },
+      "ConnectionDisconnectRequest": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+
       "Payload": {
         "type": "object",
         "properties": {
