@@ -61,11 +61,11 @@ func (rhp *ReceptorMQTTProxy) Ping(ctx context.Context, accountNumber domain.Acc
 	return err
 }
 
-func (rhp *ReceptorMQTTProxy) Reconnect(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID, delay int) error {
+func (rhp *ReceptorMQTTProxy) Reconnect(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID, message string, delay int) error {
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": rhp.AccountID})
 
-	err := sendReconnectMessageToClient(rhp.Client, logger, rhp.TopicBuilder, rhp.Config.MqttControlPublishQoS, rhp.ClientID, delay)
+	err := sendReconnectMessageToClient(rhp.Client, logger, rhp.TopicBuilder, rhp.Config.MqttControlPublishQoS, rhp.ClientID, message, delay)
 
 	return err
 }
@@ -74,9 +74,9 @@ func (rhp *ReceptorMQTTProxy) GetDispatchers(ctx context.Context) (domain.Dispat
 	return rhp.Dispatchers, nil
 }
 
-func (rhp *ReceptorMQTTProxy) Close(ctx context.Context) error {
+func (rhp *ReceptorMQTTProxy) Disconnect(ctx context.Context, message string) error {
 
-	commandMessageContent := CommandMessageContent{Command: "disconnect"}
+	commandMessageContent := CommandMessageContent{Command: "disconnect", Message: message}
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": rhp.AccountID})
 

@@ -58,7 +58,7 @@ func (mc MockClient) Ping(ctx context.Context, account domain.AccountID, recipie
 	return nil
 }
 
-func (mc MockClient) Reconnect(ctx context.Context, account domain.AccountID, recipient domain.ClientID, delay int) error {
+func (mc MockClient) Reconnect(ctx context.Context, account domain.AccountID, recipient domain.ClientID, message string, delay int) error {
 	if mc.returnAnError {
 		return errors.New("ImaError")
 	}
@@ -73,7 +73,7 @@ func (mc MockClient) GetDispatchers(ctx context.Context) (domain.Dispatchers, er
 	return dispatchers, nil
 }
 
-func (mc MockClient) Close(context.Context) error {
+func (mc MockClient) Disconnect(context.Context, string) error {
 	return nil
 }
 

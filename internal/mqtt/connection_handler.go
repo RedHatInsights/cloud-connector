@@ -186,7 +186,7 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to resolve client id to account number")
 
-		sendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, clientID, cfg.InvalidHandshakeReconnectDelay)
+		sendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, clientID, "Authentication failed", cfg.InvalidHandshakeReconnectDelay)
 
 		return err
 	}
@@ -203,7 +203,7 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 
 	_, err = connectionRegistrar.Register(context.Background(), rhcClient)
 	if err != nil {
-		sendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, clientID, cfg.InvalidHandshakeReconnectDelay)
+		sendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, clientID, "Connection registration failed", cfg.InvalidHandshakeReconnectDelay)
 		return err
 	}
 
@@ -215,7 +215,7 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 			logger.WithFields(logrus.Fields{"error": err}).Error("Failed to record client id within the platform")
 
 			// If we cannot "register" the connection with inventory, then send a disconnect message
-			sendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, clientID, cfg.InvalidHandshakeReconnectDelay)
+			sendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, clientID, "rhc connection registration failed", cfg.InvalidHandshakeReconnectDelay)
 
 			return err
 		}

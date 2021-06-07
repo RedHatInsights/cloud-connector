@@ -72,6 +72,12 @@ type connectionPingResponse struct {
 
 func (s *ManagementServer) handleDisconnect() http.HandlerFunc {
 
+	type disconnectRequest struct {
+		Account domain.AccountID `json:"account" validate:"required"`
+		NodeID  domain.ClientID  `json:"node_id" validate:"required"`
+		Message string           `json:"message"`
+	}
+
 	return func(w http.ResponseWriter, req *http.Request) {
 
 		principal, _ := middlewares.GetPrincipal(req.Context())
@@ -82,9 +88,9 @@ func (s *ManagementServer) handleDisconnect() http.HandlerFunc {
 
 		body := http.MaxBytesReader(w, req.Body, 1048576)
 
-		var connID connectionID
+		var disconnectReq disconnectRequest
 
-		if err := decodeJSON(body, &connID); err != nil {
+		if err := decodeJSON(body, &disconnectReq); err != nil {
 			errorResponse := errorResponse{Title: "Unable to process json input",
 				Status: http.StatusBadRequest,
 				Detail: err.Error()}
@@ -92,9 +98,9 @@ func (s *ManagementServer) handleDisconnect() http.HandlerFunc {
 			return
 		}
 
-		client := s.connectionMgr.GetConnection(req.Context(), domain.AccountID(connID.Account), domain.ClientID(connID.NodeID))
+		client := s.connectionMgr.GetConnection(req.Context(), domain.AccountID(disconnectReq.Account), domain.ClientID(disconnectReq.NodeID))
 		if client == nil {
-			errMsg := fmt.Sprintf("No connection found for node (%s:%s)", connID.Account, connID.NodeID)
+			errMsg := fmt.Sprintf("No connection found for node (%s:%s)", disconnectReq.Account, disconnectReq.NodeID)
 			logger.Info(errMsg)
 			errorResponse := errorResponse{Title: errMsg,
 				Status: http.StatusBadRequest,
@@ -104,9 +110,9 @@ func (s *ManagementServer) handleDisconnect() http.HandlerFunc {
 		}
 
 		logger.Infof("Attempting to disconnect account:%s - node id:%s",
-			connID.Account, connID.NodeID)
+			disconnectReq.Account, disconnectReq.NodeID)
 
-		client.Close(req.Context())
+		client.Disconnect(req.Context(), disconnectReq.Message)
 
 		writeJSONResponse(w, http.StatusOK, struct{}{})
 	}
@@ -118,6 +124,7 @@ func (s *ManagementServer) handleReconnect() http.HandlerFunc {
 		Account domain.AccountID `json:"account" validate:"required"`
 		NodeID  domain.ClientID  `json:"node_id" validate:"required"`
 		Delay   int              `json:"delay" validate:"required"`
+		Message string           `json:"message"`
 	}
 
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -154,7 +161,7 @@ func (s *ManagementServer) handleReconnect() http.HandlerFunc {
 		logger.Infof("Attempting to disconnect account:%s - node id:%s",
 			reconnectReq.Account, reconnectReq.NodeID)
 
-		client.Reconnect(req.Context(), domain.AccountID(reconnectReq.Account), domain.ClientID(reconnectReq.NodeID), reconnectReq.Delay)
+		client.Reconnect(req.Context(), domain.AccountID(reconnectReq.Account), domain.ClientID(reconnectReq.NodeID), reconnectReq.Message, reconnectReq.Delay)
 
 		writeJSONResponse(w, http.StatusOK, nil)
 	}
