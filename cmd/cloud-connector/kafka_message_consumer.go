@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -82,11 +83,16 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	}
 
 	connectedChan := make(chan struct{})
+	var initialConnection sync.Once
 
 	mqttClient, err := mqtt.CreateBrokerConnection(cfg.MqttBrokerAddress,
 		func(MQTT.Client) {
 			fmt.Println("CONNECTED!!")
-			connectedChan <- struct{}{}
+
+			initialConnection.Do(func() {
+				connectedChan <- struct{}{}
+			})
+			fmt.Println("LEAVING CONNECTED!!")
 		},
 		brokerOptions...,
 	)

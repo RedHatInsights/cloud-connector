@@ -105,6 +105,7 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 		func(MQTT.Client) {
 			fmt.Println("CONNECTED!!")
 			connectedChan <- struct{}{}
+			fmt.Println("LEAVING CONNECTED!!")
 		},
 		brokerOptions...,
 	)
