@@ -3,7 +3,7 @@ module github.com/RedHatInsights/cloud-connector
 go 1.13
 
 require (
-	github.com/aws/aws-sdk-go v1.36.23
+	github.com/aws/aws-sdk-go v1.38.51
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/eclipse/paho.mqtt.golang v1.3.1
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
@@ -21,9 +21,9 @@ require (
 	github.com/onsi/gomega v1.9.0
 	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/prometheus/client_golang v1.9.0
-	github.com/redhatinsights/platform-go-middlewares v0.7.0
+	github.com/redhatinsights/platform-go-middlewares v0.8.1
 	github.com/segmentio/kafka-go v0.4.8
-	github.com/sirupsen/logrus v1.7.0
+	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/afero v1.5.1 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/cobra v1.1.3

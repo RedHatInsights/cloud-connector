@@ -17,7 +17,7 @@ const (
 	authFailure                           = "Authentication failed"
 	IDENTITY_HEADER_NAME                  = "x-rh-identity"
 	EXPECTED_ACCOUNT_FROM_TOKEN           = "0000001"
-	VALID_IDENTITY_HEADER                 = "eyJpZGVudGl0eSI6IHsiYWNjb3VudF9udW1iZXIiOiAiMDAwMDAwMiIsICJpbnRlcm5hbCI6IHsib3JnX2lkIjogIjAwMDAwMSJ9fX0="
+	VALID_IDENTITY_HEADER                 = "eyJpZGVudGl0eSI6IHsiYWNjb3VudF9udW1iZXIiOiAiMDAwMDAwMiIsICJpbnRlcm5hbCI6IHsib3JnX2lkIjogIjAwMDAwMSJ9LCAidHlwZSI6ICJiYXNpYyJ9fQ=="
 	EXPECTED_ACCOUNT_FROM_IDENTITY_HEADER = "0000002"
 )
 
