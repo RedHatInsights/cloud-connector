@@ -54,6 +54,8 @@ func buildMessageHandlerMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tl
 
 	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithResumeSubs(cfg.MqttResumeSubs))
 
+	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithProtocolVersion(4))
+
 	return brokerConfigFuncs, nil
 }
 

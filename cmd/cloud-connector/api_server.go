@@ -68,9 +68,7 @@ func buildApiServerMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Con
 		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithJwtReconnectingHandler(jwtGenerator))
 	}
 
-	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithCleanSession(cfg.MqttCleanSession))
-
-	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithResumeSubs(cfg.MqttResumeSubs))
+	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithProtocolVersion(4))
 
 	return brokerConfigFuncs, nil
 }
