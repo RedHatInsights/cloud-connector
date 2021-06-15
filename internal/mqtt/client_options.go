@@ -98,6 +98,14 @@ func WithDefaultPublishHandler(msgHdlr MQTT.MessageHandler) MqttClientOptionsFun
 	}
 }
 
+func WithProtocolVersion(protocolVersion uint) MqttClientOptionsFunc {
+	return func(opts *MQTT.ClientOptions) error {
+		logger.Log.Trace("Setting the MQTT protocol version (paho specific version number): ", protocolVersion)
+		opts.SetProtocolVersion(protocolVersion)
+		return nil
+	}
+}
+
 func NewBrokerOptions(brokerUrl string, opts ...MqttClientOptionsFunc) (*MQTT.ClientOptions, error) {
 	connOpts := MQTT.NewClientOptions()
 

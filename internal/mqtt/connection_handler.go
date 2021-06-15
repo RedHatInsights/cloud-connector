@@ -67,6 +67,8 @@ func buildBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *con
 
 	brokerConfigFuncs = append(brokerConfigFuncs, WithResumeSubs(cfg.MqttResumeSubs))
 
+	brokerConfigFuncs = append(brokerConfigFuncs, WithProtocolVersion(4))
+
 	return brokerConfigFuncs, nil
 }
 
