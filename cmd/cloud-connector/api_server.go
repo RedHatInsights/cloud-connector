@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -25,6 +26,37 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func buildJwtGenerator(cfg *config.Config, mqttClientId string) (jwt_utils.JwtGenerator, error) {
+
+	if cfg.MqttBrokerJwtGeneratorImpl == jwt_utils.RsaTokenGenerator {
+		return jwt_utils.NewRSABasedJwtGenerator(cfg.JwtPrivateKeyFile, mqttClientId, cfg.JwtTokenExpiry)
+	} else if cfg.MqttBrokerJwtGeneratorImpl == jwt_utils.FileTokenGenerator {
+		return jwt_utils.NewFileBasedJwtGenerator(cfg.MqttBrokerJwtFile)
+	} else {
+		errorMsg := "Invalid JWT generator configured for the MQTT connection"
+		logger.Log.Error(errorMsg)
+		return nil, errors.New(errorMsg)
+	}
+}
+
+func buildMqttClientId(cfg *config.Config) (string, error) {
+	if cfg.MqttUseHostnameAsClientId == true {
+		hostname, err := os.Hostname()
+		if err != nil {
+			logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to determine hostname to use as client_id for MQTT connection")
+			return "", err
+		}
+
+		return hostname, nil
+	} else if cfg.MqttClientId != "" {
+		return cfg.MqttClientId, nil
+	} else {
+		errorMsg := "Unable to determine what to use as the client_id for MQTT connection"
+		logger.Log.Error(errorMsg)
+		return "", errors.New(errorMsg)
+	}
+}
+
 func buildApiServerMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config) ([]mqtt.MqttClientOptionsFunc, error) {
 
 	u, err := url.Parse(brokerUrl)
@@ -39,31 +71,22 @@ func buildApiServerMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Con
 		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithTlsConfig(tlsConfig))
 	}
 
-	// FIXME:
-	useHostnameAsClientId := false
-
-	fmt.Println("\nFIXME!!!!  Set the client id to be the hostname??")
-	if useHostnameAsClientId == true {
-		hostname, err := os.Hostname()
-		if err != nil {
-			panic(err)
-		}
-
-		cfg.MqttClientId = hostname // FIXME:  hack
+	mqttClientId, err := buildMqttClientId(cfg)
+	if err != nil {
+		return nil, err
 	}
 
-	if cfg.MqttClientId != "" {
-		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithClientID(cfg.MqttClientId))
-	}
-
-	// Gotta set the client id before handing the config object off to the jwt generator
+	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithClientID(mqttClientId))
 
 	if u.Scheme == "wss" { //Rethink this check - jwt also works over TLS
-		jwtGenerator, err := jwt_utils.NewJwtGenerator(cfg.MqttBrokerJwtGeneratorImpl, cfg)
+
+		jwtGenerator, err := buildJwtGenerator(cfg, mqttClientId)
+
 		if err != nil {
 			logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to instantiate a JWT generator for the MQTT connection")
 			return nil, err
 		}
+
 		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithJwtAsHttpHeader(jwtGenerator))
 		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithJwtReconnectingHandler(jwtGenerator))
 	}

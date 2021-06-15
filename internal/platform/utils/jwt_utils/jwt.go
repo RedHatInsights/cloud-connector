@@ -3,11 +3,9 @@ package jwt_utils
 import (
 	"context"
 	"crypto/rsa"
-	"errors"
 	"io/ioutil"
 	"time"
 
-	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
 	"github.com/dgrijalva/jwt-go"
@@ -42,20 +40,8 @@ func createRsaToken(client string, group string, exp time.Time, signKey *rsa.Pri
 
 type JwtGenerator func(c context.Context) (string, error)
 
-func NewJwtGenerator(implName string, cfg *config.Config) (JwtGenerator, error) {
-
-	switch implName {
-	case FileTokenGenerator:
-		return readJwtFromFile(cfg)
-	case RsaTokenGenerator:
-		return rsaGenerate(cfg)
-	default:
-		return nil, errors.New("Invalid JwtGenerator impl requested: " + implName)
-	}
-}
-
-func readJwtFromFile(cfg *config.Config) (JwtGenerator, error) {
-	filename := cfg.MqttBrokerJwtFile
+func NewFileBasedJwtGenerator(jwtFilename string) (JwtGenerator, error) {
+	filename := jwtFilename
 	logger.Log.Debug("Loading JWT from a file: ", filename)
 
 	jwtBytes, err := ioutil.ReadFile(filename)
@@ -71,8 +57,8 @@ func readJwtFromFile(cfg *config.Config) (JwtGenerator, error) {
 	}, nil
 }
 
-func rsaGenerate(cfg *config.Config) (JwtGenerator, error) {
-	signBytes, err := ioutil.ReadFile(cfg.JwtPrivateKeyFile)
+func NewRSABasedJwtGenerator(privateKeyFile string, clientId string, tokenExpiry int) (JwtGenerator, error) {
+	signBytes, err := ioutil.ReadFile(privateKeyFile)
 	if err != nil {
 		return nil, err
 	}
@@ -81,8 +67,8 @@ func rsaGenerate(cfg *config.Config) (JwtGenerator, error) {
 		return nil, err
 	}
 	return func(context context.Context) (string, error) {
-		expiryDate := time.Now().Add(time.Minute * time.Duration(cfg.JwtTokenExpiry))
+		expiryDate := time.Now().Add(time.Minute * time.Duration(tokenExpiry))
 		logger.Log.Info("Generating an RSA JWT token with expiry : ", expiryDate)
-		return createRsaToken(cfg.MqttClientId, "admin", expiryDate, signKey)
+		return createRsaToken(clientId, "admin", expiryDate, signKey)
 	}, nil
 }

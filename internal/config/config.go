@@ -21,6 +21,7 @@ const (
 	MQTT_BROKER_ADDRESS                          = "MQTT_Broker_Address"
 	MQTT_BROKER_ADDRESS_DEFAULT                  = "ssl://localhost:8883"
 	MQTT_CLIENT_ID                               = "MQTT_Client_Id"
+	MQTT_USE_HOSTNAME_AS_CLIENT_ID               = "MQTT_Use_Hostname_As_Client_Id"
 	MQTT_CLEAN_SESSION                           = "MQTT_Clean_Session"
 	MQTT_RESUME_SUBS                             = "MQTT_Resume_Subs"
 	MQTT_BROKER_TLS_CERT_FILE                    = "MQTT_Broker_Tls_Cert_File"
@@ -77,6 +78,7 @@ type Config struct {
 	Profile                                 bool
 	MqttBrokerAddress                       string
 	MqttClientId                            string
+	MqttUseHostnameAsClientId               bool
 	MqttCleanSession                        bool
 	MqttResumeSubs                          bool
 	MqttBrokerTlsCertFile                   string
@@ -134,6 +136,7 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %t\n", PROFILE, c.Profile)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_ADDRESS, c.MqttBrokerAddress)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_CLIENT_ID, c.MqttClientId)
+	fmt.Fprintf(&b, "%s: %v\n", MQTT_USE_HOSTNAME_AS_CLIENT_ID, c.MqttUseHostnameAsClientId)
 	fmt.Fprintf(&b, "%s: %v\n", MQTT_CLEAN_SESSION, c.MqttCleanSession)
 	fmt.Fprintf(&b, "%s: %v\n", MQTT_RESUME_SUBS, c.MqttResumeSubs)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_TLS_CERT_FILE, c.MqttBrokerTlsCertFile)
@@ -247,6 +250,7 @@ func GetConfig() *Config {
 		Profile:                                 options.GetBool(PROFILE),
 		MqttBrokerAddress:                       options.GetString(MQTT_BROKER_ADDRESS),
 		MqttClientId:                            options.GetString(MQTT_CLIENT_ID),
+		MqttUseHostnameAsClientId:               options.GetBool(MQTT_USE_HOSTNAME_AS_CLIENT_ID),
 		MqttCleanSession:                        options.GetBool(MQTT_CLEAN_SESSION),
 		MqttResumeSubs:                          options.GetBool(MQTT_RESUME_SUBS),
 		MqttBrokerTlsCertFile:                   options.GetString(MQTT_BROKER_TLS_CERT_FILE),

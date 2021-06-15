@@ -15,7 +15,6 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/queue"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils"
-	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/jwt_utils"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/tls_utils"
 
 	"github.com/gorilla/mux"
@@ -37,18 +36,24 @@ func buildMessageHandlerMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tl
 	}
 
 	if u.Scheme == "wss" { //Rethink this check - jwt also works over TLS
-		jwtGenerator, err := jwt_utils.NewJwtGenerator(cfg.MqttBrokerJwtGeneratorImpl, cfg)
+
+		jwtGenerator, err := buildJwtGenerator(cfg, cfg.MqttClientId)
+
 		if err != nil {
 			logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to instantiate a JWT generator for the MQTT connection")
 			return nil, err
 		}
+
 		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithJwtAsHttpHeader(jwtGenerator))
 		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithJwtReconnectingHandler(jwtGenerator))
 	}
 
-	if cfg.MqttClientId != "" {
-		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithClientID(cfg.MqttClientId))
+	mqttClientId, err := buildMqttClientId(cfg)
+	if err != nil {
+		return nil, err
 	}
+
+	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithClientID(mqttClientId))
 
 	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithCleanSession(cfg.MqttCleanSession))
 
