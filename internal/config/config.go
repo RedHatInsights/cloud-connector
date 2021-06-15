@@ -197,7 +197,7 @@ func GetConfig() *Config {
 	options.SetDefault(MQTT_BROKER_JWT_GENERATOR_IMPL, "jwt_file_reader")
 	options.SetDefault(MQTT_BROKER_JWT_FILE, "cloud-connector-mqtt-jwt.txt")
 	options.SetDefault(MQTT_TOPIC_PREFIX, "redhat")
-	options.SetDefault(MQTT_CONTROL_SUBSCRIPTION_QOS, 2)
+	options.SetDefault(MQTT_CONTROL_SUBSCRIPTION_QOS, 1)
 	options.SetDefault(MQTT_CONTROL_PUBLISH_QOS, 1)
 	options.SetDefault(MQTT_DATA_SUBSCRIPTION_QOS, 1)
 	options.SetDefault(MQTT_DATA_PUBLISH_QOS, 1)
