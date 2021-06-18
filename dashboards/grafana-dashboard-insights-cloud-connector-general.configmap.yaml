@@ -18,24 +18,10 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "id": 4,
-      "iteration": 1623702769578,
+      "id": 2,
+      "iteration": 1624031558115,
       "links": [],
       "panels": [
-        {
-          "collapsed": false,
-          "datasource": null,
-          "gridPos": {
-            "h": 1,
-            "w": 24,
-            "x": 0,
-            "y": 0
-          },
-          "id": 4,
-          "panels": [],
-          "title": "Building blocks",
-          "type": "row"
-        },
         {
           "content": "# title",
           "datasource": null,
@@ -46,10 +32,10 @@ data:
             "overrides": []
           },
           "gridPos": {
-            "h": 6,
+            "h": 2,
             "w": 10,
             "x": 0,
-            "y": 1
+            "y": 0
           },
           "id": 10,
           "links": [],
@@ -72,10 +58,10 @@ data:
             "overrides": []
           },
           "gridPos": {
-            "h": 6,
+            "h": 2,
             "w": 10,
             "x": 10,
-            "y": 1
+            "y": 0
           },
           "id": 32,
           "links": [],
@@ -113,10 +99,10 @@ data:
             "thresholdMarkers": true
           },
           "gridPos": {
-            "h": 7,
+            "h": 3,
             "w": 5,
             "x": 0,
-            "y": 7
+            "y": 2
           },
           "id": 34,
           "interval": null,
@@ -199,10 +185,10 @@ data:
             "thresholdMarkers": true
           },
           "gridPos": {
-            "h": 7,
+            "h": 3,
             "w": 5,
             "x": 5,
-            "y": 7
+            "y": 2
           },
           "id": 35,
           "interval": null,
@@ -280,7 +266,7 @@ data:
             "h": 7,
             "w": 5,
             "x": 0,
-            "y": 14
+            "y": 5
           },
           "hiddenSeries": false,
           "id": 29,
@@ -378,7 +364,7 @@ data:
             "h": 7,
             "w": 5,
             "x": 5,
-            "y": 14
+            "y": 5
           },
           "hiddenSeries": false,
           "id": 30,
@@ -475,7 +461,7 @@ data:
             "h": 6,
             "w": 10,
             "x": 0,
-            "y": 21
+            "y": 12
           },
           "hiddenSeries": false,
           "id": 2,
@@ -573,7 +559,7 @@ data:
             "h": 6,
             "w": 10,
             "x": 0,
-            "y": 27
+            "y": 18
           },
           "hiddenSeries": false,
           "id": 33,
@@ -656,337 +642,6 @@ data:
             "align": false,
             "alignLevel": null
           }
-        },
-        {
-          "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 7,
-            "w": 5,
-            "x": 0,
-            "y": 33
-          },
-          "id": 20,
-          "links": [],
-          "title": "Plugin list",
-          "type": "pluginlist"
-        },
-        {
-          "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
-          "folderId": null,
-          "gridPos": {
-            "h": 7,
-            "w": 5,
-            "x": 5,
-            "y": 33
-          },
-          "headings": true,
-          "id": 16,
-          "limit": 10,
-          "links": [],
-          "query": "",
-          "recent": false,
-          "search": false,
-          "starred": true,
-          "tags": [],
-          "title": "Dashboard list",
-          "type": "dashlist"
-        },
-        {
-          "cards": {
-            "cardPadding": null,
-            "cardRound": null
-          },
-          "color": {
-            "cardColor": "#b4ff00",
-            "colorScale": "sqrt",
-            "colorScheme": "interpolateOranges",
-            "exponent": 0.5,
-            "mode": "spectrum"
-          },
-          "dataFormat": "timeseries",
-          "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 7,
-            "w": 5,
-            "x": 0,
-            "y": 40
-          },
-          "heatmap": {},
-          "hideZeroBuckets": false,
-          "highlightCards": true,
-          "id": 12,
-          "legend": {
-            "show": false
-          },
-          "links": [],
-          "reverseYBuckets": false,
-          "title": "Heatmap",
-          "tooltip": {
-            "show": true,
-            "showHistogram": false
-          },
-          "type": "heatmap",
-          "xAxis": {
-            "show": true
-          },
-          "xBucketNumber": null,
-          "xBucketSize": null,
-          "yAxis": {
-            "decimals": null,
-            "format": "short",
-            "logBase": 1,
-            "max": null,
-            "min": null,
-            "show": true,
-            "splitFactor": null
-          },
-          "yBucketBound": "auto",
-          "yBucketNumber": null,
-          "yBucketSize": null
-        },
-        {
-          "content": "# title",
-          "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 7,
-            "w": 5,
-            "x": 5,
-            "y": 40
-          },
-          "id": 31,
-          "links": [],
-          "mode": "markdown",
-          "options": {
-            "content": "# title",
-            "mode": "markdown"
-          },
-          "pluginVersion": "7.1.0",
-          "title": "Text",
-          "type": "text"
-        },
-        {
-          "columns": [],
-          "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
-          "fontSize": "100%",
-          "gridPos": {
-            "h": 7,
-            "w": 5,
-            "x": 5,
-            "y": 47
-          },
-          "id": 8,
-          "links": [],
-          "pageSize": null,
-          "scroll": true,
-          "showHeader": true,
-          "sort": {
-            "col": 0,
-            "desc": true
-          },
-          "styles": [
-            {
-              "alias": "Time",
-              "align": "auto",
-              "dateFormat": "YYYY-MM-DD HH:mm:ss",
-              "pattern": "Time",
-              "type": "date"
-            },
-            {
-              "alias": "",
-              "align": "auto",
-              "colorMode": null,
-              "colors": [
-                "rgba(245, 54, 54, 0.9)",
-                "rgba(237, 129, 40, 0.89)",
-                "rgba(50, 172, 45, 0.97)"
-              ],
-              "decimals": 2,
-              "pattern": "/.*/",
-              "thresholds": [],
-              "type": "number",
-              "unit": "short"
-            }
-          ],
-          "title": "Table",
-          "transform": "timeseries_to_columns",
-          "type": "table-old"
-        },
-        {
-          "cacheTimeout": null,
-          "colorBackground": false,
-          "colorValue": false,
-          "colors": [
-            "#299c46",
-            "rgba(237, 129, 40, 0.89)",
-            "#d44a3a"
-          ],
-          "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
-          "format": "none",
-          "gauge": {
-            "maxValue": 100,
-            "minValue": 0,
-            "show": false,
-            "thresholdLabels": false,
-            "thresholdMarkers": true
-          },
-          "gridPos": {
-            "h": 7,
-            "w": 5,
-            "x": 5,
-            "y": 54
-          },
-          "id": 6,
-          "interval": null,
-          "links": [],
-          "mappingType": 1,
-          "mappingTypes": [
-            {
-              "name": "value to text",
-              "value": 1
-            },
-            {
-              "name": "range to text",
-              "value": 2
-            }
-          ],
-          "maxDataPoints": 100,
-          "nullPointMode": "connected",
-          "nullText": null,
-          "postfix": "",
-          "postfixFontSize": "50%",
-          "prefix": "",
-          "prefixFontSize": "50%",
-          "rangeMaps": [
-            {
-              "from": "null",
-              "text": "N/A",
-              "to": "null"
-            }
-          ],
-          "sparkline": {
-            "fillColor": "rgba(31, 118, 189, 0.18)",
-            "full": false,
-            "lineColor": "rgb(31, 120, 193)",
-            "show": false
-          },
-          "tableColumn": "",
-          "thresholds": "",
-          "title": "SingleStat",
-          "type": "singlestat",
-          "valueFontSize": "80%",
-          "valueMaps": [
-            {
-              "op": "=",
-              "text": "N/A",
-              "value": "null"
-            }
-          ],
-          "valueName": "avg"
-        },
-        {
-          "dashboardFilter": "",
-          "datasource": null,
-          "fieldConfig": {
-            "defaults": {
-              "custom": {}
-            },
-            "overrides": []
-          },
-          "folderId": null,
-          "gridPos": {
-            "h": 7,
-            "w": 5,
-            "x": 5,
-            "y": 61
-          },
-          "id": 14,
-          "limit": 10,
-          "links": [],
-          "nameFilter": "",
-          "onlyAlertsOnDashboard": false,
-          "show": "current",
-          "sortOrder": 1,
-          "stateFilter": [],
-          "title": "Alert list",
-          "type": "alertlist"
-        },
-        {
-          "collapsed": true,
-          "datasource": null,
-          "gridPos": {
-            "h": 1,
-            "w": 24,
-            "x": 0,
-            "y": 68
-          },
-          "id": 22,
-          "panels": [],
-          "title": "Row",
-          "type": "row"
-        },
-        {
-          "collapsed": true,
-          "datasource": null,
-          "gridPos": {
-            "h": 1,
-            "w": 24,
-            "x": 0,
-            "y": 69
-          },
-          "id": 24,
-          "panels": [],
-          "title": "Row",
-          "type": "row"
-        },
-        {
-          "collapsed": true,
-          "datasource": null,
-          "gridPos": {
-            "h": 1,
-            "w": 24,
-            "x": 0,
-            "y": 70
-          },
-          "id": 26,
-          "panels": [],
-          "title": "Row",
-          "type": "row"
         }
       ],
       "refresh": false,
@@ -1048,7 +703,7 @@ data:
       "timezone": "",
       "title": "Cloud-Connector",
       "uid": "playground",
-      "version": 1
+      "version": 3
     }
 kind: ConfigMap
 metadata:
