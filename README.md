@@ -99,8 +99,9 @@ The `dispatchers` object includes any number of objects where the field name is
 the routable name of the dispatch destination, and the value is an object of
 arbitrary key-value pairs, as reported by the worker process.
 
-The `tags` object includes an arbitrary number of key-value pairs, as reported
-by the client. The field is optional, so it may be omitted.
+The `tags` object includes an arbitrary number of key-value pairs where the
+key and value are both strings, as reported by the client. The field is
+optional, so it may be omitted.
 
 A complete example of a `ConnectionStatus` message:
 
