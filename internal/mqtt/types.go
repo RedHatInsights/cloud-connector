@@ -16,9 +16,11 @@ type ConnectionStatusMessageContent struct {
 	CanonicalFacts  CanonicalFacts `json:"canonical_facts,omitempty"`
 	Dispatchers     Dispatchers    `json:"dispatchers"`
 	ConnectionState string         `json:"state"`
+	Tags            Tags           `json:"tags"`
 }
 
 type Dispatchers map[string]map[string]string
+type Tags map[string]string
 
 type CommandMessageContent struct {
 	Command   string      `json:"command"`

@@ -22,6 +22,8 @@ type ConnectedClientRecorder interface {
 	RecordConnectedClient(context.Context, domain.Identity, domain.RhcClient) error
 }
 
+const inventoryTagNamespace = "rhc_client"
+
 func NewConnectedClientRecorder(impl string, cfg *config.Config) (ConnectedClientRecorder, error) {
 
 	switch impl {
@@ -106,7 +108,13 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 		systemProfile["owner_id"] = string(clientID)
 	}
 
+	tags := convertRHCTagsToInventoryTags(rhcClient.Tags)
+	if tags != nil {
+		hostData["tags"] = convertRHCTagsToInventoryTags(rhcClient.Tags)
+	}
+
 	metadata := platformMetadata{RequestID: requestID.String(), B64Identity: string(identity)}
+
 	envelope := inventoryMessageEnvelope{
 		Operation:        "add_host",
 		PlatformMetadata: metadata,
@@ -168,6 +176,31 @@ func cleanupCanonicalFacts(logger *logrus.Entry, canonicalFacts map[string]inter
 	}
 
 	return hostData
+}
+
+func convertRHCTagsToInventoryTags(rhcTags domain.Tags) map[string]map[string][]string {
+	tagData := make(map[string]map[string][]string)
+
+	if rhcTags == nil {
+		return nil
+	}
+
+	tags, ok := rhcTags.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	if len(tags) == 0 {
+		return tagData
+	}
+
+	tagData[inventoryTagNamespace] = make(map[string][]string)
+
+	for k, v := range tags {
+		tagData[inventoryTagNamespace][k] = []string{v.(string)}
+	}
+
+	return tagData
 }
 
 type FakeConnectedClientRecorder struct {

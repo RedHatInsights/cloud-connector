@@ -172,10 +172,16 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 	dispatchers["catalog"]["WorkerSHA"] = "48d28791e3b59f7334d2671c07978113b0d40374"
 	dispatchers["catalog"]["WorkerVersion"] = "v0.1.0"
 
+	tags := make(Connector.Tags)
+	tags["key1"] = "value1"
+	tags["key2"] = "value2"
+
 	connectionStatusPayload := Connector.ConnectionStatusMessageContent{
 		CanonicalFacts:  cf,
 		Dispatchers:     dispatchers,
-		ConnectionState: "online"}
+		ConnectionState: "online",
+		Tags:            tags,
+	}
 	connMsg := Connector.ControlMessage{
 		MessageType: "connection-status",
 		MessageID:   "1234",
