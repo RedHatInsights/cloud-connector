@@ -28,7 +28,7 @@ func processStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 	defer cancel()
 
 	statement, err := databaseConn.Prepare(
-		`SELECT account, client_id, canonical_facts FROM connections
+		`SELECT account, client_id, canonical_facts, tags FROM connections
            WHERE canonical_facts != '{}' AND
              dispatchers ? 'rhc-worker-playbook' AND
              stale_timestamp < $1
@@ -51,8 +51,9 @@ func processStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 		var account domain.AccountID
 		var clientID domain.ClientID
 		var canonicalFactsString string
+		var tagsString string
 
-		if err := rows.Scan(&account, &clientID, &canonicalFactsString); err != nil {
+		if err := rows.Scan(&account, &clientID, &canonicalFactsString, &tagsString); err != nil {
 			logger.LogError("SQL scan failed.  Skipping row.", err)
 			continue
 		}
@@ -64,7 +65,19 @@ func processStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 			continue
 		}
 
-		rhcClient := domain.RhcClient{Account: account, ClientID: clientID, CanonicalFacts: canonicalFacts} // FIXME: build this from the database
+		var tags domain.Tags
+		err = json.Unmarshal([]byte(tagsString), &tags)
+		if err != nil {
+			logger.LogErrorWithAccountAndClientId("Unable to parse tags.  Skipping connection.", err, account, clientID)
+			continue
+		}
+
+		rhcClient := domain.RhcClient{
+			Account:        account,
+			ClientID:       clientID,
+			CanonicalFacts: canonicalFacts,
+			Tags:           tags,
+		}
 
 		processConnection(ctx, rhcClient)
 	}

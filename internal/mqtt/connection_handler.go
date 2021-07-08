@@ -21,6 +21,7 @@ import (
 const (
 	canonicalFactsKey           = "canonical_facts"
 	dispatchersKey              = "dispatchers"
+	tagsKey                     = "tags"
 	catalogDispatcherKey        = "catalog"
 	catalogApplicationType      = "ApplicationType"
 	catalogSourceName           = "SrcName"
@@ -201,6 +202,7 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg Contr
 		Account:        account,
 		Dispatchers:    handshakePayload[dispatchersKey],
 		CanonicalFacts: handshakePayload[canonicalFactsKey],
+		Tags:           handshakePayload[tagsKey],
 	}
 
 	_, err = connectionRegistrar.Register(context.Background(), rhcClient)
