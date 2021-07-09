@@ -130,7 +130,7 @@ A complete example of a `ConnectionStatus` message:
         "state": "online",
         "tags": {
             "region": "us1",
-            "prod": false
+            "prod": "false"
         }
     }
 }
