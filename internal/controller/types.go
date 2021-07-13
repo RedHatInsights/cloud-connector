@@ -25,21 +25,3 @@ type Receptor interface {
 type ReceptorProxyFactory interface {
 	CreateProxy(context.Context, domain.AccountID, domain.ClientID, domain.Dispatchers) (Receptor, error)
 }
-
-type RegistrationResults int
-
-const (
-	NewConnection RegistrationResults = iota
-	ExistingConnection
-)
-
-type ConnectionRegistrar interface {
-	Register(context.Context, domain.RhcClient) (RegistrationResults, error)
-	Unregister(context.Context, domain.ClientID)
-}
-
-type ConnectionLocator interface {
-	GetConnection(context.Context, domain.AccountID, domain.ClientID) Receptor
-	GetConnectionsByAccount(context.Context, domain.AccountID) map[domain.ClientID]Receptor
-	GetAllConnections(context.Context) map[domain.AccountID]map[domain.ClientID]Receptor
-}

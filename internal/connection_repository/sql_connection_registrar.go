@@ -1,4 +1,4 @@
-package controller
+package connection_repository
 
 import (
 	"context"

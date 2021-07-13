@@ -10,6 +10,7 @@ import (
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
+	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
@@ -112,7 +113,7 @@ func RegisterSubscribers(brokerUrl string, tlsConfig *tls.Config, cfg *config.Co
 	return mqttClient, nil
 }
 
-func ControlMessageHandler(cfg *config.Config, topicVerifier *TopicVerifier, topicBuilder *TopicBuilder, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(MQTT.Client, MQTT.Message) {
+func ControlMessageHandler(cfg *config.Config, topicVerifier *TopicVerifier, topicBuilder *TopicBuilder, connectionRegistrar connection_repository.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(MQTT.Client, MQTT.Message) {
 	return func(client MQTT.Client, message MQTT.Message) {
 		logger.Log.Debugf("Received control message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
 
@@ -152,7 +153,7 @@ func ControlMessageHandler(cfg *config.Config, topicVerifier *TopicVerifier, top
 	}
 }
 
-func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage, cfg *config.Config, topicBuilder *TopicBuilder, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
+func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage, cfg *config.Config, topicBuilder *TopicBuilder, connectionRegistrar connection_repository.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
 
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 
@@ -179,7 +180,7 @@ func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID,
 	return nil
 }
 
-func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage, cfg *config.Config, topicBuilder *TopicBuilder, accountResolver controller.AccountIdResolver, connectionRegistrar controller.ConnectionRegistrar, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
+func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage, cfg *config.Config, topicBuilder *TopicBuilder, accountResolver controller.AccountIdResolver, connectionRegistrar connection_repository.ConnectionRegistrar, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
 
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 
@@ -293,7 +294,7 @@ func processDispatchers(sourcesRecorder controller.SourcesRecorder, identity dom
 	}
 }
 
-func handleOfflineMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage, connectionRegistrar controller.ConnectionRegistrar) error {
+func handleOfflineMessage(client MQTT.Client, clientID domain.ClientID, msg ControlMessage, connectionRegistrar connection_repository.ConnectionRegistrar) error {
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
 
 	logger.Debug("handling offline connection-status message")
