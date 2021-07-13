@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
-	"github.com/RedHatInsights/cloud-connector/internal/controller"
+	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
@@ -21,13 +21,13 @@ const (
 )
 
 type ManagementServer struct {
-	connectionMgr controller.ConnectionLocator
+	connectionMgr connection_repository.ConnectionLocator
 	router        *mux.Router
 	config        *config.Config
 	urlPrefix     string
 }
 
-func NewManagementServer(cm controller.ConnectionLocator, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
+func NewManagementServer(cm connection_repository.ConnectionLocator, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
 	return &ManagementServer{
 		connectionMgr: cm,
 		router:        r,

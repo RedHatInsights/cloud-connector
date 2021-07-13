@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
+	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/controller/api"
 	"github.com/RedHatInsights/cloud-connector/internal/mqtt"
@@ -38,7 +39,7 @@ func startMqttConnectionHandler(mgmtAddr string) {
 		logger.LogFatalError("Unable to configure TLS for MQTT Broker connection", err)
 	}
 
-	sqlConnectionRegistrar, err := controller.NewSqlConnectionRegistrar(cfg)
+	sqlConnectionRegistrar, err := connection_repository.NewSqlConnectionRegistrar(cfg)
 	if err != nil {
 		logger.LogFatalError("Failed to create SQL Connection Registrar", err)
 	}
@@ -89,7 +90,7 @@ func startMqttConnectionHandler(mgmtAddr string) {
 		logger.LogFatalError("Unable to create proxy factory", err)
 	}
 
-	sqlConnectionLocator, err := controller.NewSqlConnectionLocator(cfg, proxyFactory)
+	sqlConnectionLocator, err := connection_repository.NewSqlConnectionLocator(cfg, proxyFactory)
 	if err != nil {
 		logger.LogFatalError("Failed to create SQL Connection Locator", err)
 	}
