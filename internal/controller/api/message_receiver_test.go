@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -133,18 +134,18 @@ var _ = Describe("MessageReceiver", func() {
 	)
 
 	BeforeEach(func() {
+		var account domain.AccountID = "1234"
 		apiMux := mux.NewRouter()
 		cfg := config.GetConfig()
 		connectionManager := NewMockConnectionManager()
 		mc := MockClient{}
-		connectionManager.Register(context.TODO(), "1234", "345", mc)
+		connectionManager.Register(context.TODO(), account, "345", mc)
 		errorMC := MockClient{returnAnError: true}
-		connectionManager.Register(context.TODO(), "1234", "error-client", errorMC)
+		connectionManager.Register(context.TODO(), account, "error-client", errorMC)
 		jr = NewMessageReceiver(connectionManager, apiMux, URL_BASE_PATH, cfg)
 		jr.Routes()
 
-		identity := `{ "identity": {"account_number": "540155", "type": "User", "internal": { "org_id": "1979710" } } }`
-		validIdentityHeader = base64.StdEncoding.EncodeToString([]byte(identity))
+		validIdentityHeader = buildIdentityHeader(account)
 	})
 
 	AfterEach(func() {
@@ -203,6 +204,8 @@ var _ = Describe("MessageReceiver", func() {
 
 				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
 				Expect(err).NotTo(HaveOccurred())
+
+				validIdentityHeader = buildIdentityHeader("1234-not-here")
 
 				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
 
@@ -293,6 +296,24 @@ var _ = Describe("MessageReceiver", func() {
 				Expect(rr.Code).To(Equal(http.StatusCreated))
 			})
 
+			It("Should not allow sending a job to the wrong customer", func() {
+
+				postBody := "{\"account\": \"1234\", \"recipient\": \"345\", \"payload\": [\"678\"], \"directive\": \"fred:flintstone\"}"
+
+				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
+				Expect(err).NotTo(HaveOccurred())
+
+				validIdentityHeader = buildIdentityHeader("4321")
+
+				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
+
+				rr := httptest.NewRecorder()
+
+				jr.router.ServeHTTP(rr, req)
+
+				Expect(rr.Code).To(Equal(http.StatusForbidden))
+			})
+
 		})
 
 		Context("Without an identity header or pre shared key", func() {
@@ -322,7 +343,7 @@ var _ = Describe("MessageReceiver", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				req.Header.Add(TOKEN_HEADER_CLIENT_NAME, "test_client_1")
-				req.Header.Add(TOKEN_HEADER_ACCOUNT_NAME, "0000001")
+				req.Header.Add(TOKEN_HEADER_ACCOUNT_NAME, "1234")
 				req.Header.Add(TOKEN_HEADER_PSK_NAME, "12345")
 
 				rr := httptest.NewRecorder()
@@ -334,6 +355,27 @@ var _ = Describe("MessageReceiver", func() {
 				var m map[string]string
 				json.Unmarshal(rr.Body.Bytes(), &m)
 				Expect(m).Should(HaveKey("id"))
+			})
+		})
+
+		Context("With a valid token", func() {
+			It("Should NOT be able to send a job to the wrong account", func() {
+				jr.config.ServiceToServiceCredentials["test_client_1"] = "12345"
+
+				postBody := "{\"account\": \"1234\", \"recipient\": \"345\", \"payload\": [\"678\"], \"directive\": \"fred:flintstone\"}"
+
+				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
+				Expect(err).NotTo(HaveOccurred())
+
+				req.Header.Add(TOKEN_HEADER_CLIENT_NAME, "test_client_1")
+				req.Header.Add(TOKEN_HEADER_ACCOUNT_NAME, "4321") // This account number should be different than what is in the post body
+				req.Header.Add(TOKEN_HEADER_PSK_NAME, "12345")
+
+				rr := httptest.NewRecorder()
+
+				jr.router.ServeHTTP(rr, req)
+
+				Expect(rr.Code).To(Equal(http.StatusForbidden))
 			})
 		})
 
@@ -381,3 +423,10 @@ var _ = Describe("MessageReceiver", func() {
 
 	})
 })
+
+func buildIdentityHeader(account domain.AccountID) string {
+	identityJson := fmt.Sprintf(
+		"{ \"identity\": {\"account_number\": \"%s\", \"type\": \"User\", \"internal\": { \"org_id\": \"1979710\" } } }",
+		account)
+	return base64.StdEncoding.EncodeToString([]byte(identityJson))
+}

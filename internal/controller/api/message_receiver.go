@@ -79,6 +79,15 @@ func (jr *MessageReceiver) handleJob() http.HandlerFunc {
 			return
 		}
 
+		if principal.GetAccount() != msgRequest.Account {
+			errMsg := "Account mismatch"
+			logger.Debug(errMsg)
+			errorResponse := errorResponse{Title: errMsg,
+				Status: http.StatusForbidden,
+				Detail: errMsg}
+			writeJSONResponse(w, errorResponse.Status, errorResponse)
+		}
+
 		var client controller.Receptor
 		client = jr.connectionMgr.GetConnection(req.Context(), domain.AccountID(msgRequest.Account), domain.ClientID(msgRequest.Recipient))
 		if client == nil {
