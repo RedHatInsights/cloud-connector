@@ -9,6 +9,7 @@ import (
 func NewRootCommand() *cobra.Command {
 
 	var listenAddr string
+	var excludeAccounts string
 
 	// rootCmd represents the base command when called without any subcommands
 	var rootCmd = &cobra.Command{
@@ -32,11 +33,21 @@ func NewRootCommand() *cobra.Command {
 		},
 	}
 
+	var connectedAccountReportCmd = &cobra.Command{
+		Use:   "account_connection_count_report",
+		Short: "Generate a report on the number of connections per account",
+		Run: func(cmd *cobra.Command, args []string) {
+			startConnectedAccountReport(excludeAccounts)
+		},
+	}
+
 	rootCmd.AddCommand(mqttConnectionHandlerCmd)
+	mqttConnectionHandlerCmd.Flags().StringVarP(&listenAddr, "listen-addr", "l", ":8081", "Hostname:port")
 
 	rootCmd.AddCommand(inventoryStaleTimestampeUpdaterCmd)
 
-	mqttConnectionHandlerCmd.Flags().StringVarP(&listenAddr, "listen-addr", "l", ":8081", "Hostname:port")
+	rootCmd.AddCommand(connectedAccountReportCmd)
+	connectedAccountReportCmd.Flags().StringVarP(&excludeAccounts, "exclude-accounts", "e", "477931,6089719,540155", "477931,6089719,540155")
 
 	return rootCmd
 }
