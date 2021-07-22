@@ -22,6 +22,7 @@ WORKDIR /
 # Copy executable files from the builder image
 COPY --from=builder /go/src/app/cloud-connector /cloud-connector
 COPY --from=builder /go/src/app/migrate_db /migrate_db
+COPY --from=builder /go/src/app/db/migrations /db/migrations/
 
 USER 1001
 
