@@ -36,6 +36,9 @@ start-test-env:
 stop-test-env:
 	podman-compose -f $(DOCKER_COMPOSE_CFG) down
 
+build_image:
+	podman build . -t cloud-connector
+
 fmt:
 	go fmt ./...
 
