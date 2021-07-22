@@ -14,7 +14,8 @@ require (
 	github.com/google/uuid v1.1.4
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
-	github.com/lib/pq v1.9.0
+	github.com/jackc/pgx/v4 v4.12.0 // indirect
+	github.com/lib/pq v1.10.2
 	github.com/magiconair/properties v1.8.4 // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
@@ -30,7 +31,8 @@ require (
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.7.1
-	golang.org/x/sys v0.0.0-20210301091718-77cc2087c03b // indirect
-	golang.org/x/text v0.3.5 // indirect
+	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
+	gorm.io/driver/postgres v1.1.0 // indirect
+	gorm.io/gorm v1.21.12 // indirect
 )

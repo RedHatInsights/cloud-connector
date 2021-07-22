@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+    "time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -15,6 +16,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/sirupsen/logrus"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 type SqlConnectionRegistrar struct {
@@ -66,16 +69,6 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": account, "client_id": client_id})
 
-	update := "UPDATE connections SET dispatchers=$1, tags = $2, updated_at = NOW() WHERE account=$3 AND client_id=$4"
-	insert := "INSERT INTO connections (account, client_id, dispatchers, canonical_facts, tags) SELECT $5, $6, $7, $8, $9"
-	insertOrUpdate := fmt.Sprintf("WITH upsert AS (%s RETURNING *) %s WHERE NOT EXISTS (SELECT * FROM upsert)", update, insert)
-
-	statement, err := scm.database.Prepare(insertOrUpdate)
-	if err != nil {
-		logger.Fatal(err)
-	}
-	defer statement.Close()
-
 	dispatchersString, err := json.Marshal(rhcClient.Dispatchers)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err, "dispatchers": rhcClient.Dispatchers}).Error("Unable to marshal dispatchers")
@@ -94,15 +87,36 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 		return NewConnection, err
 	}
 
-	results, err := statement.Exec(dispatchersString, tagsString, account, client_id, account, client_id, dispatchersString, canonicalFactsString, tagsString)
+	var connection Connection
+	connection.Account = string(rhcClient.Account)
+	connection.ClientID = string(rhcClient.ClientID)
+	connection.Dispatchers = string(dispatchersString)
+	connection.CanonicalFacts = string(canonicalFactsString)
+	connection.Tags = string(tagsString)
+	connection.StaleTimestamp = time.Now()
+
+	db, err := gorm.Open(postgres.New(postgres.Config{
+		Conn: scm.database}),
+		&gorm.Config{})
+
 	if err != nil {
-		logger.Fatal(err)
+		logger.WithFields(logrus.Fields{"error": err}).Error("Gorm open failed")
+		return NewConnection, nil
 	}
 
-	rowsAffected, err := results.RowsAffected()
-	if err != nil {
-		logger.Fatal(err)
+	query := db.Table("connections")
+
+    results := query.Where(Connection{Account: connection.Account, ClientID: connection.ClientID}).Assign(connection).FirstOrCreate(&connection)
+
+	if results.Error != nil {
+		logger.WithFields(logrus.Fields{"error": results.Error}).Error("SQL query failed")
+		return NewConnection, nil
 	}
+
+	fmt.Println("*** results:", results)
+
+	rowsAffected := results.RowsAffected
+	fmt.Println("*** rowsAffected:", rowsAffected)
 
 	var registrationResults RegistrationResults
 	if rowsAffected == 0 {
