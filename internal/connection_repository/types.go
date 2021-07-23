@@ -21,6 +21,6 @@ type ConnectionRegistrar interface {
 
 type ConnectionLocator interface {
 	GetConnection(context.Context, domain.AccountID, domain.ClientID) controller.Receptor
-	GetConnectionsByAccount(context.Context, domain.AccountID) map[domain.ClientID]controller.Receptor
-	GetAllConnections(context.Context) map[domain.AccountID]map[domain.ClientID]controller.Receptor
+	GetConnectionsByAccount(context.Context, domain.AccountID, int, int) (map[domain.ClientID]controller.Receptor, int, error)
+	GetAllConnections(context.Context, int, int) (map[domain.AccountID]map[domain.ClientID]controller.Receptor, int, error)
 }

@@ -113,12 +113,12 @@ func (m *MockConnectionManager) GetConnection(ctx context.Context, account domai
 	return m.AccountIndex[account][clientID]
 }
 
-func (m *MockConnectionManager) GetConnectionsByAccount(ctx context.Context, account domain.AccountID) map[domain.ClientID]controller.Receptor {
-	return m.AccountIndex[account]
+func (m *MockConnectionManager) GetConnectionsByAccount(ctx context.Context, account domain.AccountID, offset int, limit int) (map[domain.ClientID]controller.Receptor, int, error) {
+	return m.AccountIndex[account], 0, nil
 }
 
-func (m *MockConnectionManager) GetAllConnections(ctx context.Context) map[domain.AccountID]map[domain.ClientID]controller.Receptor {
-	return m.AccountIndex
+func (m *MockConnectionManager) GetAllConnections(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.Receptor, int, error) {
+	return m.AccountIndex, 0, nil
 }
 
 func init() {
