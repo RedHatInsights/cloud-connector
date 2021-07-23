@@ -347,6 +347,40 @@ var _ = Describe("Management", func() {
 
 		})
 
+		Context("With an invalid limit", func() {
+			It("Should fail to get a list of connections", func() {
+
+				req, err := http.NewRequest("GET", CONNECTION_LIST_ENDPOINT+"?limit=fred", nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
+
+				rr := httptest.NewRecorder()
+
+				ms.router.ServeHTTP(rr, req)
+
+				Expect(rr.Code).To(Equal(http.StatusBadRequest))
+			})
+
+		})
+
+		Context("With an invalid offset", func() {
+			It("Should fail to get a list of connections", func() {
+
+				req, err := http.NewRequest("GET", CONNECTION_LIST_ENDPOINT+"?offset=barney", nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
+
+				rr := httptest.NewRecorder()
+
+				ms.router.ServeHTTP(rr, req)
+
+				Expect(rr.Code).To(Equal(http.StatusBadRequest))
+			})
+
+		})
+
 	})
 
 	Describe("Connecting to the connection list endpoint with account identifier", func() {
@@ -383,6 +417,40 @@ var _ = Describe("Management", func() {
 				ms.router.ServeHTTP(rr, req)
 
 				Expect(rr.Code).To(Equal(http.StatusUnauthorized))
+			})
+
+		})
+
+		Context("With an invalid limit", func() {
+			It("Should fail to get a list of connections", func() {
+
+				req, err := http.NewRequest("GET", CONNECTION_LIST_ENDPOINT+"/"+CONNECTED_ACCOUNT_NUMBER+"?limit=fred", nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
+
+				rr := httptest.NewRecorder()
+
+				ms.router.ServeHTTP(rr, req)
+
+				Expect(rr.Code).To(Equal(http.StatusBadRequest))
+			})
+
+		})
+
+		Context("With an invalid offset", func() {
+			It("Should fail to get a list of connections", func() {
+
+				req, err := http.NewRequest("GET", CONNECTION_LIST_ENDPOINT+"/"+CONNECTED_ACCOUNT_NUMBER+"?offset=barney", nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
+
+				rr := httptest.NewRecorder()
+
+				ms.router.ServeHTTP(rr, req)
+
+				Expect(rr.Code).To(Equal(http.StatusBadRequest))
 			})
 
 		})

@@ -102,31 +102,38 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account doma
 	return conn
 }
 
-func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, account domain.AccountID) map[domain.ClientID]controller.Receptor {
+func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, account domain.AccountID, offset int, limit int) (map[domain.ClientID]controller.Receptor, int, error) {
+
+	var totalConnections int
 
 	callDurationTimer := prometheus.NewTimer(scm.metrics.sqlLookupConnectionsByAccountDuration)
 	defer callDurationTimer.ObserveDuration()
 
 	connectionsPerAccount := make(map[domain.ClientID]controller.Receptor)
 
-	statement, err := scm.database.Prepare("SELECT client_id, dispatchers FROM connections WHERE account = $1")
+	statement, err := scm.database.Prepare(
+		`SELECT client_id, dispatchers, COUNT(*) OVER() FROM connections
+            WHERE account = $1
+            ORDER BY client_id
+            OFFSET $2
+            LIMIT $3`)
 	if err != nil {
 		logger.LogError("SQL Prepare failed", err)
-		return nil
+		return nil, totalConnections, err
 	}
 	defer statement.Close()
 
-	rows, err := statement.Query(account)
+	rows, err := statement.Query(account, offset, limit)
 	if err != nil {
 		logger.LogError("SQL query failed", err)
-		return nil
+		return nil, totalConnections, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var client_id domain.ClientID
 		var dispatchersString string
-		if err := rows.Scan(&client_id, &dispatchersString); err != nil {
+		if err := rows.Scan(&client_id, &dispatchersString, &totalConnections); err != nil {
 			logger.LogError("SQL scan failed.  Skipping row.", err)
 			continue
 		}
@@ -146,27 +153,33 @@ func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, ac
 		connectionsPerAccount[client_id] = proxy
 	}
 
-	return connectionsPerAccount
+	return connectionsPerAccount, totalConnections, nil
 }
 
-func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context) map[domain.AccountID]map[domain.ClientID]controller.Receptor {
+func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.Receptor, int, error) {
+
+	var totalConnections int
 
 	callDurationTimer := prometheus.NewTimer(scm.metrics.sqlLookupAllConnectionsDuration)
 	defer callDurationTimer.ObserveDuration()
 
 	connectionMap := make(map[domain.AccountID]map[domain.ClientID]controller.Receptor)
 
-	statement, err := scm.database.Prepare("SELECT account, client_id, dispatchers FROM connections")
+	statement, err := scm.database.Prepare(
+		`SELECT account, client_id, dispatchers, COUNT(*) OVER() FROM connections
+            ORDER BY account, client_id
+            OFFSET $1
+            LIMIT $2`)
 	if err != nil {
 		logger.LogError("SQL Prepare failed", err)
-		return nil
+		return nil, totalConnections, err
 	}
 	defer statement.Close()
 
-	rows, err := statement.Query()
+	rows, err := statement.Query(offset, limit)
 	if err != nil {
 		logger.LogError("SQL query failed", err)
-		return nil
+		return nil, totalConnections, err
 	}
 	defer rows.Close()
 
@@ -174,7 +187,8 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context) map[doma
 		var account domain.AccountID
 		var clientId domain.ClientID
 		var dispatchersString string
-		if err := rows.Scan(&account, &clientId, &dispatchersString); err != nil {
+
+		if err := rows.Scan(&account, &clientId, &dispatchersString, &totalConnections); err != nil {
 			logger.LogError("SQL scan failed.  Skipping row.", err)
 			continue
 		}
@@ -198,5 +212,5 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context) map[doma
 		connectionMap[account][clientId] = proxy
 	}
 
-	return connectionMap
+	return connectionMap, totalConnections, err
 }
