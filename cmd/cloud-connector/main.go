@@ -34,7 +34,7 @@ func NewRootCommand() *cobra.Command {
 	}
 
 	var connectedAccountReportCmd = &cobra.Command{
-		Use:   "account_connection_count_report",
+		Use:   "connection_count_per_account_reporter",
 		Short: "Generate a report on the number of connections per account",
 		Run: func(cmd *cobra.Command, args []string) {
 			startConnectedAccountReport(excludeAccounts)
