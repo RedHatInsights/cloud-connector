@@ -371,7 +371,7 @@ objects:
               - name: CLOUD_CONNECTOR_LOG_LEVEL
                 value: ${{LOG_LEVEL}}
               - name: CLOUD_CONNECTOR_LOG_FORMAT
-                value: text
+                value: ${{CONNECTION_PER_ACCOUNT_REPORTER_LOG_FORMAT}}
 
               - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_HOST
                 value: postgres
@@ -587,3 +587,5 @@ parameters:
   value: "00 01 * * 1"
 - name: CONNECTION_PER_ACCOUNT_REPORTER_SUSPEND
   value: "false"
+- name: CONNECTION_PER_ACCOUNT_REPORTER_LOG_FORMAT
+  value: "logstash"
