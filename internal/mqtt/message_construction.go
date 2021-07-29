@@ -115,18 +115,6 @@ func sendMessage(mqttClient MQTT.Client, logger *logrus.Entry, clientID domain.C
 			logger := logger.WithFields(logrus.Fields{"error": t.Error()})
 			logger.Error("Error sending a message to MQTT broker")
 			metrics.messagePublishedFailureCounter.Inc()
-
-			// FIXME:  This will bring down the service!  This was added to work around an
-			// issue we are seeing with the production mqtt broker.  We are running into an issue in prod where
-			// cloud-connector cannot send or receive messages.  On the sending side, we are getting an
-			// timeout error.  BUT...things never recover.  So fall over and allow openshift to restart
-			// the service.  This Fatal call needs to be removed after the mqtt broker starts behaving better.
-			go func() {
-				logger.Warn("cloud-connector is about to fall over...FIXME later!!")
-				time.Sleep(1 * time.Second) // Give us some time send the log message...to give the humans a clue to figure out what happened here...
-				logger.Fatal("ran into an mqtt error...going down")
-			}()
-
 			return
 		}
 
