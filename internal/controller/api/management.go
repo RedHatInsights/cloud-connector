@@ -3,6 +3,8 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"net/url"
+	"strconv"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
@@ -227,15 +229,74 @@ func getConnectionListingParams(req *http.Request) (*connectionListingParams, er
 	return &connectionListingParams{offset, limit}, nil
 }
 
+func buildNavigationLink(originalUrl *url.URL, offset int, limit int) string {
+	// make a copy of the original url
+	copiedUrl, _ := url.Parse(originalUrl.String())
+	values := copiedUrl.Query()
+	values.Set("offset", strconv.Itoa(offset))
+	values.Set("limit", strconv.Itoa(limit))
+	copiedUrl.RawQuery = values.Encode()
+	return copiedUrl.String()
+}
+
+func buildLinks(u *url.URL, offset, limit, total int) *navigationLinks {
+	first_offset := 0
+	last_offset := total - 1 // FIXME: what if total is zero??
+	next_offset := offset + limit
+
+	if total == 0 {
+		return &navigationLinks{}
+	}
+
+	fmt.Println("*******************")
+	fmt.Println("offset:", offset)
+	fmt.Println("limit:", limit)
+	fmt.Println("next_offset:", next_offset)
+	fmt.Println("total:", total)
+	fmt.Println("*******************")
+
+	l := navigationLinks{
+		First: buildNavigationLink(u, first_offset, limit),
+		Last:  buildNavigationLink(u, last_offset, limit),
+	}
+
+	if next_offset < total {
+		l.Next = buildNavigationLink(u, next_offset, limit)
+	}
+
+	if offset > 0 {
+		prev_offset := offset - limit
+		if prev_offset < 0 {
+			prev_offset = 0
+		}
+		l.Prev = buildNavigationLink(u, prev_offset, limit)
+	}
+
+	return &l
+}
+
+type meta struct {
+	Count int `json:"count"`
+}
+
+type navigationLinks struct {
+	First string `json:"first,omitempty"`
+	Last  string `json:"last,omitempty"`
+	Next  string `json:"next,omitempty"`
+	Prev  string `json:"prev,omitempty"`
+}
+
+type paginatedResponse struct {
+	Meta  meta            `json:"meta"`
+	Links navigationLinks `json:"links"`
+	Data  interface{}     `json:"data"`
+}
+
 func (s *ManagementServer) handleConnectionListing() http.HandlerFunc {
 
 	type ConnectionsPerAccount struct {
 		AccountNumber string   `json:"account"`
 		Connections   []string `json:"connections"`
-	}
-
-	type Response struct {
-		Connections []ConnectionsPerAccount `json:"connections"`
 	}
 
 	return func(w http.ResponseWriter, req *http.Request) {
@@ -274,7 +335,9 @@ func (s *ManagementServer) handleConnectionListing() http.HandlerFunc {
 			accountCount++
 		}
 
-		response := Response{Connections: connections}
+		m := meta{Count: totalConnections}
+		l := buildLinks(req.URL, requestParams.offset, requestParams.limit, totalConnections)
+		response := paginatedResponse{Meta: m, Links: *l, Data: connections}
 
 		writeJSONResponse(w, http.StatusOK, response)
 	}
@@ -303,10 +366,6 @@ func getConnectionListingByAccountParams(req *http.Request) (*connectionListingB
 }
 
 func (s *ManagementServer) handleConnectionListingByAccount() http.HandlerFunc {
-
-	type Response struct {
-		Connections []string `json:"connections"`
-	}
 
 	return func(w http.ResponseWriter, req *http.Request) {
 
@@ -341,7 +400,9 @@ func (s *ManagementServer) handleConnectionListingByAccount() http.HandlerFunc {
 			connCount++
 		}
 
-		response := Response{Connections: connections}
+		m := meta{Count: totalConnections}
+		l := buildLinks(req.URL, requestParams.offset, requestParams.limit, totalConnections)
+		response := paginatedResponse{Meta: m, Links: *l, Data: connections}
 
 		writeJSONResponse(w, http.StatusOK, response)
 	}
