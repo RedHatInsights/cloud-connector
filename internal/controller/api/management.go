@@ -272,12 +272,6 @@ func (s *ManagementServer) handleConnectionListing() http.HandlerFunc {
 
 		response := buildPaginatedResponse(req.URL, requestParams.offset, requestParams.limit, totalConnections, connections)
 
-		/*
-					m := meta{Count: totalConnections}
-			        l := buildNavigationLinks(req.URL, requestParams.offset, requestParams.limit, totalConnections)
-					response := paginatedResponse{Meta: m, Links: *l, Data: connections}
-		*/
-
 		writeJSONResponse(w, http.StatusOK, response)
 	}
 }

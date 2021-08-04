@@ -42,7 +42,7 @@ func buildNavigationLink(originalUrl *url.URL, offset int, limit int) string {
 
 func buildNavigationLinks(u *url.URL, offset, limit, total int) *navigationLinks {
 	first_offset := 0
-	last_offset := total - 1 // FIXME: what if total is zero??
+	last_offset := total - 1
 	next_offset := offset + limit
 
 	if total == 0 {
