@@ -43,6 +43,10 @@ func buildNavigationLinks(u *url.URL, offset, limit, total int) *navigationLinks
 	first_offset := 0
 	last_offset := total - 1
 	next_offset := offset + limit
+	prev_offset := offset - limit
+	if prev_offset < 0 {
+		prev_offset = 0
+	}
 
 	if total == 0 {
 		return &navigationLinks{}
@@ -58,10 +62,6 @@ func buildNavigationLinks(u *url.URL, offset, limit, total int) *navigationLinks
 	}
 
 	if offset > 0 {
-		prev_offset := offset - limit
-		if prev_offset < 0 {
-			prev_offset = 0
-		}
 		l.Prev = buildNavigationLink(u, prev_offset, limit)
 	}
 
