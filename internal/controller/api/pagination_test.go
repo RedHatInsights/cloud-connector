@@ -71,7 +71,7 @@ func (m *PaginatedMockConnectionManager) GetAllConnections(ctx context.Context, 
 	return ret, len(m.connections), nil
 }
 
-var _ = Describe("Managment API Pagination - All Connections", func() {
+var _ = Describe("Managment API Pagination - 11 connections total", func() {
 
 	var (
 		ms                  *ManagementServer
@@ -82,60 +82,69 @@ var _ = Describe("Managment API Pagination - All Connections", func() {
 		ms, validIdentityHeader = testSetup(11)
 	})
 
-	Describe("Connecting to the connection list endpoint", func() {
-		It("Should be able to get a list of open connections", func() {
+	Describe("All connections endpoint - returning 5 results", func() {
+		It("Meta count should be 11, links should be populated", func() {
+
+			baseEndpointUrl := CONNECTION_LIST_ENDPOINT
 
 			var expectedResponse = paginatedResponse{
 				Meta: meta{Count: 11},
 				Links: navigationLinks{
-					First: "/api/cloud-connector/api/v1/connection?limit=5&offset=0",
-					Last:  "/api/cloud-connector/api/v1/connection?limit=5&offset=10",
-					Next:  "/api/cloud-connector/api/v1/connection?limit=5&offset=5",
+					First: baseEndpointUrl + "?limit=5&offset=0",
+					Last:  baseEndpointUrl + "?limit=5&offset=10",
+					Next:  baseEndpointUrl + "?limit=5&offset=5",
 					Prev:  "",
 				},
 				Data: []interface{}{},
 			}
 
-			runTest(CONNECTION_LIST_ENDPOINT+"?offset=0&limit=5", ms, validIdentityHeader, expectedResponse)
+			runTest(baseEndpointUrl+"?offset=0&limit=5", ms, validIdentityHeader, expectedResponse)
 
-			//            runTest(CONNECTION_LIST_ENDPOINT+"/540155"+"?offset=0&limit=5", ms, validIdentityHeader, expectedResponse)
+			expectedResponse.Links.Prev = baseEndpointUrl + "?limit=5&offset=0"
+			expectedResponse.Links.Next = baseEndpointUrl + "?limit=5&offset=7"
 
-		})
+			runTest(baseEndpointUrl+"?offset=2&limit=5", ms, validIdentityHeader, expectedResponse)
 
-		It("Should be able to get a list of open connections #2", func() {
-			var expectedResponse = paginatedResponse{
-				Meta: meta{Count: 11},
-				Links: navigationLinks{
-					First: "/api/cloud-connector/api/v1/connection?limit=5&offset=0",
-					Last:  "/api/cloud-connector/api/v1/connection?limit=5&offset=10",
-					Next:  "/api/cloud-connector/api/v1/connection?limit=5&offset=7",
-					Prev:  "/api/cloud-connector/api/v1/connection?limit=5&offset=0",
-				},
-				Data: []interface{}{},
-			}
+			expectedResponse.Links.Prev = baseEndpointUrl + "?limit=5&offset=5"
+			expectedResponse.Links.Next = ""
 
-			runTest(CONNECTION_LIST_ENDPOINT+"?offset=2&limit=5", ms, validIdentityHeader, expectedResponse)
-
-		})
-
-		It("Should be able to get a list of open connections #3", func() {
-			var expectedResponse = paginatedResponse{
-				Meta: meta{Count: 11},
-				Links: navigationLinks{
-					First: "/api/cloud-connector/api/v1/connection?limit=5&offset=0",
-					Last:  "/api/cloud-connector/api/v1/connection?limit=5&offset=10",
-					Next:  "",
-					Prev:  "/api/cloud-connector/api/v1/connection?limit=5&offset=5",
-				},
-				Data: []interface{}{},
-			}
-
-			runTest(CONNECTION_LIST_ENDPOINT+"?offset=10&limit=5", ms, validIdentityHeader, expectedResponse)
+			runTest(baseEndpointUrl+"?offset=10&limit=5", ms, validIdentityHeader, expectedResponse)
 		})
 	})
+
+	Describe("Connections per account endpoint - returning 5 results", func() {
+		It("Meta count should be 11, links should be populated", func() {
+
+			baseEndpointUrl := CONNECTION_LIST_ENDPOINT + "/540155"
+
+			var expectedResponse = paginatedResponse{
+				Meta: meta{Count: 11},
+				Links: navigationLinks{
+					First: baseEndpointUrl + "?limit=5&offset=0",
+					Last:  baseEndpointUrl + "?limit=5&offset=10",
+					Next:  baseEndpointUrl + "?limit=5&offset=5",
+					Prev:  "",
+				},
+				Data: []interface{}{},
+			}
+
+			runTest(baseEndpointUrl+"?offset=0&limit=5", ms, validIdentityHeader, expectedResponse)
+
+			expectedResponse.Links.Prev = baseEndpointUrl + "?limit=5&offset=0"
+			expectedResponse.Links.Next = baseEndpointUrl + "?limit=5&offset=7"
+
+			runTest(baseEndpointUrl+"?offset=2&limit=5", ms, validIdentityHeader, expectedResponse)
+
+			expectedResponse.Links.Prev = baseEndpointUrl + "?limit=5&offset=5"
+			expectedResponse.Links.Next = ""
+
+			runTest(baseEndpointUrl+"?offset=10&limit=5", ms, validIdentityHeader, expectedResponse)
+		})
+	})
+
 })
 
-var _ = Describe("Managment API Pagination - All Connections - no results", func() {
+var _ = Describe("Managment API Pagination - 0 connections total", func() {
 
 	var (
 		ms                  *ManagementServer
@@ -146,22 +155,31 @@ var _ = Describe("Managment API Pagination - All Connections - no results", func
 		ms, validIdentityHeader = testSetup(0)
 	})
 
-	Describe("Connecting to the connection list endpoint - returning no results", func() {
+	Describe("All connections endpoint - returning no results", func() {
 		It("Meta count should be 0, links should be empty", func() {
 
 			var expectedResponse = paginatedResponse{
-				Meta: meta{Count: 0},
-				Links: navigationLinks{
-					First: "",
-				},
-				Data: []interface{}{},
+				Meta:  meta{Count: 0},
+				Links: navigationLinks{},
+				Data:  []interface{}{},
 			}
 
 			runTest(CONNECTION_LIST_ENDPOINT+"?offset=0&limit=5", ms, validIdentityHeader, expectedResponse)
 		})
 	})
 
-	// Add a test for the case where there are connections to return
+	Describe("Connections per account endpoint - returning no results", func() {
+		It("Meta count should be 0, links should be empty", func() {
+
+			var expectedResponse = paginatedResponse{
+				Meta:  meta{Count: 0},
+				Links: navigationLinks{},
+				Data:  []interface{}{},
+			}
+
+			runTest(CONNECTION_LIST_ENDPOINT+"/540155"+"?offset=0&limit=5", ms, validIdentityHeader, expectedResponse)
+		})
+	})
 
 })
 
