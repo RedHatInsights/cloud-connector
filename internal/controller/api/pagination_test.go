@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -57,13 +56,9 @@ func (m *PaginatedMockConnectionManager) GetConnectionsByAccount(ctx context.Con
 func (m *PaginatedMockConnectionManager) GetAllConnections(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.Receptor, int, error) {
 	ret := make(map[domain.AccountID]map[domain.ClientID]controller.Receptor)
 
-	fmt.Println("**** offset:", offset)
-	fmt.Println("**** limit:", limit)
-
 	i := offset
 	ret["540155"] = make(map[domain.ClientID]controller.Receptor)
 	for i < len(m.connections) && len(ret["540155"]) < limit {
-		fmt.Println("**** i:", i)
 		ret["540155"][domain.ClientID(strconv.Itoa(i))] = m.connections[i]
 		i++
 	}

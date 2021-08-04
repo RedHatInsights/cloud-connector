@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/url"
 	"strconv"
 )
@@ -48,13 +47,6 @@ func buildNavigationLinks(u *url.URL, offset, limit, total int) *navigationLinks
 	if total == 0 {
 		return &navigationLinks{}
 	}
-
-	fmt.Println("*******************")
-	fmt.Println("offset:", offset)
-	fmt.Println("limit:", limit)
-	fmt.Println("next_offset:", next_offset)
-	fmt.Println("total:", total)
-	fmt.Println("*******************")
 
 	l := navigationLinks{
 		First: buildNavigationLink(u, first_offset, limit),
