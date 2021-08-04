@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
+	"github.com/RedHatInsights/cloud-connector/internal/cloud_connector"
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/controller/api"
@@ -75,17 +77,21 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	}
 	kafkaReader := queue.StartConsumer(&rhcMessageKafkaConsumer)
 
-	brokerOptions, err := buildApiServerMqttBrokerConfigFuncList(cfg.MqttBrokerAddress, tlsConfig, cfg)
+	brokerOptions, err := buildMessageHandlerMqttBrokerConfigFuncList(cfg.MqttBrokerAddress, tlsConfig, cfg)
 	if err != nil {
 		logger.LogFatalError("Unable to configure MQTT Broker connection", err)
 	}
 
 	connectedChan := make(chan struct{})
+	var initialConnection sync.Once
 
 	mqttClient, err := mqtt.CreateBrokerConnection(cfg.MqttBrokerAddress,
 		func(MQTT.Client) {
 			fmt.Println("CONNECTED!!")
-			connectedChan <- struct{}{}
+			initialConnection.Do(func() {
+				connectedChan <- struct{}{}
+			})
+			fmt.Println("LEAVING CONNECTED!!")
 		},
 		brokerOptions...,
 	)
@@ -137,10 +143,9 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 
 func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mqtt.TopicVerifier, topicBuilder *mqtt.TopicBuilder, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(*kafka.Message) error {
 
-	handler := mqtt.HandleControlMessage(
+	handler := cloud_connector.HandleControlMessage(
 		cfg,
 		mqttClient,
-		topicVerifier,
 		topicBuilder,
 		connectionRegistrar,
 		accountResolver,
@@ -176,7 +181,22 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 			return nil
 		}
 
-		handler(mqttClient, topic, string(msg.Value))
+		payload := string(msg.Value)
+
+		logger.Debugf("Received control message on topic: %s\nMessage: %s\n", topic, payload)
+
+		topicType, clientID, err := topicVerifier.VerifyIncomingTopic(topic)
+
+		if err != nil {
+			logger.WithFields(logrus.Fields{"error": err}).Debug("Error during topic parsing")
+		}
+
+		if topicType != mqtt.ControlTopicType {
+			logger.Debug("Invalid topic type read from kafka.  Skipping message...")
+			return nil
+		}
+
+		handler(mqttClient, clientID, payload)
 
 		return nil
 	}
