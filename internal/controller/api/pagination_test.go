@@ -71,7 +71,7 @@ func (m *PaginatedMockConnectionManager) GetAllConnections(ctx context.Context, 
 	return ret, len(m.connections), nil
 }
 
-var _ = Describe("Managment Pagination", func() {
+var _ = Describe("Managment API Pagination - All Connections", func() {
 
 	var (
 		ms                  *ManagementServer
@@ -79,97 +79,129 @@ var _ = Describe("Managment Pagination", func() {
 	)
 
 	BeforeEach(func() {
-		apiMux := mux.NewRouter()
-		cfg := config.GetConfig()
-		connectionManager := NewPaginatedMockConnectionManager()
-
-		i := 0
-		for i < 11 {
-			mc := MockClient{}
-			client_id := strconv.Itoa(i)
-			connectionManager.Register(context.TODO(), CONNECTED_ACCOUNT_NUMBER, domain.ClientID(client_id), mc)
-			i++
-		}
-
-		ms = NewManagementServer(connectionManager, apiMux, URL_BASE_PATH, cfg)
-		ms.Routes()
-
-		identity := `{ "identity": {"account_number": "540155", "type": "User", "internal": { "org_id": "1979710" } } }`
-		validIdentityHeader = base64.StdEncoding.EncodeToString([]byte(identity))
+		ms, validIdentityHeader = testSetup(11)
 	})
 
 	Describe("Connecting to the connection list endpoint", func() {
-		Context("With a valid identity header", func() {
-			It("Should be able to get a list of open connections", func() {
+		It("Should be able to get a list of open connections", func() {
 
-				req, err := http.NewRequest("GET", CONNECTION_LIST_ENDPOINT+"?offset=0&limit=5", nil)
-				Expect(err).NotTo(HaveOccurred())
+			var expectedResponse = paginatedResponse{
+				Meta: meta{Count: 11},
+				Links: navigationLinks{
+					First: "/api/cloud-connector/api/v1/connection?limit=5&offset=0",
+					Last:  "/api/cloud-connector/api/v1/connection?limit=5&offset=10",
+					Next:  "/api/cloud-connector/api/v1/connection?limit=5&offset=5",
+					Prev:  "",
+				},
+				Data: []interface{}{},
+			}
 
-				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
+			runTest(CONNECTION_LIST_ENDPOINT+"?offset=0&limit=5", ms, validIdentityHeader, expectedResponse)
 
-				rr := httptest.NewRecorder()
-
-				ms.router.ServeHTTP(rr, req)
-
-				Expect(rr.Code).To(Equal(http.StatusOK))
-
-				var expectedResponse = paginatedResponse{
-					Meta: meta{Count: 11},
-					Links: navigationLinks{
-						First: "/api/cloud-connector/api/v1/connection?limit=5&offset=0",
-						Last:  "/api/cloud-connector/api/v1/connection?limit=5&offset=10",
-						Next:  "/api/cloud-connector/api/v1/connection?limit=5&offset=5",
-						Prev:  "",
-					},
-					Data: []interface{}{},
-				}
-
-				var actualResponse paginatedResponse
-				json.Unmarshal(rr.Body.Bytes(), &actualResponse)
-
-				Expect(actualResponse.Meta).Should(Equal(expectedResponse.Meta))
-				Expect(actualResponse.Links).Should(Equal(expectedResponse.Links))
-			})
+			//            runTest(CONNECTION_LIST_ENDPOINT+"/540155"+"?offset=0&limit=5", ms, validIdentityHeader, expectedResponse)
 
 		})
+
+		It("Should be able to get a list of open connections #2", func() {
+			var expectedResponse = paginatedResponse{
+				Meta: meta{Count: 11},
+				Links: navigationLinks{
+					First: "/api/cloud-connector/api/v1/connection?limit=5&offset=0",
+					Last:  "/api/cloud-connector/api/v1/connection?limit=5&offset=10",
+					Next:  "/api/cloud-connector/api/v1/connection?limit=5&offset=7",
+					Prev:  "/api/cloud-connector/api/v1/connection?limit=5&offset=0",
+				},
+				Data: []interface{}{},
+			}
+
+			runTest(CONNECTION_LIST_ENDPOINT+"?offset=2&limit=5", ms, validIdentityHeader, expectedResponse)
+
+		})
+
+		It("Should be able to get a list of open connections #3", func() {
+			var expectedResponse = paginatedResponse{
+				Meta: meta{Count: 11},
+				Links: navigationLinks{
+					First: "/api/cloud-connector/api/v1/connection?limit=5&offset=0",
+					Last:  "/api/cloud-connector/api/v1/connection?limit=5&offset=10",
+					Next:  "",
+					Prev:  "/api/cloud-connector/api/v1/connection?limit=5&offset=5",
+				},
+				Data: []interface{}{},
+			}
+
+			runTest(CONNECTION_LIST_ENDPOINT+"?offset=10&limit=5", ms, validIdentityHeader, expectedResponse)
+		})
+	})
+})
+
+var _ = Describe("Managment API Pagination - All Connections - no results", func() {
+
+	var (
+		ms                  *ManagementServer
+		validIdentityHeader string
+	)
+
+	BeforeEach(func() {
+		ms, validIdentityHeader = testSetup(0)
 	})
 
-	Describe("Connecting to the connection list endpoint #2", func() {
-		Context("With a valid identity header #2", func() {
-			It("Should be able to get a list of open connections #2", func() {
+	Describe("Connecting to the connection list endpoint - returning no results", func() {
+		It("Meta count should be 0, links should be empty", func() {
 
-				req, err := http.NewRequest("GET", CONNECTION_LIST_ENDPOINT+"?offset=2&limit=5", nil)
-				Expect(err).NotTo(HaveOccurred())
+			var expectedResponse = paginatedResponse{
+				Meta: meta{Count: 0},
+				Links: navigationLinks{
+					First: "",
+				},
+				Data: []interface{}{},
+			}
 
-				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
-
-				rr := httptest.NewRecorder()
-
-				ms.router.ServeHTTP(rr, req)
-
-				Expect(rr.Code).To(Equal(http.StatusOK))
-
-				var expectedResponse = paginatedResponse{
-					Meta: meta{Count: 11},
-					Links: navigationLinks{
-						First: "/api/cloud-connector/api/v1/connection?limit=5&offset=0",
-						Last:  "/api/cloud-connector/api/v1/connection?limit=5&offset=10",
-						Next:  "/api/cloud-connector/api/v1/connection?limit=5&offset=7",
-						Prev:  "/api/cloud-connector/api/v1/connection?limit=5&offset=0",
-					},
-					Data: []interface{}{},
-				}
-
-				var actualResponse paginatedResponse
-				json.Unmarshal(rr.Body.Bytes(), &actualResponse)
-
-				Expect(actualResponse.Meta).Should(Equal(expectedResponse.Meta))
-				Expect(actualResponse.Links).Should(Equal(expectedResponse.Links))
-			})
-
+			runTest(CONNECTION_LIST_ENDPOINT+"?offset=0&limit=5", ms, validIdentityHeader, expectedResponse)
 		})
 	})
 
 	// Add a test for the case where there are connections to return
 
 })
+
+func testSetup(connectionCount int) (*ManagementServer, string) {
+	apiMux := mux.NewRouter()
+	cfg := config.GetConfig()
+	connectionManager := NewPaginatedMockConnectionManager()
+
+	i := 0
+	for i < connectionCount {
+		mc := MockClient{}
+		client_id := strconv.Itoa(i)
+		connectionManager.Register(context.TODO(), CONNECTED_ACCOUNT_NUMBER, domain.ClientID(client_id), mc)
+		i++
+	}
+
+	managementServer := NewManagementServer(connectionManager, apiMux, URL_BASE_PATH, cfg)
+	managementServer.Routes()
+
+	identity := `{ "identity": {"account_number": "540155", "type": "User", "internal": { "org_id": "1979710" } } }`
+	identityHeader := base64.StdEncoding.EncodeToString([]byte(identity))
+
+	return managementServer, identityHeader
+}
+
+func runTest(endpoint string, managementServer *ManagementServer, identityHeader string, expectedResponse paginatedResponse) {
+	req, err := http.NewRequest("GET", endpoint, nil)
+	Expect(err).NotTo(HaveOccurred())
+
+	req.Header.Add(IDENTITY_HEADER_NAME, identityHeader)
+
+	rr := httptest.NewRecorder()
+
+	managementServer.router.ServeHTTP(rr, req)
+
+	Expect(rr.Code).To(Equal(http.StatusOK))
+
+	var actualResponse paginatedResponse
+	json.Unmarshal(rr.Body.Bytes(), &actualResponse)
+
+	Expect(actualResponse.Meta).Should(Equal(expectedResponse.Meta))
+	Expect(actualResponse.Links).Should(Equal(expectedResponse.Links))
+}
