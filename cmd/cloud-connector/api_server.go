@@ -57,7 +57,7 @@ func buildMqttClientId(cfg *config.Config) (string, error) {
 	}
 }
 
-func buildApiServerMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config) ([]mqtt.MqttClientOptionsFunc, error) {
+func buildDefaultMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config) ([]mqtt.MqttClientOptionsFunc, error) {
 
 	u, err := url.Parse(brokerUrl)
 	if err != nil {
@@ -115,7 +115,7 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 		logger.LogFatalError("Unable to configure TLS for MQTT Broker connection", err)
 	}
 
-	brokerOptions, err := buildApiServerMqttBrokerConfigFuncList(cfg.MqttBrokerAddress, tlsConfig, cfg)
+	brokerOptions, err := buildDefaultMqttBrokerConfigFuncList(cfg.MqttBrokerAddress, tlsConfig, cfg)
 	if err != nil {
 		logger.LogFatalError("Unable to configure MQTT Broker connection", err)
 	}

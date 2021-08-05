@@ -77,7 +77,7 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	}
 	kafkaReader := queue.StartConsumer(&rhcMessageKafkaConsumer)
 
-	brokerOptions, err := buildMessageHandlerMqttBrokerConfigFuncList(cfg.MqttBrokerAddress, tlsConfig, cfg)
+	brokerOptions, err := buildDefaultMqttBrokerConfigFuncList(cfg.MqttBrokerAddress, tlsConfig, cfg)
 	if err != nil {
 		logger.LogFatalError("Unable to configure MQTT Broker connection", err)
 	}

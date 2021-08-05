@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,48 +17,18 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/tls_utils"
 
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
 )
 
 func buildMessageHandlerMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config) ([]mqtt.MqttClientOptionsFunc, error) {
 
-	u, err := url.Parse(brokerUrl)
-	if err != nil {
-		logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to determine protocol for the MQTT connection")
-		return nil, err
-	}
-
-	brokerConfigFuncs := []mqtt.MqttClientOptionsFunc{}
-
-	if tlsConfig != nil {
-		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithTlsConfig(tlsConfig))
-	}
-
-	mqttClientId, err := buildMqttClientId(cfg)
+	brokerConfigFuncs, err := buildDefaultMqttBrokerConfigFuncList(brokerUrl, tlsConfig, cfg)
 	if err != nil {
 		return nil, err
 	}
-
-	if u.Scheme == "wss" { //Rethink this check - jwt also works over TLS
-
-		jwtGenerator, err := buildJwtGenerator(cfg, mqttClientId)
-
-		if err != nil {
-			logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to instantiate a JWT generator for the MQTT connection")
-			return nil, err
-		}
-
-		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithJwtAsHttpHeader(jwtGenerator))
-		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithJwtReconnectingHandler(jwtGenerator))
-	}
-
-	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithClientID(mqttClientId))
 
 	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithCleanSession(cfg.MqttCleanSession))
 
 	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithResumeSubs(cfg.MqttResumeSubs))
-
-	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithProtocolVersion(4))
 
 	return brokerConfigFuncs, nil
 }
