@@ -12,7 +12,7 @@ import (
 
 	"github.com/RedHatInsights/cloud-connector/internal/cloud_connector"
 	"github.com/RedHatInsights/cloud-connector/internal/config"
-    "github.com/RedHatInsights/cloud-connector/internal/connection_repository"
+	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/controller/api"
 	"github.com/RedHatInsights/cloud-connector/internal/mqtt"
