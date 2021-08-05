@@ -35,9 +35,14 @@ func buildMessageHandlerMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tl
 		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithTlsConfig(tlsConfig))
 	}
 
+	mqttClientId, err := buildMqttClientId(cfg)
+	if err != nil {
+		return nil, err
+	}
+
 	if u.Scheme == "wss" { //Rethink this check - jwt also works over TLS
 
-		jwtGenerator, err := buildJwtGenerator(cfg, cfg.MqttClientId)
+		jwtGenerator, err := buildJwtGenerator(cfg, mqttClientId)
 
 		if err != nil {
 			logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to instantiate a JWT generator for the MQTT connection")
@@ -46,11 +51,6 @@ func buildMessageHandlerMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tl
 
 		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithJwtAsHttpHeader(jwtGenerator))
 		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithJwtReconnectingHandler(jwtGenerator))
-	}
-
-	mqttClientId, err := buildMqttClientId(cfg)
-	if err != nil {
-		return nil, err
 	}
 
 	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithClientID(mqttClientId))
