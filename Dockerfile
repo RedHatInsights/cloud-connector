@@ -1,4 +1,6 @@
-FROM registry.access.redhat.com/ubi8/go-toolset
+# Use go-toolset as the builder image
+# Once built, copy to a smaller image and run from there
+FROM registry.redhat.io/ubi8/go-toolset as builder
 
 WORKDIR /go/src/app
 
@@ -12,9 +14,15 @@ USER root
 
 RUN make build
 
-RUN REMOVE_PKGS="binutils kernel-headers nodejs nodejs-full-i18n npm" && \
-    yum remove -y $REMOVE_PKGS && \
-    yum clean all
+# Using ubi8-minimal due to its smaller footprint
+FROM registry.redhat.io/ubi8/ubi-minimal
+
+WORKDIR /
+
+# Copy executable files from the builder image
+COPY --from=builder /go/src/app/cloud-connector /cloud-connector
+COPY --from=builder /go/src/app/migrate_db /migrate_db
+COPY --from=builder /go/src/app/db/migrations /db/migrations/
 
 USER 1001
 

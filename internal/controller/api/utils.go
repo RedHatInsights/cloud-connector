@@ -6,8 +6,10 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/sirupsen/logrus"
 )
 
 type errorResponse struct {
@@ -48,4 +50,48 @@ func decodeJSON(body io.ReadCloser, data interface{}) error {
 	}
 
 	return nil
+}
+
+func writeInvalidInputResponse(logger *logrus.Entry, w http.ResponseWriter, err error) {
+	errMsg := "Unable to process input parameters"
+	logger.WithFields(logrus.Fields{"error": err}).Error(errMsg)
+	errorResponse := errorResponse{Title: errMsg,
+		Status: http.StatusBadRequest,
+		Detail: err.Error()}
+	writeJSONResponse(w, errorResponse.Status, errorResponse)
+}
+
+func getIntFromQueryParams(req *http.Request, paramName string, defaultValue int) (int, error) {
+	value := req.URL.Query().Get(paramName)
+	if value == "" {
+		return defaultValue, nil
+	}
+
+	return strconv.Atoi(value)
+}
+
+func getLimitFromQueryParams(req *http.Request) (int, error) {
+	limit, err := getIntFromQueryParams(req, "limit", 1000)
+	if err != nil {
+		return 0, errors.New("limit: " + err.Error())
+	}
+
+	if limit < 0 {
+		return 0, errors.New("limit: must be > 0")
+	}
+
+	return limit, err
+}
+
+func getOffsetFromQueryParams(req *http.Request) (int, error) {
+	offset, err := getIntFromQueryParams(req, "offset", 0)
+	if err != nil {
+		return 0, errors.New("offset: " + err.Error())
+	}
+
+	if offset < 0 {
+		return 0, errors.New("offset: must be >= 0")
+	}
+
+	return offset, nil
 }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
+	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
@@ -15,13 +16,13 @@ import (
 )
 
 type MessageReceiver struct {
-	connectionMgr controller.ConnectionLocator
+	connectionMgr connection_repository.ConnectionLocator
 	router        *mux.Router
 	config        *config.Config
 	urlPrefix     string
 }
 
-func NewMessageReceiver(cm controller.ConnectionLocator, r *mux.Router, urlPrefix string, cfg *config.Config) *MessageReceiver {
+func NewMessageReceiver(cm connection_repository.ConnectionLocator, r *mux.Router, urlPrefix string, cfg *config.Config) *MessageReceiver {
 	return &MessageReceiver{
 		connectionMgr: cm,
 		router:        r,
@@ -76,6 +77,15 @@ func (jr *MessageReceiver) handleJob() http.HandlerFunc {
 				Detail: err.Error()}
 			writeJSONResponse(w, errorResponse.Status, errorResponse)
 			return
+		}
+
+		if principal.GetAccount() != msgRequest.Account {
+			errMsg := "Account mismatch"
+			logger.Debug(errMsg)
+			errorResponse := errorResponse{Title: errMsg,
+				Status: http.StatusForbidden,
+				Detail: errMsg}
+			writeJSONResponse(w, errorResponse.Status, errorResponse)
 		}
 
 		var client controller.Receptor

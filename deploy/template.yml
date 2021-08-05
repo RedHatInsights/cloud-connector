@@ -346,6 +346,64 @@ objects:
                   memory: 64Mi
 
 
+- apiVersion: batch/v1beta1
+  kind: CronJob
+  metadata:
+    labels:
+      app: cloud-connector
+    name: cloud-connector-connection-per-account-reporter
+  spec:
+    schedule: ${CONNECTION_PER_ACCOUNT_REPORTER_SCHEDULE}
+    concurrencyPolicy: Replace
+    suspend: ${{CONNECTION_PER_ACCOUNT_REPORTER_SUSPEND}}
+    successfulJobsHistoryLimit: 3
+    failedJobsHistoryLimit: 3
+    jobTemplate:
+      spec:
+        template:
+          spec:
+            restartPolicy: OnFailure
+            containers:
+            - command:
+              - ./cloud-connector
+              - connection_count_per_account_reporter
+              env:
+              - name: CLOUD_CONNECTOR_LOG_LEVEL
+                value: ${{LOG_LEVEL}}
+              - name: CLOUD_CONNECTOR_LOG_FORMAT
+                value: ${{CONNECTION_PER_ACCOUNT_REPORTER_LOG_FORMAT}}
+
+              - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_HOST
+                value: postgres
+              - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_PORT
+                value: "5432"
+              - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_NAME
+                valueFrom:
+                  secretKeyRef:
+                    key: db.name
+                    name: cloud-connector-db
+              - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_USER
+                valueFrom:
+                  secretKeyRef:
+                    key: db.user
+                    name: cloud-connector-db
+              - name: CLOUD_CONNECTOR_CONNECTION_DATABASE_PASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    key: db.password
+                    name: cloud-connector-db
+
+              image: ${IMAGE}:${IMAGE_TAG}
+              name: cloud-connector-connection-per-account-reporter
+              resources:
+                limits:
+                  cpu: 200m
+                  memory: 128Mi
+                requests:
+                  cpu: 100m
+                  memory: 64Mi
+
+
 # Database
 - apiVersion: apps/v1
   kind: Deployment
@@ -524,3 +582,10 @@ parameters:
   value: "*/10 * * * *"
 - name: STALE_TIMESTAMP_UPDATER_SUSPEND
   value: "false"
+
+- name: CONNECTION_PER_ACCOUNT_REPORTER_SCHEDULE
+  value: "00 01 * * 1"
+- name: CONNECTION_PER_ACCOUNT_REPORTER_SUSPEND
+  value: "false"
+- name: CONNECTION_PER_ACCOUNT_REPORTER_LOG_FORMAT
+  value: "logstash"

@@ -73,6 +73,7 @@ The `content` field of a `ConnectionStatus` message must contain two fields:
 | `canonical_facts` | object       | no           |
 | `dispatchers`     | object       | no           |
 | `state`           | string(enum) | no           |
+| `tags`            | object       | yes          |
 
 
 `state` must be one of the following values:
@@ -98,6 +99,10 @@ The `dispatchers` object includes any number of objects where the field name is
 the routable name of the dispatch destination, and the value is an object of
 arbitrary key-value pairs, as reported by the worker process.
 
+The `tags` object includes an arbitrary number of key-value pairs where the
+key and value are both strings, as reported by the client. The field is
+optional, so it may be omitted.
+
 A complete example of a `ConnectionStatus` message:
 
 ```
@@ -122,7 +127,11 @@ A complete example of a `ConnectionStatus` message:
             },
             "echo": {}
         },
-        "state": "online"
+        "state": "online",
+        "tags": {
+            "region": "us1",
+            "prod": "false"
+        }
     }
 }
 ```

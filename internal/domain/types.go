@@ -17,10 +17,12 @@ func (aid AccountID) String() string {
 //type Dispatchers map[string]map[string]string
 type Dispatchers interface{}
 type CanonicalFacts interface{}
+type Tags interface{}
 
 type RhcClient struct {
 	Account        AccountID
 	ClientID       ClientID
 	CanonicalFacts CanonicalFacts
 	Dispatchers    Dispatchers
+	Tags           Tags
 }

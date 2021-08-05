@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
-	"github.com/RedHatInsights/cloud-connector/internal/controller"
+	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
@@ -21,13 +21,13 @@ const (
 )
 
 type ManagementServer struct {
-	connectionMgr controller.ConnectionLocator
+	connectionMgr connection_repository.ConnectionLocator
 	router        *mux.Router
 	config        *config.Config
 	urlPrefix     string
 }
 
-func NewManagementServer(cm controller.ConnectionLocator, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
+func NewManagementServer(cm connection_repository.ConnectionLocator, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
 	return &ManagementServer{
 		connectionMgr: cm,
 		router:        r,
@@ -207,6 +207,26 @@ func (s *ManagementServer) handleConnectionStatus() http.HandlerFunc {
 	}
 }
 
+type connectionListingParams struct {
+	offset int
+	limit  int
+}
+
+func getConnectionListingParams(req *http.Request) (*connectionListingParams, error) {
+
+	limit, err := getLimitFromQueryParams(req)
+	if err != nil {
+		return nil, err
+	}
+
+	offset, err := getOffsetFromQueryParams(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &connectionListingParams{offset, limit}, nil
+}
+
 func (s *ManagementServer) handleConnectionListing() http.HandlerFunc {
 
 	type ConnectionsPerAccount struct {
@@ -222,13 +242,22 @@ func (s *ManagementServer) handleConnectionListing() http.HandlerFunc {
 
 		principal, _ := middlewares.GetPrincipal(req.Context())
 		requestId := request_id.GetReqID(req.Context())
+
 		logger := logger.Log.WithFields(logrus.Fields{
 			"account":    principal.GetAccount(),
 			"request_id": requestId})
 
 		logger.Debugf("Getting connection list")
 
-		allReceptorConnections := s.connectionMgr.GetAllConnections(req.Context())
+		requestParams, err := getConnectionListingParams(req)
+		if err != nil {
+			writeInvalidInputResponse(logger, w, err)
+			return
+		}
+
+		allReceptorConnections, totalConnections, _ := s.connectionMgr.GetAllConnections(req.Context(), requestParams.offset, requestParams.limit)
+
+		logger.Debugf("*** totalConnections: %d", totalConnections)
 
 		connections := make([]ConnectionsPerAccount, len(allReceptorConnections))
 
@@ -251,6 +280,28 @@ func (s *ManagementServer) handleConnectionListing() http.HandlerFunc {
 	}
 }
 
+type connectionListingByAccountParams struct {
+	accountId string
+	offset    int
+	limit     int
+}
+
+func getConnectionListingByAccountParams(req *http.Request) (*connectionListingByAccountParams, error) {
+	accountId := mux.Vars(req)["id"]
+
+	limit, err := getLimitFromQueryParams(req)
+	if err != nil {
+		return nil, err
+	}
+
+	offset, err := getOffsetFromQueryParams(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return &connectionListingByAccountParams{accountId, offset, limit}, nil
+}
+
 func (s *ManagementServer) handleConnectionListingByAccount() http.HandlerFunc {
 
 	type Response struct {
@@ -261,14 +312,27 @@ func (s *ManagementServer) handleConnectionListingByAccount() http.HandlerFunc {
 
 		principal, _ := middlewares.GetPrincipal(req.Context())
 		requestId := request_id.GetReqID(req.Context())
-		accountId := mux.Vars(req)["id"]
+
 		logger := logger.Log.WithFields(logrus.Fields{
 			"account":    principal.GetAccount(),
 			"request_id": requestId})
 
-		logger.Debug("Getting connections for ", accountId)
+		requestParams, err := getConnectionListingByAccountParams(req)
+		if err != nil {
+			writeInvalidInputResponse(logger, w, err)
+			return
+		}
 
-		accountConnections := s.connectionMgr.GetConnectionsByAccount(req.Context(), domain.AccountID(accountId))
+		logger.Debug("Getting connections for ", requestParams.accountId)
+
+		accountConnections, totalConnections, _ := s.connectionMgr.GetConnectionsByAccount(
+			req.Context(),
+			domain.AccountID(requestParams.accountId),
+			requestParams.offset,
+			requestParams.limit)
+
+		logger.Debugf("*** totalConnections: %d", totalConnections)
+
 		connections := make([]string, len(accountConnections))
 
 		connCount := 0

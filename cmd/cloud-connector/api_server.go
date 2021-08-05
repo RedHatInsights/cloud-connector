@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
-	"github.com/RedHatInsights/cloud-connector/internal/controller"
+	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/controller/api"
 	"github.com/RedHatInsights/cloud-connector/internal/mqtt"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
@@ -149,7 +149,7 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 		logger.LogFatalError("Unable to create proxy factory", err)
 	}
 
-	sqlConnectionLocator, err := controller.NewSqlConnectionLocator(cfg, proxyFactory)
+	sqlConnectionLocator, err := connection_repository.NewSqlConnectionLocator(cfg, proxyFactory)
 	if err != nil {
 		logger.LogFatalError("Failed to create SQL Connection Locator", err)
 	}

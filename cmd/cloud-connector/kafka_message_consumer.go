@@ -12,6 +12,7 @@ import (
 
 	"github.com/RedHatInsights/cloud-connector/internal/cloud_connector"
 	"github.com/RedHatInsights/cloud-connector/internal/config"
+    "github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/controller/api"
 	"github.com/RedHatInsights/cloud-connector/internal/mqtt"
@@ -45,7 +46,7 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 		logger.LogFatalError("Unable to configure TLS for MQTT Broker connection", err)
 	}
 
-	connectionRegistrar, err := controller.NewSqlConnectionRegistrar(cfg)
+	connectionRegistrar, err := connection_repository.NewSqlConnectionRegistrar(cfg)
 	if err != nil {
 		logger.LogFatalError("Failed to create SQL Connection Registrar", err)
 	}
@@ -141,7 +142,7 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	logger.Log.Info("Cloud-Connector shutting down")
 }
 
-func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mqtt.TopicVerifier, topicBuilder *mqtt.TopicBuilder, connectionRegistrar controller.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(*kafka.Message) error {
+func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mqtt.TopicVerifier, topicBuilder *mqtt.TopicBuilder, connectionRegistrar connection_repository.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(*kafka.Message) error {
 
 	handler := cloud_connector.HandleControlMessage(
 		cfg,

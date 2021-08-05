@@ -1,4 +1,4 @@
-package controller
+package connection_repository
 
 import (
 	"context"
@@ -66,8 +66,8 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": account, "client_id": client_id})
 
-	update := "UPDATE connections SET dispatchers=$1, updated_at = NOW() WHERE account=$2 AND client_id=$3"
-	insert := "INSERT INTO connections (account, client_id, dispatchers, canonical_facts) SELECT $4, $5, $6, $7"
+	update := "UPDATE connections SET dispatchers=$1, tags = $2, updated_at = NOW() WHERE account=$3 AND client_id=$4"
+	insert := "INSERT INTO connections (account, client_id, dispatchers, canonical_facts, tags) SELECT $5, $6, $7, $8, $9"
 	insertOrUpdate := fmt.Sprintf("WITH upsert AS (%s RETURNING *) %s WHERE NOT EXISTS (SELECT * FROM upsert)", update, insert)
 
 	statement, err := scm.database.Prepare(insertOrUpdate)
@@ -88,7 +88,13 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 		return NewConnection, err
 	}
 
-	results, err := statement.Exec(dispatchersString, account, client_id, account, client_id, dispatchersString, canonicalFactsString)
+	tagsString, err := json.Marshal(rhcClient.Tags)
+	if err != nil {
+		logger.WithFields(logrus.Fields{"error": err, "tags": rhcClient.CanonicalFacts}).Error("Unable to marshal tags")
+		return NewConnection, err
+	}
+
+	results, err := statement.Exec(dispatchersString, tagsString, account, client_id, account, client_id, dispatchersString, canonicalFactsString, tagsString)
 	if err != nil {
 		logger.Fatal(err)
 	}
