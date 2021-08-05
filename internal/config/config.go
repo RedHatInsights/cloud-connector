@@ -66,6 +66,11 @@ const (
 	JWT_TOKEN_EXPIRY                             = "JWT_Token_Expiry_Minutes"
 	JWT_PRIVATE_KEY_FILE                         = "JWT_Private_Key_File"
 	JWT_PUBLIC_KEY_FILE                          = "JWT_Public_Key_File"
+	RHC_MESSAGE_KAFKA_BROKERS                    = "RHC_Message_Kafka_Brokers"
+	RHC_MESSAGE_KAFKA_TOPIC                      = "RHC_Message_Kafka_Topic"
+	RHC_MESSAGE_KAFKA_BATCH_SIZE                 = "RHC_Message_Kafka_Batch_Size"
+	RHC_MESSAGE_KAFKA_BATCH_BYTES                = "RHC_Message_Kafka_Batch_Bytes"
+	RHC_MESSAGE_KAFKA_CONSUMER_GROUP             = "RHC_Message_Kafka_Consumer_Group"
 )
 
 type Config struct {
@@ -124,6 +129,11 @@ type Config struct {
 	JwtPrivateKeyFile                       string
 	JwtPublicKeyFile                        string
 	SleepTimeHack                           time.Duration
+	RhcMessageKafkaBrokers                  []string
+	RhcMessageKafkaTopic                    string
+	RhcMessageKafkaBatchSize                int
+	RhcMessageKafkaBatchBytes               int
+	RhcMessageKafkaConsumerGroup            string
 }
 
 func (c Config) String() string {
@@ -180,6 +190,12 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", AUTH_GATEWAY_URL, c.AuthGatewayUrl)
 	fmt.Fprintf(&b, "%s: %s\n", AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT, c.AuthGatewayHttpClientTimeout)
 	fmt.Fprintf(&b, "%s: %s\n", "Sleep_Time_Hack", c.SleepTimeHack)
+	fmt.Fprintf(&b, "%s: %s\n", RHC_MESSAGE_KAFKA_BROKERS, c.RhcMessageKafkaBrokers)
+	fmt.Fprintf(&b, "%s: %s\n", RHC_MESSAGE_KAFKA_TOPIC, c.RhcMessageKafkaTopic)
+	fmt.Fprintf(&b, "%s: %d\n", RHC_MESSAGE_KAFKA_BATCH_SIZE, c.RhcMessageKafkaBatchSize)
+	fmt.Fprintf(&b, "%s: %d\n", RHC_MESSAGE_KAFKA_BATCH_BYTES, c.RhcMessageKafkaBatchBytes)
+	fmt.Fprintf(&b, "%s: %s\n", RHC_MESSAGE_KAFKA_CONSUMER_GROUP, c.RhcMessageKafkaConsumerGroup)
+
 	return b.String()
 }
 
@@ -234,6 +250,12 @@ func GetConfig() *Config {
 	options.SetDefault(JWT_PUBLIC_KEY_FILE, "/etc/jwt/mqtt-public-key.rsa")
 	options.SetDefault(AUTH_GATEWAY_URL, "http://apicast.3scale-staging.svc.cluster.local:8890/internal/certauth")
 	options.SetDefault(AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT, 15)
+
+	options.SetDefault(RHC_MESSAGE_KAFKA_BROKERS, []string{DEFAULT_KAFKA_BROKER_ADDRESS})
+	options.SetDefault(RHC_MESSAGE_KAFKA_TOPIC, "platform.cloud-connector.mqtt_messages")
+	options.SetDefault(RHC_MESSAGE_KAFKA_BATCH_SIZE, 100)
+	options.SetDefault(RHC_MESSAGE_KAFKA_BATCH_BYTES, 1048576)
+	options.SetDefault(RHC_MESSAGE_KAFKA_CONSUMER_GROUP, "cloud-connector-rhc-message-consumer")
 
 	options.SetDefault("Sleep_Time_Hack", 0)
 
@@ -295,6 +317,11 @@ func GetConfig() *Config {
 		JwtPrivateKeyFile:                       options.GetString(JWT_PRIVATE_KEY_FILE),
 		JwtPublicKeyFile:                        options.GetString(JWT_PUBLIC_KEY_FILE),
 		SleepTimeHack:                           options.GetDuration("Sleep_Time_Hack") * time.Second,
+		RhcMessageKafkaBrokers:                  options.GetStringSlice(RHC_MESSAGE_KAFKA_BROKERS),
+		RhcMessageKafkaTopic:                    options.GetString(RHC_MESSAGE_KAFKA_TOPIC),
+		RhcMessageKafkaBatchSize:                options.GetInt(RHC_MESSAGE_KAFKA_BATCH_SIZE),
+		RhcMessageKafkaBatchBytes:               options.GetInt(RHC_MESSAGE_KAFKA_BATCH_BYTES),
+		RhcMessageKafkaConsumerGroup:            options.GetString(RHC_MESSAGE_KAFKA_CONSUMER_GROUP),
 	}
 }
 

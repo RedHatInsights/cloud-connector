@@ -55,12 +55,11 @@ func startMqttMessageConsumer(mgmtAddr string) {
 	mqttTopicBuilder := mqtt.NewTopicBuilder(cfg.MqttTopicPrefix)
 	mqttTopicVerifier := mqtt.NewTopicVerifier(cfg.MqttTopicPrefix)
 
-	// FIXME:
 	kafkaProducerCfg := &queue.ProducerConfig{
-		Brokers:    cfg.InventoryKafkaBrokers,
-		Topic:      "platform.cloud-connector.mqtt_messages",
-		BatchSize:  cfg.InventoryKafkaBatchSize,
-		BatchBytes: cfg.InventoryKafkaBatchBytes,
+		Brokers:    cfg.RhcMessageKafkaBrokers,
+		Topic:      cfg.RhcMessageKafkaTopic,
+		BatchSize:  cfg.RhcMessageKafkaBatchSize,
+		BatchBytes: cfg.RhcMessageKafkaBatchBytes,
 	}
 
 	kafkaProducer := queue.StartProducer(kafkaProducerCfg)

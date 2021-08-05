@@ -69,12 +69,10 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	mqttTopicBuilder := mqtt.NewTopicBuilder(cfg.MqttTopicPrefix)
 	mqttTopicVerifier := mqtt.NewTopicVerifier(cfg.MqttTopicPrefix)
 
-	// FIXME:
-	//start kafka consumer
 	rhcMessageKafkaConsumer := queue.ConsumerConfig{
-		Brokers: cfg.InventoryKafkaBrokers,                // FIXME:
-		Topic:   "platform.cloud-connector.mqtt_messages", // FIXME: configurable
-		GroupID: "cloud-connector-rhc-message-consumer",   // FIXME:
+		Brokers: cfg.RhcMessageKafkaBrokers,
+		Topic:   cfg.RhcMessageKafkaTopic,
+		GroupID: cfg.RhcMessageKafkaConsumerGroup,
 	}
 	kafkaReader := queue.StartConsumer(&rhcMessageKafkaConsumer)
 
