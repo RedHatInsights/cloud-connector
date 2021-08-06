@@ -111,7 +111,8 @@ func startMqttMessageConsumer(mgmtAddr string) {
 
 	utils.ShutdownHTTPServer(ctx, "management", apiSrv)
 
-	mqttClient.Disconnect(1000) // FIXME: configurable??
+	mqttClient.Disconnect(cfg.MqttDisconnectQuiesceTime)
+
 	kafkaProducer.Close()
 
 	logger.Log.Info("Cloud-Connector shutting down")

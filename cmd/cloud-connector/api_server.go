@@ -183,5 +183,7 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 
 	utils.ShutdownHTTPServer(ctx, "management", apiSrv)
 
+	mqttClient.Disconnect(cfg.MqttDisconnectQuiesceTime)
+
 	logger.Log.Info("Cloud-Connector shutting down")
 }
