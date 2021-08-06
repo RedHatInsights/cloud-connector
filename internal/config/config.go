@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	clowder "github.com/redhatinsights/app-common-go/pkg/api/v1"
 	"github.com/spf13/viper"
 )
 
@@ -237,7 +238,7 @@ func GetConfig() *Config {
 	options.SetEnvPrefix(ENV_PREFIX)
 	options.AutomaticEnv()
 
-	return &Config{
+	config := &Config{
 		UrlPathPrefix:                           options.GetString(URL_PATH_PREFIX),
 		UrlAppName:                              options.GetString(URL_APP_NAME),
 		UrlBasePath:                             buildUrlBasePath(options.GetString(URL_PATH_PREFIX), options.GetString(URL_APP_NAME)),
@@ -292,6 +293,39 @@ func GetConfig() *Config {
 		JwtPublicKeyFile:                        options.GetString(JWT_PUBLIC_KEY_FILE),
 		SleepTimeHack:                           options.GetDuration("Sleep_Time_Hack") * time.Second,
 	}
+
+	if clowder.IsClowderEnabled() {
+		cfg := clowder.LoadedConfig
+
+		fmt.Println("Cloud-Connector is running in a Clowderized environment...overriding configuration!!")
+
+		config.InventoryKafkaBrokers = clowder.KafkaServers
+		config.InventoryKafkaTopic = clowder.KafkaTopics["platform.inventory.host-ingress-p1"].Name
+
+		config.ConnectionDatabaseHost = cfg.Database.Hostname
+		config.ConnectionDatabasePort = cfg.Database.Port
+		config.ConnectionDatabaseName = cfg.Database.Name
+		config.ConnectionDatabaseUser = cfg.Database.Username
+		config.ConnectionDatabasePassword = cfg.Database.Password
+
+		config.ConnectionDatabaseSslMode = cfg.Database.SslMode
+		if cfg.Database.RdsCa != nil {
+			config.ConnectionDatabaseSslRootCert = *cfg.Database.RdsCa
+		}
+
+		/*
+			options.SetDefault("Web_Port", cfg.WebPort)
+			options.SetDefault("Metrics_Port", cfg.MetricsPort)
+			options.SetDefault("Metrics_Path", cfg.MetricsPath)
+
+			options.SetDefault("Log_Group", cfg.Logging.Cloudwatch.LogGroup)
+			options.SetDefault("Aws_Region", cfg.Logging.Cloudwatch.Region)
+			options.SetDefault("Aws_Access_Key_Id", cfg.Logging.Cloudwatch.AccessKeyId)
+			options.SetDefault("Aws_Secret_Access_Key", cfg.Logging.Cloudwatch.SecretAccessKey)
+		*/
+	}
+
+	return config
 }
 
 func buildUrlBasePath(pathPrefix string, appName string) string {
