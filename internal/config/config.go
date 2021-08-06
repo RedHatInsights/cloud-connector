@@ -297,6 +297,8 @@ func GetConfig() *Config {
 	if clowder.IsClowderEnabled() {
 		cfg := clowder.LoadedConfig
 
+		fmt.Println("Cloud-Connector is running in a Clowderized environment...overriding configuration!!")
+
 		config.InventoryKafkaBrokers = clowder.KafkaServers
 		config.InventoryKafkaTopic = clowder.KafkaTopics["platform.inventory.host-ingress-p1"].Name
 
