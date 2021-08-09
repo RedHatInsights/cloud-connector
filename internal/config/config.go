@@ -98,7 +98,7 @@ type Config struct {
 	MqttControlPublishQoS                   byte
 	MqttDataSubscriptionQoS                 byte
 	MqttDataPublishQoS                      byte
-	MqttDisconnectQuiesceTime               int
+	MqttDisconnectQuiesceTime               uint
 	InvalidHandshakeReconnectDelay          int
 	KafkaBrokers                            []string
 	ClientIdToAccountIdImpl                 string
@@ -290,7 +290,7 @@ func GetConfig() *Config {
 		MqttControlPublishQoS:                   byte(options.GetInt(MQTT_CONTROL_PUBLISH_QOS)),
 		MqttDataSubscriptionQoS:                 byte(options.GetInt(MQTT_DATA_SUBSCRIPTION_QOS)),
 		MqttDataPublishQoS:                      byte(options.GetInt(MQTT_DATA_PUBLISH_QOS)),
-		MqttDisconnectQuiesceTime:               options.GetInt(MQTT_DISCONNECT_QUIESCE_TIME),
+		MqttDisconnectQuiesceTime:               options.GetUint(MQTT_DISCONNECT_QUIESCE_TIME),
 		InvalidHandshakeReconnectDelay:          options.GetInt(INVALID_HANDSHAKE_RECONNECT_DELAY),
 		ClientIdToAccountIdImpl:                 options.GetString(CLIENT_ID_TO_ACCOUNT_ID_IMPL),
 		ClientIdToAccountIdConfigFile:           options.GetString(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE),
