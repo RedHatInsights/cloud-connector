@@ -15,10 +15,10 @@ objects:
     database:
        name: cloud-connector
        version: 10
-     kafkaTopics:
-     - replicas: 3
-       partitions: 16
-       topicName: platform.inventory.host-ingress-p1
+    kafkaTopics:
+    - replicas: 3
+      partitions: 16
+      topicName: platform.inventory.host-ingress-p1
     deployments:
     - name: cloud-connector-api-clowder
       webServices:
