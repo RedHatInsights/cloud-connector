@@ -131,6 +131,7 @@ objects:
             cpu: 50m
             memory: 512Mi
 
+
 - apiVersion: v1
   kind: Secret
   metadata:
@@ -144,6 +145,17 @@ objects:
     switch-psk-map: >-
       eyJ0b3BvbG9naWNhbC1pbnZlbnRvcnkiOiAiMjIyMjIyMjIyMjIyMjIyMjIyIiwgInNvdXJjZXMiOiAiMzMzMzMzMzMzMzMzMzMzMzMzIn0=
   type: Opaque
+
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: cloud-connector-mqtt-credentials
+    labels:
+      app: cloud-connector
+  data:
+    mqtt.user: ZnJlZA==
+
 
 parameters:
 - description: Initial amount of memory the cloud-connector container will request.
