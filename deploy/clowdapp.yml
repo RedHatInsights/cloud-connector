@@ -140,11 +140,7 @@ objects:
     labels:
       app: cloud-connector
   data:
-    gateway-psk-map: eyJqb2JfcmVjZWl2ZXIiOiAiMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifQ==
-    receptor-proxy-client-id: am9iX3JlY2VpdmVy
-    receptor-proxy-client-psk: MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE=
-    switch-psk-map: >-
-      eyJ0b3BvbG9naWNhbC1pbnZlbnRvcnkiOiAiMjIyMjIyMjIyMjIyMjIyMjIyIiwgInNvdXJjZXMiOiAiMzMzMzMzMzMzMzMzMzMzMzMzIn0=
+    connector-psk-map: eyJqb2JfcmVjZWl2ZXIiOiAiMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifQ==
   type: Opaque
 
 
