@@ -4,6 +4,7 @@ kind: Template
 metadata:
   name: cloud-connector
 objects:
+
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdApp
   metadata:
@@ -195,8 +196,8 @@ parameters:
 - description: Image tag
   name: IMAGE_TAG
   required: true
-- name: ENV_NAME
-  value: ${ENV_NAME}
+- description : ClowdEnvironment name
+  name: ENV_NAME
   required: true
 
 - name: MQTT_BROKER_ADDRESS
