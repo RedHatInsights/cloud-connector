@@ -281,7 +281,6 @@
   "components": {
     "parameters": {
       "AccountID": {
-        "in": "path",
         "name": "account",
         "description": "Account number",
         "schema": {
