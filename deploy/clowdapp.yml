@@ -1,0 +1,227 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: cloud-connector
+objects:
+
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdApp
+  metadata:
+    name: cloud-connector
+  spec:
+    envName: ${ENV_NAME}
+    inMemoryDb: false
+    database:
+       name: cloud-connector
+       version: 10
+    kafkaTopics:
+    - replicas: 3
+      partitions: 16
+      topicName: platform.inventory.host-ingress-p1
+    deployments:
+    - name: cloud-connector-api-clowder
+      webServices:
+        private:
+          enabled: True
+        public:
+          enabled: False
+        metrics:
+          enabled: True
+      minReplicas: ${{API_REPLICAS}}
+      podSpec:
+        minReadySeconds: 15
+        progressDeadlineSeconds: 600
+        image: ${IMAGE}:${IMAGE_TAG}
+        command:
+          - ./cloud-connector
+          - mqtt_connection_handler
+          - -l
+          - :10000
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /liveness
+            port: 10000
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /readiness
+            port: 10000
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: ${CPU_LIMIT}
+            memory: ${MEMORY_LIMIT}
+          requests:
+            cpu: ${CPU_REQUEST}
+            memory: ${MEMORY_REQUEST}
+        env:
+        - name: CLOUD_CONNECTOR_LOG_LEVEL
+          value: ${{LOG_LEVEL}}
+        - name: CLOUD_CONNECTOR_LOG_FORMAT
+          value: ${{LOG_FORMAT}}
+
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
+          value: ${{MQTT_BROKER_ADDRESS}}
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+          value: jwt_rsa_generator
+        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+          value: /tmp/jwt_keys/jwt_signing_key.pem
+        - name: CLOUD_CONNECTOR_MQTT_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              key: mqtt.user
+              name: cloud-connector-mqtt-credentials
+
+        - name: CLOUD_CONNECTOR_SERVICE_TO_SERVICE_CREDENTIALS
+          valueFrom:
+            secretKeyRef:
+              key: connector-psk-map
+              name: cloud-connector-psks
+
+        - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_IMPL
+          value: ${{CLIENT_ID_TO_ACCOUNT_ID_IMPL}}
+        - name: CLOUD_CONNECTOR_AUTH_GATEWAY_URL
+          value: ${{AUTH_GATEWAY_URL}}
+
+        - name: CLOUD_CONNECTOR_CONNECTED_CLIENT_RECORDER_IMPL
+          value: inventory
+
+        - name: CLOUD_CONNECTOR_SOURCES_RECORDER_IMPL
+          value: ${{SOURCES_RECORDER_IMPL}}
+        - name: CLOUD_CONNECTOR_SOURCES_BASE_URL
+          value: ${{SOURCES_BASE_URL}}
+
+        - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
+          value: ${{MQTT_TOPIC_PREFIX}}
+
+        - name: CLOUD_CONNECTOR_SLEEP_TIME_HACK
+          value: "0"
+
+
+    jobs:
+    - name: cloud-connector-connection-per-account-reporter
+      schedule: ${CONNECTION_PER_ACCOUNT_REPORTER_SCHEDULE}
+      suspend: ${{CONNECTION_PER_ACCOUNT_REPORTER_SUSPEND}}
+      podSpec:
+        name: cloud-connector-connection-per-account-reporter
+        restartPolicy: OnFailure
+        image: ${IMAGE}:${IMAGE_TAG}
+        command:
+          - ./connection-cleaner
+          - connection_count_per_account_reporter
+        env:
+          - name: CLOUD_CONNECTOR_LOG_LEVEL
+            value: ${{LOG_LEVEL}}
+          - name: CLOUD_CONNECTOR_LOG_FORMAT
+            value: ${{CONNECTION_PER_ACCOUNT_REPORTER_LOG_FORMAT}}
+        concurrencyPolicy: Forbid
+        resources:
+          limits:
+            cpu: 300m
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 512Mi
+
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: cloud-connector-psks
+    labels:
+      app: cloud-connector
+  data:
+    connector-psk-map: eyJqb2JfcmVjZWl2ZXIiOiAiMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEifQ==
+  type: Opaque
+
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: cloud-connector-mqtt-credentials
+    labels:
+      app: cloud-connector
+  data:
+    mqtt.user: ZnJlZA==
+
+
+parameters:
+- description: Initial amount of memory the cloud-connector container will request.
+  displayName: Memory Request
+  name: MEMORY_REQUEST
+  required: true
+  value: 256Mi
+- description: Maximum amount of memory the cloud-connector.
+  displayName: Memory Limit
+  name: MEMORY_LIMIT
+  required: true
+  value: 512Mi
+- description: Initial amount of cpu the cloud-connector container will request.
+  displayName: CPU Request
+  name: CPU_REQUEST
+  required: true
+  value: 200m
+- description: Maximum amount of cpu the cloud-connector container can use.
+  displayName: CPU Limit
+  name: CPU_LIMIT
+  required: true
+  value: 500m
+- description: The log level to use for logging
+  displayName: The log level to use for logging
+  name: LOG_LEVEL
+  required: true
+  value: DEBUG
+- name: LOG_FORMAT
+  value: logstash
+- description: The number of replicas to use for the cloud-connector api
+  name: API_REPLICAS
+  value: '1'
+- description: Image
+  name: IMAGE
+  required: true
+  value: quay.io/cloudservices/cloud-connector
+- description: Image tag
+  name: IMAGE_TAG
+  required: true
+- description : ClowdEnvironment name
+  name: ENV_NAME
+  required: true
+
+- name: MQTT_BROKER_ADDRESS
+  value: "wss://just.falloverfornow.com:8883/"
+  required: true
+- name: MQTT_TOPIC_PREFIX
+  value: "ci"
+  required: true
+
+- name: CLIENT_ID_TO_ACCOUNT_ID_IMPL
+  value: "fake"
+  required: true
+
+- name: AUTH_GATEWAY_URL
+  value: "fake"
+  required: true
+
+- name: SOURCES_RECORDER_IMPL
+  value: "fake"
+  required: true
+
+- name: SOURCES_BASE_URL
+  value: "fake"
+  required: true
+
+- name: CONNECTION_PER_ACCOUNT_REPORTER_SCHEDULE
+  value: "00 01 * * 1"
+- name: CONNECTION_PER_ACCOUNT_REPORTER_SUSPEND
+  value: "false"
+- name: CONNECTION_PER_ACCOUNT_REPORTER_LOG_FORMAT
+  value: "logstash"

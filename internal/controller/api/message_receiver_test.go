@@ -114,11 +114,11 @@ func (m *MockConnectionManager) GetConnection(ctx context.Context, account domai
 }
 
 func (m *MockConnectionManager) GetConnectionsByAccount(ctx context.Context, account domain.AccountID, offset int, limit int) (map[domain.ClientID]controller.Receptor, int, error) {
-	return m.AccountIndex[account], 0, nil
+	return m.AccountIndex[account], len(m.AccountIndex[account]), nil
 }
 
 func (m *MockConnectionManager) GetAllConnections(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.Receptor, int, error) {
-	return m.AccountIndex, 0, nil
+	return m.AccountIndex, len(m.AccountIndex), nil
 }
 
 func init() {

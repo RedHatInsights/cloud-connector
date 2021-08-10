@@ -324,10 +324,27 @@ var _ = Describe("Management", func() {
 
 				Expect(rr.Code).To(Equal(http.StatusOK))
 
-				// FIXME: need to verify that connection list
-				var m map[string]interface{}
-				json.Unmarshal(rr.Body.Bytes(), &m)
-				Expect(m).Should(HaveKey("connections"))
+				var actualResponse paginatedResponse
+
+				var expectedResponse = paginatedResponse{
+					Meta: meta{Count: 1},
+					Links: navigationLinks{
+						First: "/api/cloud-connector/api/v1/connection?limit=1000&offset=0",
+						Last:  "/api/cloud-connector/api/v1/connection?limit=1000&offset=0",
+						Next:  "",
+						Prev:  "",
+					},
+					Data: []interface{}{
+						map[string]interface{}{
+							"account":     "1234",
+							"connections": []interface{}{string("345")},
+						},
+					},
+				}
+
+				json.Unmarshal(rr.Body.Bytes(), &actualResponse)
+
+				Expect(actualResponse).Should(Equal(expectedResponse))
 			})
 
 		})
@@ -398,10 +415,21 @@ var _ = Describe("Management", func() {
 
 				Expect(rr.Code).To(Equal(http.StatusOK))
 
-				var m map[string][]string
-				expected := map[string][]string{"connections": []string{"345"}}
-				json.Unmarshal(rr.Body.Bytes(), &m)
-				Expect(m).Should(Equal(expected))
+				var actualResponse paginatedResponse
+				var expectedResponse = paginatedResponse{
+					Meta: meta{Count: 1},
+					Links: navigationLinks{
+						First: "/api/cloud-connector/api/v1/connection/1234?limit=1000&offset=0",
+						Last:  "/api/cloud-connector/api/v1/connection/1234?limit=1000&offset=0",
+						Next:  "",
+						Prev:  "",
+					},
+					Data: []interface{}{string("345")},
+				}
+
+				json.Unmarshal(rr.Body.Bytes(), &actualResponse)
+
+				Expect(actualResponse).Should(Equal(expectedResponse))
 			})
 
 		})

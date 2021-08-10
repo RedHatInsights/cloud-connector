@@ -22,6 +22,7 @@ require (
 	github.com/onsi/gomega v1.9.0
 	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/prometheus/client_golang v1.9.0
+	github.com/redhatinsights/app-common-go v1.5.1 // indirect
 	github.com/redhatinsights/platform-go-middlewares v0.8.1
 	github.com/segmentio/kafka-go v0.4.8
 	github.com/sirupsen/logrus v1.8.1
