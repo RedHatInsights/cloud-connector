@@ -350,10 +350,53 @@
           }
         }
       },
-      "ConnectionListResponse": {
+      "PaginatedResponseMeta": {
         "type": "object",
         "properties": {
-          "connections": {
+          "meta": {
+            "type": "object",
+            "properties": {
+              "count": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "PaginatedResponseLinks": {
+        "type": "object",
+        "properties": {
+          "links": {
+            "type": "object",
+            "properties": {
+              "first": {
+                "type": "string"
+              },
+              "last": {
+                "type": "string"
+              },
+              "next": {
+                "type": "string"
+              },
+              "prev": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "ConnectionListResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PaginatedResponseMeta"
+          },
+          {
+            "$ref": "#/components/schemas/PaginatedResponseLinks"
+          }
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
             "type": "array",
             "items": {
               "type": "object",
@@ -375,9 +418,17 @@
         }
       },
       "ConnectionListAccountResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PaginatedResponseMeta"
+          },
+          {
+            "$ref": "#/components/schemas/PaginatedResponseLinks"
+          }
+        ],
         "type": "object",
         "properties": {
-          "connections": {
+          "data": {
             "type": "array",
             "items": {
               "type": "string",
@@ -450,7 +501,6 @@
           }
         }
       },
-
       "Payload": {
         "type": "object",
         "properties": {

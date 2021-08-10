@@ -234,10 +234,6 @@ func (s *ManagementServer) handleConnectionListing() http.HandlerFunc {
 		Connections   []string `json:"connections"`
 	}
 
-	type Response struct {
-		Connections []ConnectionsPerAccount `json:"connections"`
-	}
-
 	return func(w http.ResponseWriter, req *http.Request) {
 
 		principal, _ := middlewares.GetPrincipal(req.Context())
@@ -274,7 +270,7 @@ func (s *ManagementServer) handleConnectionListing() http.HandlerFunc {
 			accountCount++
 		}
 
-		response := Response{Connections: connections}
+		response := buildPaginatedResponse(req.URL, requestParams.offset, requestParams.limit, totalConnections, connections)
 
 		writeJSONResponse(w, http.StatusOK, response)
 	}
@@ -303,10 +299,6 @@ func getConnectionListingByAccountParams(req *http.Request) (*connectionListingB
 }
 
 func (s *ManagementServer) handleConnectionListingByAccount() http.HandlerFunc {
-
-	type Response struct {
-		Connections []string `json:"connections"`
-	}
 
 	return func(w http.ResponseWriter, req *http.Request) {
 
@@ -341,7 +333,7 @@ func (s *ManagementServer) handleConnectionListingByAccount() http.HandlerFunc {
 			connCount++
 		}
 
-		response := Response{Connections: connections}
+		response := buildPaginatedResponse(req.URL, requestParams.offset, requestParams.limit, totalConnections, connections)
 
 		writeJSONResponse(w, http.StatusOK, response)
 	}
