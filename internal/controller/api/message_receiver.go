@@ -15,6 +15,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	accountMismatchErrorMsg = "Account mismatch"
+)
+
 type MessageReceiver struct {
 	connectionMgr connection_repository.ConnectionLocator
 	router        *mux.Router
@@ -80,12 +84,12 @@ func (jr *MessageReceiver) handleJob() http.HandlerFunc {
 		}
 
 		if principal.GetAccount() != msgRequest.Account {
-			errMsg := "Account mismatch"
-			logger.Debug(errMsg)
-			errorResponse := errorResponse{Title: errMsg,
+			logger.Debug(accountMismatchErrorMsg)
+			errorResponse := errorResponse{Title: accountMismatchErrorMsg,
 				Status: http.StatusForbidden,
-				Detail: errMsg}
+				Detail: accountMismatchErrorMsg}
 			writeJSONResponse(w, errorResponse.Status, errorResponse)
+			return
 		}
 
 		var client controller.Receptor
