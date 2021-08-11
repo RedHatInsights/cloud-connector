@@ -3,7 +3,6 @@ package mqtt
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -32,16 +31,11 @@ func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber dom
 
 	logger := logger.Log.WithFields(logrus.Fields{"message_id": messageID, "account": rhp.AccountID, "client_id": rhp.ClientID})
 
-	go func() {
-		var sleepTime time.Duration = rhp.Config.SleepTimeHack
-		logger.Debugf("Sleeping for %s seconds before sending data message to connected client\n", sleepTime)
-		time.Sleep(sleepTime)
-		logger.Debug("Sending data message to connected client")
+	logger.Debug("Sending data message to connected client")
 
-		topic := rhp.TopicBuilder.BuildOutgoingDataTopic(rhp.ClientID)
+	topic := rhp.TopicBuilder.BuildOutgoingDataTopic(rhp.ClientID)
 
-		err = sendMessage(rhp.Client, logger, rhp.ClientID, messageID, topic, rhp.Config.MqttDataPublishQoS, message)
-	}()
+	err = sendMessage(rhp.Client, logger, rhp.ClientID, messageID, topic, rhp.Config.MqttDataPublishQoS, message)
 
 	return messageID, err
 }
