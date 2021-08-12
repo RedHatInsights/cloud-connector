@@ -201,7 +201,6 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 	fmt.Println("retained: ", retained)
 	fmt.Println("qos: ", qos)
 	client.Publish(controlWriteTopic, qos, retained, payload)
-	fmt.Printf("Published message %s... Sleeping...\n", payload)
 }
 
 func onMessageReceived(client MQTT.Client, message MQTT.Message) {
