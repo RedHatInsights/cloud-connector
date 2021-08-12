@@ -1,6 +1,7 @@
 CONNECTOR_SERVICE_BINARY=cloud-connector
 CONNECTED_CLIENT_BINARY=test_client
 MIGRATE_DB_BINARY=migrate_db
+PENDO_TRANSMITTER_BINARY=pendo-transmitter
 
 DOCKER_COMPOSE_CFG=dev.yml
 
@@ -13,6 +14,10 @@ build:
 	go build -o $(CONNECTOR_SERVICE_BINARY) cmd/$(CONNECTOR_SERVICE_BINARY)/*.go
 	go build -o $(CONNECTED_CLIENT_BINARY) cmd/$(CONNECTED_CLIENT_BINARY)/*.go
 	go build -o $(MIGRATE_DB_BINARY) cmd/$(MIGRATE_DB_BINARY)/main.go
+
+run-pendo-transmitter:
+	go build -o $(PENDO_TRANSMITTER_BINARY) cmd/$(PENDO_TRANSMITTER_BINARY)/*.go
+	./$(PENDO_TRANSMITTER_BINARY)
 
 deps:
 	go get -u golang.org/x/lint/golint

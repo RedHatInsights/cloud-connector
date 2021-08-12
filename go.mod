@@ -10,7 +10,7 @@ require (
 	github.com/go-playground/assert/v2 v2.0.1
 	github.com/go-playground/validator/v10 v10.4.1
 	github.com/golang-migrate/migrate/v4 v4.14.1
-	github.com/google/go-cmp v0.5.1 // indirect
+	github.com/google/go-cmp v0.5.1
 	github.com/google/uuid v1.1.4
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
@@ -30,7 +30,8 @@ require (
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/viper v1.7.1
-	golang.org/x/sys v0.0.0-20210301091718-77cc2087c03b // indirect
+	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/text v0.3.5 // indirect
+	golang.org/x/tools v0.1.5 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
 )

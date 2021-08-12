@@ -2,8 +2,12 @@ package main
 
 import (
 	"os"
+	"fmt"
+	"context"
 
 	"github.com/spf13/cobra"
+	cr "github.com/RedHatInsights/cloud-connector/internal/connection_repository"
+	"github.com/RedHatInsights/cloud-connector/internal/domain"
 )
 
 func NewRootCommand() *cobra.Command {
@@ -37,7 +41,7 @@ func NewRootCommand() *cobra.Command {
 		Use:   "connection_count_per_account_reporter",
 		Short: "Generate a report on the number of connections per account",
 		Run: func(cmd *cobra.Command, args []string) {
-			startConnectedAccountReport(excludeAccounts)
+			cr.StartConnectedAccountReport(excludeAccounts, stdoutConnectionCountProcessor)
 		},
 	}
 
@@ -50,6 +54,11 @@ func NewRootCommand() *cobra.Command {
 	connectedAccountReportCmd.Flags().StringVarP(&excludeAccounts, "exclude-accounts", "e", "477931,6089719,540155", "477931,6089719,540155")
 
 	return rootCmd
+}
+
+func stdoutConnectionCountProcessor(ctx context.Context, account domain.AccountID, count int) error {
+	fmt.Printf("%s - %d\n", account, count)
+	return nil
 }
 
 func main() {
