@@ -12,6 +12,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	TopicKafkaHeaderKey     = "topic"
+	MessageIDKafkaHeaderKey = "mqtt_message_id"
+)
+
 type Subscriber struct {
 	Topic      string
 	EntryPoint MQTT.MessageHandler
@@ -88,9 +93,9 @@ func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topic
 			err := kafkaWriter.WriteMessages(ctx,
 				kafka.Message{
 					Headers: []kafka.Header{
-						{"topic", []byte(message.Topic())},
-						{"mqtt_message_id", []byte(mqttMessageID)},
-					}, // FIXME:  hard coded string??
+						{TopicKafkaHeaderKey, []byte(message.Topic())},
+						{MessageIDKafkaHeaderKey, []byte(mqttMessageID)},
+					},
 					Value: message.Payload(),
 				})
 

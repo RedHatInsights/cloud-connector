@@ -185,8 +185,8 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 			return nil
 		}
 
-		topic := getHeaderValueAsString(msg.Headers, "topic")
-		mqttMessageID := getHeaderValueAsString(msg.Headers, "mqtt_message_id")
+		topic := getHeaderValueAsString(msg.Headers, mqtt.TopicKafkaHeaderKey)
+		mqttMessageID := getHeaderValueAsString(msg.Headers, mqtt.MessageIDKafkaHeaderKey)
 
 		logger := logger.Log.WithFields(logrus.Fields{"mqtt_message_id": mqttMessageID})
 
