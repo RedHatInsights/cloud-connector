@@ -23,6 +23,8 @@ import (
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	kafka "github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 )
@@ -95,15 +97,15 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 		brokerOptions...,
 	)
 	if err != nil {
-		logger.LogFatalError("Unable to establish MQTT Broker connection", err)
+		logger.LogFatalError("Unable to establish MQTT broker connection", err)
 	}
 
 	select {
 	case <-connectedChan:
-		fmt.Println("CONNECTED!!")
+		logger.Log.Debug("Successfully connected to MQTT broker")
 		break
 	case <-time.After(2 * time.Second):
-		logger.Log.Fatal("Failed ot connect")
+		logger.Log.Fatal("Failed to connect to MQTT broker")
 	}
 
 	messageProcessor := handleMessage(
@@ -116,7 +118,12 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 		connectedClientRecorder,
 		sourcesRecorder)
 
-	go consumeMqttMessagesFromKafka(kafkaReader, messageProcessor)
+	shutdownCtx, shutdownCtxCancel := context.WithCancel(context.Background())
+	// If the kafka consumer runs into a kafka error, notify the
+	// main thread so that it can shutdown the process
+	kafkaError := make(chan struct{})
+
+	go consumeMqttMessagesFromKafka(kafkaReader, messageProcessor, shutdownCtx, kafkaError)
 
 	apiMux := mux.NewRouter()
 
@@ -129,8 +136,13 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
-	sig := <-signalChan
-	logger.Log.Info("Received signal to shutdown: ", sig)
+	select {
+	case sig := <-signalChan:
+		logger.Log.Info("Received signal to shutdown: ", sig)
+		shutdownCtxCancel() // Notify the consumer to shutdown
+	case <-kafkaError:
+		logger.Log.Info("Received kafka error...shutting down!")
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.HttpShutdownTimeout)
 	defer cancel()
@@ -142,9 +154,20 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	logger.Log.Info("Cloud-Connector shutting down")
 }
 
+func getHeaderValueAsString(headers []kafka.Header, headerName string) string {
+
+	for _, header := range headers {
+		if header.Key == headerName {
+			return string(header.Value)
+		}
+	}
+
+	return ""
+}
+
 func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mqtt.TopicVerifier, topicBuilder *mqtt.TopicBuilder, connectionRegistrar connection_repository.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(*kafka.Message) error {
 
-	handler := cloud_connector.HandleControlMessage(
+	controlMessageHandler := cloud_connector.HandleControlMessage(
 		cfg,
 		mqttClient,
 		topicBuilder,
@@ -155,30 +178,22 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 
 	return func(msg *kafka.Message) error {
 
-		// FIXME: move all this ugly header handling logic to a helper method
+		logger.Log.Tracef("%% Message %s\n", string(msg.Value))
 
-		fmt.Printf("%% Message %s\n", string(msg.Value))
 		if msg.Headers == nil {
-			return errors.New("FIXME: no headers in kafka message!!")
+			logger.Log.Debug("Unable to process message.  Message does not have headers!")
+			return nil
 		}
 
-		var topic string
-		var mqttMessageID string
-
-		for _, header := range msg.Headers {
-			if header.Key == "topic" {
-				topic = string(header.Value)
-			} else if header.Key == "mqtt_message_id" {
-				mqttMessageID = string(header.Value)
-			}
-		}
+		topic := getHeaderValueAsString(msg.Headers, "topic")
+		mqttMessageID := getHeaderValueAsString(msg.Headers, "mqtt_message_id")
 
 		logger := logger.Log.WithFields(logrus.Fields{"mqtt_message_id": mqttMessageID})
 
 		logger.Debug("Read message off of kafka topic")
 
 		if len(topic) == 0 {
-			logger.Debug("Unable to process message.  Message does not have topic header")
+			logger.Debug("Unable to process message.  Message does not have topic header!")
 			return nil
 		}
 
@@ -189,7 +204,8 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 		topicType, clientID, err := topicVerifier.VerifyIncomingTopic(topic)
 
 		if err != nil {
-			logger.WithFields(logrus.Fields{"error": err}).Debug("Error during topic parsing")
+			logger.WithFields(logrus.Fields{"error": err}).Debug("Unable to process message.  Unable to parse topic!")
+			return nil
 		}
 
 		if topicType != mqtt.ControlTopicType {
@@ -197,21 +213,27 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 			return nil
 		}
 
-		handler(mqttClient, clientID, payload)
+		controlMessageHandler(mqttClient, clientID, payload)
 
 		return nil
 	}
 }
 
-func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*kafka.Message) error) {
+func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*kafka.Message) error, ctx context.Context, kafkaError chan struct{}) {
 
 	for {
-		m, err := kafkaReader.ReadMessage(context.Background())
+		m, err := kafkaReader.ReadMessage(ctx)
 		if err != nil {
-			logger.LogError("Failed to read message from kafka", err)
+			if errors.Is(err, context.Canceled) != true {
+				logger.LogError("Failed to read message from kafka", err)
+				// Notify the main thread to shutdown
+				kafkaError <- struct{}{}
+			}
 			break
 		}
 		logger.Log.Infof("message at offset %d: %s = %s\n", m.Offset, string(m.Key), string(m.Value))
+
+		metrics.kafkaMessageReceivedCounter.Inc()
 
 		process(&m)
 	}
@@ -222,3 +244,22 @@ func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*kafka
 		logger.LogError("Failed to close kafka reader", err)
 	}
 }
+
+type mqttMetrics struct {
+	kafkaMessageReceivedCounter prometheus.Counter
+}
+
+func newMqttMetrics() *mqttMetrics {
+	metrics := new(mqttMetrics)
+
+	metrics.kafkaMessageReceivedCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "cloud_connector_kafka_message_received_count",
+		Help: "The number of kafka messages received",
+	})
+
+	return metrics
+}
+
+var (
+	metrics = newMqttMetrics()
+)

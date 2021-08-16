@@ -82,6 +82,9 @@ func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topic
 		}
 
 		go func() {
+			metrics.kafkaWriterGoRoutineGauge.Inc()
+			defer metrics.kafkaWriterGoRoutineGauge.Dec()
+
 			err := kafkaWriter.WriteMessages(ctx,
 				kafka.Message{
 					Headers: []kafka.Header{
