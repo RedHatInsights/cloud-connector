@@ -64,6 +64,9 @@ objects:
           requests:
             cpu: ${CPU_REQUEST}
             memory: ${MEMORY_REQUEST}
+        volumeMounts:
+        - mountPath: /tmp/mqtt_certs
+          name: mqtt-certs
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -72,15 +75,16 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
           value: ${{MQTT_BROKER_ADDRESS}}
-        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
-          value: jwt_rsa_generator
-        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
-          value: /tmp/jwt_keys/jwt_signing_key.pem
-        - name: CLOUD_CONNECTOR_MQTT_CLIENT_ID
-          valueFrom:
-            secretKeyRef:
-              key: mqtt.user
-              name: cloud-connector-mqtt-credentials
+        #- name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+        #  value: jwt_rsa_generator
+        #- name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+        #  value: /tmp/jwt_keys/jwt_signing_key.pem
+        - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
+          value: "true"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
+          value: "/tmp/mqtt_certs/key.pem"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
+          value: "/tmp/mqtt_certs/cert.pem"
 
         - name: CLOUD_CONNECTOR_SERVICE_TO_SERVICE_CREDENTIALS
           valueFrom:
@@ -88,21 +92,13 @@ objects:
               key: connector-psk-map
               name: cloud-connector-psks
 
-        - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_IMPL
-          value: ${{CLIENT_ID_TO_ACCOUNT_ID_IMPL}}
-        - name: CLOUD_CONNECTOR_AUTH_GATEWAY_URL
-          value: ${{AUTH_GATEWAY_URL}}
-
-        - name: CLOUD_CONNECTOR_CONNECTED_CLIENT_RECORDER_IMPL
-          value: inventory
-
-        - name: CLOUD_CONNECTOR_SOURCES_RECORDER_IMPL
-          value: ${{SOURCES_RECORDER_IMPL}}
-        - name: CLOUD_CONNECTOR_SOURCES_BASE_URL
-          value: ${{SOURCES_BASE_URL}}
-
         - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
           value: ${{MQTT_TOPIC_PREFIX}}
+      volumes:
+       - name: mqtt-certs
+         secret:
+           defaultMode: 420
+           secretName: cloud-connector-mqtt-consumer-cert
 
 
     - name: mqtt-message-consumer-clowder
@@ -148,6 +144,9 @@ objects:
           requests:
             cpu: ${CPU_REQUEST}
             memory: ${MEMORY_REQUEST}
+        volumeMounts:
+        - mountPath: /tmp/mqtt_certs
+          name: mqtt-certs
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -156,14 +155,40 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
           value: ${{MQTT_BROKER_ADDRESS}}
-        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
-          value: jwt_rsa_generator
-        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
-          value: /tmp/jwt_keys/jwt_signing_key.pem
-        - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
-          value: "true"
+        #- name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+        #  value: jwt_rsa_generator
+        #- name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+        #  value: /tmp/jwt_keys/jwt_signing_key.pem
+        - name: CLOUD_CONNECTOR_MQTT_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              key: mqtt.user
+              name: cloud-connector-mqtt-credentials
         - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
           value: ${{MQTT_TOPIC_PREFIX}}
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
+          value: "/tmp/mqtt_certs/key.pem"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
+          value: "/tmp/mqtt_certs/cert.pem"
+
+        - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_IMPL
+          value: ${{CLIENT_ID_TO_ACCOUNT_ID_IMPL}}
+        - name: CLOUD_CONNECTOR_AUTH_GATEWAY_URL
+          value: ${{AUTH_GATEWAY_URL}}
+
+        - name: CLOUD_CONNECTOR_CONNECTED_CLIENT_RECORDER_IMPL
+          value: inventory
+
+        - name: CLOUD_CONNECTOR_SOURCES_RECORDER_IMPL
+          value: ${{SOURCES_RECORDER_IMPL}}
+        - name: CLOUD_CONNECTOR_SOURCES_BASE_URL
+          value: ${{SOURCES_BASE_URL}}
+      volumes:
+       - name: mqtt-certs
+         secret:
+           defaultMode: 420
+           secretName: cloud-connector-mqtt-consumer-cert
+
 
 
     - name: kafka-message-consumer-clowder
@@ -209,6 +234,9 @@ objects:
           requests:
             cpu: ${CPU_REQUEST}
             memory: ${MEMORY_REQUEST}
+        volumeMounts:
+        - mountPath: /tmp/mqtt_certs
+          name: mqtt-certs
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -217,14 +245,25 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
           value: ${{MQTT_BROKER_ADDRESS}}
-        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
-          value: jwt_rsa_generator
-        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
-          value: /tmp/jwt_keys/jwt_signing_key.pem
-        - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
-          value: "true"
+        #- name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+        #  value: jwt_rsa_generator
+        #- name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+        #  value: /tmp/jwt_keys/jwt_signing_key.pem
         - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
           value: ${{MQTT_TOPIC_PREFIX}}
+        - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
+          value: "true"
+        # FIXME: this needs to be corrected...use a different cert
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
+          value: "/tmp/mqtt_certs/key.pem"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
+          value: "/tmp/mqtt_certs/cert.pem"
+      volumes:
+       - name: mqtt-certs
+         secret:
+           defaultMode: 420
+           secretName: cloud-connector-mqtt-consumer-cert
+
 
 
 
@@ -273,6 +312,18 @@ objects:
       app: cloud-connector
   data:
     mqtt.user: ZnJlZA==
+
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: cloud-connector-mqtt-consumer-cert
+    labels:
+      app: cloud-connector
+  data:
+    cert.pem: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNtRENDQWdHZ0F3SUJBZ0lVVFc5R0h1MmExYWh6cWxOZ0FyKzduWHJoamQwd0RRWUpLb1pJaHZjTkFRRUwKQlFBd1hqRUxNQWtHQTFVRUJoTUNXRmd4RlRBVEJnTlZCQWNNREVSbFptRjFiSFFnUTJsMGVURWNNQm9HQTFVRQpDZ3dUUkdWbVlYVnNkQ0JEYjIxd1lXNTVJRXgwWkRFYU1CZ0dBMVVFQXd3UlkyOXVibVZqZEc5eUxYTmxjblpwClkyVXdIaGNOTWpBeE1URTNNVGt4TURBM1doY05NakV4TVRFM01Ua3hNREEzV2pCZU1Rc3dDUVlEVlFRR0V3SlkKV0RFVk1CTUdBMVVFQnd3TVJHVm1ZWFZzZENCRGFYUjVNUnd3R2dZRFZRUUtEQk5FWldaaGRXeDBJRU52YlhCaApibmtnVEhSa01Sb3dHQVlEVlFRRERCRmpiMjV1WldOMGIzSXRjMlZ5ZG1salpUQ0JuekFOQmdrcWhraUc5dzBCCkFRRUZBQU9CalFBd2dZa0NnWUVBeTg3amZHS0ZEaHp5aGVCVDA4QmRIdTdyZ2pKSEI1WDJvb3l0L3llZlVLRzYKd0VMS2dsQktIK2VHNURlWEpVVWc3MXc3OXgwOFJjbmNUNHpFckhMRGRselpDTmNXUFFucnpYUlBDSURGY0ZuUgpYRTdkRk9uQk1vWHkvODltc3cvWmgyajdhVnI3Z0plSHVpNUhFTkJYaTBOYkJVTnBVbDg4dCtwdGt0NnZjOE1DCkF3RUFBYU5UTUZFd0hRWURWUjBPQkJZRUZJZE9SampuWWVWMHBOa2tnMUpMWkIzcEV5NzRNQjhHQTFVZEl3UVkKTUJhQUZJZE9SampuWWVWMHBOa2tnMUpMWkIzcEV5NzRNQThHQTFVZEV3RUIvd1FGTUFNQkFmOHdEUVlKS29aSQpodmNOQVFFTEJRQURnWUVBWllqa0cycGViN3NkOG9teTJ5QzhkVmdGWlcreFF6a2lxSXpiYlpLT3FQVzQxSmRXCkFlTTM4eTFzZDhObG5meS9XUEhCMHdYdGVNUGowb2wxTUxrQ0ZraHNQajVPWkI4eXRYYlNjeTNxNmVjaUJJdUEKQVFTT1NNOVpxd3FDYmtZNTllOUNNdWd5SzZabmV4dk5PYmFLcUwxWU5FcUZwT3VZL2lVanZaTHErM0k9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    
+    key.pem: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUNlQUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQW1Jd2dnSmVBZ0VBQW9HQkFNdk80M3hpaFE0YzhvWGcKVTlQQVhSN3U2NEl5UndlVjlxS01yZjhubjFDaHVzQkN5b0pRU2gvbmh1UTNseVZGSU85Y08vY2RQRVhKM0UrTQp4S3h5dzNaYzJRalhGajBKNjgxMFR3aUF4WEJaMFZ4TzNSVHB3VEtGOHYvUFpyTVAyWWRvKzJsYSs0Q1hoN291ClJ4RFFWNHREV3dWRGFWSmZQTGZxYlpMZXIzUERBZ01CQUFFQ2dZRUFuSXVPV29WR0ZFQVIzTmtoS2wzd2FRazEKWm16OStBcXRSYy91K2pUUi8xb3FtdkR5b2NQUUc4OTM0aVg4OThpd2NvcVRHTTJnOVM0SEJpZG5EZHFjM1JlWApLdUhlY0svTkt0anZFZjViOHZSNmRjcTlLN0pLQmlXeFNLb1E3WW9ua1o4M1JFZ1d3Q0thdXZ1VzJDRit1NVNOCm8rNk0veWcrcXFLZ3lwSXpnRWtDUVFEcHlFbTNFYnlON2ZpQmhYSDlmcDliOHBrRklpYmFZblY2dXV0WkNlY28KZy92K0NOa1dEWENNejNkbGQ5ZkVrQVFjclN1c1FuM1VtcWtUOGJKQ1ptQkZBa0VBM3kxYTllSGxyZ3lPWXVOVApmUkZIamFhbDJNKytKRldCaWlMZHpTaTg3OEZXb3VEdDlUNm9KeThoeGM0SGR5NWpKT2N6dGNCcUdHU1BNeStJClZMdFlad0pBRE9menVkbU8wVDhMOHdxTTZuT3RGSVJtRWpSNmRKL3U0R0dsVUhzTmVkMGZjanpHejBMYXJjdGUKU2dtOXJhcE5yOCtYazZEd0ZXYWNZdTk2NmRPQkNRSkJBSkM2VlBhSFcrOFc3VzlyaEVUaTQ4Z1VmaEN3QjlxQQpLTlZ2N3U2UXNKVzZoM2h3N1YvUkZqTHkrYS9SQUQ1bHNwM0g0VnpJUHdVNmtUTGNiRWltaFprQ1FRQ2l1b1J6CjdTS2Q1ZmhsUmxBTmFHdzcvQ3FodHBjekVwbmo1RkJRblpjVnVOazdHYW4vZmc1YnJpL1pIekpGQ1ZWZkNJcXEKTWF6L1ltSy9SZTE0VjUvYgotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg==
 
 
 parameters:
@@ -327,7 +378,7 @@ parameters:
   value: "wss://just.falloverfornow.com:8883/"
   required: true
 - name: MQTT_TOPIC_PREFIX
-  value: "ci"
+  value: "redhat"
   required: true
 
 - name: CLIENT_ID_TO_ACCOUNT_ID_IMPL
