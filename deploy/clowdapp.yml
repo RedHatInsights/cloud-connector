@@ -20,7 +20,8 @@ objects:
       partitions: 16
       topicName: platform.inventory.host-ingress-p1
     deployments:
-    - name: cloud-connector-api-clowder
+
+    - name: api-clowder
       webServices:
         private:
           enabled: True
@@ -35,7 +36,7 @@ objects:
         image: ${IMAGE}:${IMAGE_TAG}
         command:
           - ./cloud-connector
-          - mqtt_connection_handler
+          - api_server
           - -l
           - :10000
         livenessProbe:
@@ -103,12 +104,132 @@ objects:
         - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
           value: ${{MQTT_TOPIC_PREFIX}}
 
-        - name: CLOUD_CONNECTOR_SLEEP_TIME_HACK
-          value: "0"
+
+    - name: mqtt-message-consumer-clowder
+      webServices:
+        private:
+          enabled: False
+        public:
+          enabled: False
+        metrics:
+          enabled: True
+      minReplicas: ${{MQTT_CONSUMER_REPLICAS}}
+      podSpec:
+        minReadySeconds: 15
+        progressDeadlineSeconds: 600
+        image: ${IMAGE}:${IMAGE_TAG}
+        command:
+          - ./cloud-connector
+          - mqtt_message_consumer
+          - -l
+          - :10000
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /liveness
+            port: 10000
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /readiness
+            port: 10000
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: ${CPU_LIMIT}
+            memory: ${MEMORY_LIMIT}
+          requests:
+            cpu: ${CPU_REQUEST}
+            memory: ${MEMORY_REQUEST}
+        env:
+        - name: CLOUD_CONNECTOR_LOG_LEVEL
+          value: ${{LOG_LEVEL}}
+        - name: CLOUD_CONNECTOR_LOG_FORMAT
+          value: ${{LOG_FORMAT}}
+
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
+          value: ${{MQTT_BROKER_ADDRESS}}
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+          value: jwt_rsa_generator
+        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+          value: /tmp/jwt_keys/jwt_signing_key.pem
+        - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
+          value: "true"
+        - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
+          value: ${{MQTT_TOPIC_PREFIX}}
+
+
+    - name: kafka-message-consumer-clowder
+      webServices:
+        private:
+          enabled: False
+        public:
+          enabled: False
+        metrics:
+          enabled: True
+      minReplicas: ${{KAFKA_CONSUMER_REPLICAS}}
+      podSpec:
+        minReadySeconds: 15
+        progressDeadlineSeconds: 600
+        image: ${IMAGE}:${IMAGE_TAG}
+        command:
+          - ./cloud-connector
+          - kafka_message_consumer
+          - -l
+          - :10000
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /liveness
+            port: 10000
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /readiness
+            port: 10000
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: ${CPU_LIMIT}
+            memory: ${MEMORY_LIMIT}
+          requests:
+            cpu: ${CPU_REQUEST}
+            memory: ${MEMORY_REQUEST}
+        env:
+        - name: CLOUD_CONNECTOR_LOG_LEVEL
+          value: ${{LOG_LEVEL}}
+        - name: CLOUD_CONNECTOR_LOG_FORMAT
+          value: ${{LOG_FORMAT}}
+
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
+          value: ${{MQTT_BROKER_ADDRESS}}
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+          value: jwt_rsa_generator
+        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+          value: /tmp/jwt_keys/jwt_signing_key.pem
+        - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
+          value: "true"
+        - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
+          value: ${{MQTT_TOPIC_PREFIX}}
+
 
 
     jobs:
-    - name: cloud-connector-connection-per-account-reporter
+    - name: connection-per-account-reporter
       schedule: ${CONNECTION_PER_ACCOUNT_REPORTER_SCHEDULE}
       suspend: ${{CONNECTION_PER_ACCOUNT_REPORTER_SUSPEND}}
       podSpec:
@@ -184,6 +305,12 @@ parameters:
   value: logstash
 - description: The number of replicas to use for the cloud-connector api
   name: API_REPLICAS
+  value: '1'
+- description: The number of replicas to use for the cloud-connector api
+  name: MQTT_CONSUMER_REPLICAS
+  value: '1'
+- description: The number of replicas to use for the cloud-connector api
+  name: KAFKA_CONSUMER_REPLICAS
   value: '1'
 - description: Image
   name: IMAGE
