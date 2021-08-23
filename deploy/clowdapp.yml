@@ -67,6 +67,11 @@ objects:
         volumeMounts:
         - mountPath: /tmp/mqtt_certs
           name: mqtt-certs
+        volumes:
+        - name: mqtt-certs
+          secret:
+            defaultMode: 420
+            secretName: cloud-connector-mqtt-consumer-cert
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -94,12 +99,6 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
           value: ${{MQTT_TOPIC_PREFIX}}
-
-      volumes:
-       - name: mqtt-certs
-         secret:
-           defaultMode: 420
-           secretName: cloud-connector-mqtt-consumer-cert
 
 
     - name: mqtt-message-consumer-clowder
@@ -148,6 +147,11 @@ objects:
         volumeMounts:
         - mountPath: /tmp/mqtt_certs
           name: mqtt-certs
+        volumes:
+        - name: mqtt-certs
+          secret:
+            defaultMode: 420
+            secretName: cloud-connector-mqtt-consumer-cert
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -180,11 +184,6 @@ objects:
           value: ${RHC_MESSAGE_KAFKA_BATCH_SIZE}
         - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BATCH_BYTES
           value: ${RHC_MESSAGE_KAFKA_BATCH_BYTES}
-      volumes:
-       - name: mqtt-certs
-         secret:
-           defaultMode: 420
-           secretName: cloud-connector-mqtt-consumer-cert
 
 
     - name: kafka-message-consumer-clowder
@@ -233,6 +232,11 @@ objects:
         volumeMounts:
         - mountPath: /tmp/mqtt_certs
           name: mqtt-certs
+        volumes:
+        - name: mqtt-certs
+          secret:
+            defaultMode: 420
+            secretName: cloud-connector-mqtt-consumer-cert
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -279,15 +283,6 @@ objects:
           value: ${{SOURCES_RECORDER_IMPL}}
         - name: CLOUD_CONNECTOR_SOURCES_BASE_URL
           value: ${{SOURCES_BASE_URL}}
-
-
-      volumes:
-       - name: mqtt-certs
-         secret:
-           defaultMode: 420
-           secretName: cloud-connector-mqtt-consumer-cert
-
-
 
 
     jobs:
@@ -398,7 +393,7 @@ parameters:
   required: true
 
 - name: MQTT_BROKER_ADDRESS
-  value: "wss://just.falloverfornow.com:8883/"
+  value: "ssl://mosquitto:8883/"
   required: true
 - name: MQTT_TOPIC_PREFIX
   value: "redhat"
