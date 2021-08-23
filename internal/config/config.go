@@ -70,6 +70,7 @@ const (
 	JWT_PUBLIC_KEY_FILE                          = "JWT_Public_Key_File"
 	RHC_MESSAGE_KAFKA_BROKERS                    = "RHC_Message_Kafka_Brokers"
 	RHC_MESSAGE_KAFKA_TOPIC                      = "RHC_Message_Kafka_Topic"
+	RHC_MESSAGE_KAFKA_TOPIC_DEFAULT              = "platform.cloud-connector.mqtt_messages"
 	RHC_MESSAGE_KAFKA_BATCH_SIZE                 = "RHC_Message_Kafka_Batch_Size"
 	RHC_MESSAGE_KAFKA_BATCH_BYTES                = "RHC_Message_Kafka_Batch_Bytes"
 	RHC_MESSAGE_KAFKA_CONSUMER_GROUP             = "RHC_Message_Kafka_Consumer_Group"
@@ -253,7 +254,7 @@ func GetConfig() *Config {
 	options.SetDefault(AUTH_GATEWAY_URL, "http://apicast.3scale-staging.svc.cluster.local:8890/internal/certauth")
 	options.SetDefault(AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT, 15)
 	options.SetDefault(RHC_MESSAGE_KAFKA_BROKERS, []string{DEFAULT_KAFKA_BROKER_ADDRESS})
-	options.SetDefault(RHC_MESSAGE_KAFKA_TOPIC, "platform.cloud-connector.mqtt_messages")
+	options.SetDefault(RHC_MESSAGE_KAFKA_TOPIC, RHC_MESSAGE_KAFKA_TOPIC_DEFAULT)
 	options.SetDefault(RHC_MESSAGE_KAFKA_BATCH_SIZE, 100)
 	options.SetDefault(RHC_MESSAGE_KAFKA_BATCH_BYTES, 1048576)
 	options.SetDefault(RHC_MESSAGE_KAFKA_CONSUMER_GROUP, "cloud-connector-rhc-message-consumer")
@@ -332,7 +333,13 @@ func GetConfig() *Config {
 		config.InventoryKafkaTopic = clowder.KafkaTopics["platform.inventory.host-ingress-p1"].Name
 
 		config.RhcMessageKafkaBrokers = clowder.KafkaServers
-		config.RhcMessageKafkaTopic = clowder.KafkaTopics["platform.cloud-connector.mqtt_messages"].Name
+		config.RhcMessageKafkaTopic = clowder.KafkaTopics[RHC_MESSAGE_KAFKA_TOPIC_DEFAULT].Name
+
+		if config.RhcMessageKafkaTopic == "" {
+			fmt.Println("WARNING:  RHC Message kafka topic is not set within clowder!!")
+			// FIXME:  this is a hack!!
+			config.RhcMessageKafkaTopic = RHC_MESSAGE_KAFKA_TOPIC_DEFAULT
+		}
 
 		config.ConnectionDatabaseHost = cfg.Database.Hostname
 		config.ConnectionDatabasePort = cfg.Database.Port
