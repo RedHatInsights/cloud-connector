@@ -331,6 +331,9 @@ func GetConfig() *Config {
 		config.InventoryKafkaBrokers = clowder.KafkaServers
 		config.InventoryKafkaTopic = clowder.KafkaTopics["platform.inventory.host-ingress-p1"].Name
 
+		config.RhcMessageKafkaBrokers = clowder.KafkaServers
+		config.RhcMessageKafkaTopic = clowder.KafkaTopics["platform.cloud-connector.mqtt_messages"].Name
+
 		config.ConnectionDatabaseHost = cfg.Database.Hostname
 		config.ConnectionDatabasePort = cfg.Database.Port
 		config.ConnectionDatabaseName = cfg.Database.Name

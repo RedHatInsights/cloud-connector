@@ -342,7 +342,7 @@ objects:
     labels:
       app: cloud-connector
   data:
-    mqtt.user: ZnJlZA==
+    mqtt.user: bXF0dC1jb25zdW1lcg==
 
 
 - apiVersion: v1
