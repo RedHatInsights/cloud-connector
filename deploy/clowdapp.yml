@@ -94,6 +94,7 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
           value: ${{MQTT_TOPIC_PREFIX}}
+
       volumes:
        - name: mqtt-certs
          secret:
@@ -171,24 +172,19 @@ objects:
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
           value: "/tmp/mqtt_certs/cert.pem"
 
-        - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_IMPL
-          value: ${{CLIENT_ID_TO_ACCOUNT_ID_IMPL}}
-        - name: CLOUD_CONNECTOR_AUTH_GATEWAY_URL
-          value: ${{AUTH_GATEWAY_URL}}
-
-        - name: CLOUD_CONNECTOR_CONNECTED_CLIENT_RECORDER_IMPL
-          value: inventory
-
-        - name: CLOUD_CONNECTOR_SOURCES_RECORDER_IMPL
-          value: ${{SOURCES_RECORDER_IMPL}}
-        - name: CLOUD_CONNECTOR_SOURCES_BASE_URL
-          value: ${{SOURCES_BASE_URL}}
+        - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BROKERS
+          value: ${{KAFKA_BOOTSTRAP_HOST}}
+        - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_TOPIC
+          value: ${{RHC_MESSAGE_KAFKA_TOPIC}}
+        - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BATCH_SIZE
+          value: ${RHC_MESSAGE_KAFKA_BATCH_SIZE}
+        - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BATCH_BYTES
+          value: ${RHC_MESSAGE_KAFKA_BATCH_BYTES}
       volumes:
        - name: mqtt-certs
          secret:
            defaultMode: 420
            secretName: cloud-connector-mqtt-consumer-cert
-
 
 
     - name: kafka-message-consumer-clowder
@@ -258,6 +254,33 @@ objects:
           value: "/tmp/mqtt_certs/key.pem"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
           value: "/tmp/mqtt_certs/cert.pem"
+
+        - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BROKERS
+          value: ${{KAFKA_BOOTSTRAP_HOST}}
+        - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_TOPIC
+          value: ${{RHC_MESSAGE_KAFKA_TOPIC}}
+        - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_CONSUMER_GROUP
+          value: ${{RHC_MESSAGE_KAFKA_CONSUMER_GROUP}}
+
+        - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_IMPL
+          value: ${{CLIENT_ID_TO_ACCOUNT_ID_IMPL}}
+        - name: CLOUD_CONNECTOR_AUTH_GATEWAY_URL
+          value: ${{AUTH_GATEWAY_URL}}
+
+        - name: CLOUD_CONNECTOR_INVENTORY_KAFKA_BROKERS
+          value: ${{KAFKA_BOOTSTRAP_HOST}}
+        - name: CLOUD_CONNECTOR_INVENTORY_KAFKA_TOPIC
+          value: ${{INVENTORY_KAFKA_TOPIC}}
+
+        - name: CLOUD_CONNECTOR_CONNECTED_CLIENT_RECORDER_IMPL
+          value: inventory
+
+        - name: CLOUD_CONNECTOR_SOURCES_RECORDER_IMPL
+          value: ${{SOURCES_RECORDER_IMPL}}
+        - name: CLOUD_CONNECTOR_SOURCES_BASE_URL
+          value: ${{SOURCES_BASE_URL}}
+
+
       volumes:
        - name: mqtt-certs
          secret:
@@ -380,6 +403,17 @@ parameters:
 - name: MQTT_TOPIC_PREFIX
   value: "redhat"
   required: true
+
+- name: RHC_MESSAGE_KAFKA_TOPIC
+  required: true
+  value: platform.cloud-connector.mqtt_messages
+- name: RHC_MESSAGE_KAFKA_CONSUMER_GROUP
+  required: true
+  value: cloud-connector-rhc-message-consumer
+- name: RHC_MESSAGE_KAFKA_BATCH_SIZE
+  value: "100"
+- name: RHC_MESSAGE_KAFKA_BATCH_BYTES
+  value: "1048576"
 
 - name: CLIENT_ID_TO_ACCOUNT_ID_IMPL
   value: "fake"
