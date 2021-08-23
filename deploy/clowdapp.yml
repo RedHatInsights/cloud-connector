@@ -90,6 +90,8 @@ objects:
           value: "/tmp/mqtt_certs/key.pem"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
           value: "/tmp/mqtt_certs/cert.pem"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
+          value: ${{MQTT_BROKER_TLS_SKIP_VERIFY}}
 
         - name: CLOUD_CONNECTOR_SERVICE_TO_SERVICE_CREDENTIALS
           valueFrom:
@@ -175,6 +177,8 @@ objects:
           value: "/tmp/mqtt_certs/key.pem"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
           value: "/tmp/mqtt_certs/cert.pem"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
+          value: ${{MQTT_BROKER_TLS_SKIP_VERIFY}}
 
         - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BROKERS
           value: ${{KAFKA_BOOTSTRAP_HOST}}
@@ -232,11 +236,16 @@ objects:
         volumeMounts:
         - mountPath: /tmp/mqtt_certs
           name: mqtt-certs
+        - mountPath: /tmp/cloud-connector-config
+          name: client-id-to-account-id-map
         volumes:
         - name: mqtt-certs
           secret:
             defaultMode: 420
             secretName: cloud-connector-mqtt-consumer-cert
+        - name: client-id-to-account-id-map
+          configMap:
+            name: client-id-to-account-id-map-config
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -258,6 +267,8 @@ objects:
           value: "/tmp/mqtt_certs/key.pem"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
           value: "/tmp/mqtt_certs/cert.pem"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
+          value: ${{MQTT_BROKER_TLS_SKIP_VERIFY}}
 
         - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BROKERS
           value: ${{KAFKA_BOOTSTRAP_HOST}}
@@ -270,6 +281,8 @@ objects:
           value: ${{CLIENT_ID_TO_ACCOUNT_ID_IMPL}}
         - name: CLOUD_CONNECTOR_AUTH_GATEWAY_URL
           value: ${{AUTH_GATEWAY_URL}}
+        - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE
+          value: "/tmp/cloud-connector-config/client_id_to_account_id_map.json"
 
         - name: CLOUD_CONNECTOR_INVENTORY_KAFKA_BROKERS
           value: ${{KAFKA_BOOTSTRAP_HOST}}
@@ -344,6 +357,20 @@ objects:
     key.pem: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUNlQUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQW1Jd2dnSmVBZ0VBQW9HQkFNdk80M3hpaFE0YzhvWGcKVTlQQVhSN3U2NEl5UndlVjlxS01yZjhubjFDaHVzQkN5b0pRU2gvbmh1UTNseVZGSU85Y08vY2RQRVhKM0UrTQp4S3h5dzNaYzJRalhGajBKNjgxMFR3aUF4WEJaMFZ4TzNSVHB3VEtGOHYvUFpyTVAyWWRvKzJsYSs0Q1hoN291ClJ4RFFWNHREV3dWRGFWSmZQTGZxYlpMZXIzUERBZ01CQUFFQ2dZRUFuSXVPV29WR0ZFQVIzTmtoS2wzd2FRazEKWm16OStBcXRSYy91K2pUUi8xb3FtdkR5b2NQUUc4OTM0aVg4OThpd2NvcVRHTTJnOVM0SEJpZG5EZHFjM1JlWApLdUhlY0svTkt0anZFZjViOHZSNmRjcTlLN0pLQmlXeFNLb1E3WW9ua1o4M1JFZ1d3Q0thdXZ1VzJDRit1NVNOCm8rNk0veWcrcXFLZ3lwSXpnRWtDUVFEcHlFbTNFYnlON2ZpQmhYSDlmcDliOHBrRklpYmFZblY2dXV0WkNlY28KZy92K0NOa1dEWENNejNkbGQ5ZkVrQVFjclN1c1FuM1VtcWtUOGJKQ1ptQkZBa0VBM3kxYTllSGxyZ3lPWXVOVApmUkZIamFhbDJNKytKRldCaWlMZHpTaTg3OEZXb3VEdDlUNm9KeThoeGM0SGR5NWpKT2N6dGNCcUdHU1BNeStJClZMdFlad0pBRE9menVkbU8wVDhMOHdxTTZuT3RGSVJtRWpSNmRKL3U0R0dsVUhzTmVkMGZjanpHejBMYXJjdGUKU2dtOXJhcE5yOCtYazZEd0ZXYWNZdTk2NmRPQkNRSkJBSkM2VlBhSFcrOFc3VzlyaEVUaTQ4Z1VmaEN3QjlxQQpLTlZ2N3U2UXNKVzZoM2h3N1YvUkZqTHkrYS9SQUQ1bHNwM0g0VnpJUHdVNmtUTGNiRWltaFprQ1FRQ2l1b1J6CjdTS2Q1ZmhsUmxBTmFHdzcvQ3FodHBjekVwbmo1RkJRblpjVnVOazdHYW4vZmc1YnJpL1pIekpGQ1ZWZkNJcXEKTWF6L1ltSy9SZTE0VjUvYgotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg==
 
 
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: client-id-to-account-id-map-config
+    labels:
+      app: cloud-connector
+  data:
+    client_id_to_account_id_map.json: >
+      {
+          "8a823918-f801-474c-9f79-7cc7e9d79a7f": "010101",
+          "client-1": "010102"
+      }
+
+
 parameters:
 - description: Initial amount of memory the cloud-connector container will request.
   displayName: Memory Request
@@ -398,6 +425,9 @@ parameters:
 - name: MQTT_TOPIC_PREFIX
   value: "redhat"
   required: true
+- name: MQTT_BROKER_TLS_SKIP_VERIFY
+  value: "false"
+  required: true
 
 - name: RHC_MESSAGE_KAFKA_TOPIC
   required: true
@@ -411,7 +441,7 @@ parameters:
   value: "1048576"
 
 - name: CLIENT_ID_TO_ACCOUNT_ID_IMPL
-  value: "fake"
+  value: "bop"
   required: true
 
 - name: AUTH_GATEWAY_URL
