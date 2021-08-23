@@ -101,6 +101,25 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
           value: ${{MQTT_TOPIC_PREFIX}}
+        initContainers:
+        - args:
+          - ./migrate_db
+          - upgrade
+          env:
+          - name: CLOUD_CONNECTOR_LOG_LEVEL
+            value: DEBUG
+          - name: CLOUD_CONNECTOR_LOG_FORMAT
+            value: ${{LOG_FORMAT}}
+          image: ${IMAGE}:${IMAGE_TAG}
+          name: cloud-connector-init
+          resources:
+            limits:
+              cpu: ${{CPU_LIMIT}}
+              memory: ${{MEMORY_LIMIT}}
+            requests:
+              cpu: 250m
+              memory: 256Mi
+
 
 
     - name: mqtt-message-consumer-clowder
