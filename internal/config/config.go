@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	clowder "github.com/redhatinsights/app-common-go/pkg/api/v1"
 	"github.com/spf13/viper"
 )
 
@@ -125,11 +126,14 @@ type Config struct {
 	JwtTokenExpiry                          int
 	JwtPrivateKeyFile                       string
 	JwtPublicKeyFile                        string
+<<<<<<< HEAD
 	SleepTimeHack                           time.Duration
 	PendoApiEndpoint                        string
 	PendoRequestTimeout                     time.Duration
 	PendoIntegrationKey                     string
 	PendoRequestSize                        int
+=======
+>>>>>>> master
 }
 
 func (c Config) String() string {
@@ -184,7 +188,6 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", JWT_PUBLIC_KEY_FILE, c.JwtPublicKeyFile)
 	fmt.Fprintf(&b, "%s: %s\n", AUTH_GATEWAY_URL, c.AuthGatewayUrl)
 	fmt.Fprintf(&b, "%s: %s\n", AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT, c.AuthGatewayHttpClientTimeout)
-	fmt.Fprintf(&b, "%s: %s\n", "Sleep_Time_Hack", c.SleepTimeHack)
 	return b.String()
 }
 
@@ -244,12 +247,10 @@ func GetConfig() *Config {
 	options.SetDefault(PENDO_INTEGRATION_KEY, "")
 	options.SetDefault(PENDO_REQUEST_SIZE, 100)
 
-	options.SetDefault("Sleep_Time_Hack", 0)
-
 	options.SetEnvPrefix(ENV_PREFIX)
 	options.AutomaticEnv()
 
-	return &Config{
+	config := &Config{
 		UrlPathPrefix:                           options.GetString(URL_PATH_PREFIX),
 		UrlAppName:                              options.GetString(URL_APP_NAME),
 		UrlBasePath:                             buildUrlBasePath(options.GetString(URL_PATH_PREFIX), options.GetString(URL_APP_NAME)),
@@ -302,12 +303,44 @@ func GetConfig() *Config {
 		JwtTokenExpiry:                          options.GetInt(JWT_TOKEN_EXPIRY),
 		JwtPrivateKeyFile:                       options.GetString(JWT_PRIVATE_KEY_FILE),
 		JwtPublicKeyFile:                        options.GetString(JWT_PUBLIC_KEY_FILE),
-		SleepTimeHack:                           options.GetDuration("Sleep_Time_Hack") * time.Second,
 		PendoApiEndpoint:                        options.GetString(PENDO_API_ENDPOINT),
 		PendoRequestTimeout:                     options.GetDuration(PENDO_REQUEST_TIMEOUT) * time.Second,
 		PendoIntegrationKey:                     options.GetString(PENDO_INTEGRATION_KEY),
 		PendoRequestSize:                        options.GetInt(PENDO_REQUEST_SIZE),
 	}
+
+	if clowder.IsClowderEnabled() {
+		cfg := clowder.LoadedConfig
+
+		fmt.Println("Cloud-Connector is running in a Clowderized environment...overriding configuration!!")
+
+		config.InventoryKafkaBrokers = clowder.KafkaServers
+		config.InventoryKafkaTopic = clowder.KafkaTopics["platform.inventory.host-ingress-p1"].Name
+
+		config.ConnectionDatabaseHost = cfg.Database.Hostname
+		config.ConnectionDatabasePort = cfg.Database.Port
+		config.ConnectionDatabaseName = cfg.Database.Name
+		config.ConnectionDatabaseUser = cfg.Database.Username
+		config.ConnectionDatabasePassword = cfg.Database.Password
+
+		config.ConnectionDatabaseSslMode = cfg.Database.SslMode
+		if cfg.Database.RdsCa != nil {
+			config.ConnectionDatabaseSslRootCert = *cfg.Database.RdsCa
+		}
+
+		/*
+			options.SetDefault("Web_Port", cfg.WebPort)
+			options.SetDefault("Metrics_Port", cfg.MetricsPort)
+			options.SetDefault("Metrics_Path", cfg.MetricsPath)
+
+			options.SetDefault("Log_Group", cfg.Logging.Cloudwatch.LogGroup)
+			options.SetDefault("Aws_Region", cfg.Logging.Cloudwatch.Region)
+			options.SetDefault("Aws_Access_Key_Id", cfg.Logging.Cloudwatch.AccessKeyId)
+			options.SetDefault("Aws_Secret_Access_Key", cfg.Logging.Cloudwatch.SecretAccessKey)
+		*/
+	}
+
+	return config
 }
 
 func buildUrlBasePath(pathPrefix string, appName string) string {

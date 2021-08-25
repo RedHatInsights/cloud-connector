@@ -702,7 +702,7 @@ data:
       },
       "timezone": "",
       "title": "Cloud-Connector",
-      "uid": "playground",
+      "uid": "cloudconnector",
       "version": 3
     }
 kind: ConfigMap

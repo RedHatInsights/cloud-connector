@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -114,11 +115,11 @@ func (m *MockConnectionManager) GetConnection(ctx context.Context, account domai
 }
 
 func (m *MockConnectionManager) GetConnectionsByAccount(ctx context.Context, account domain.AccountID, offset int, limit int) (map[domain.ClientID]controller.Receptor, int, error) {
-	return m.AccountIndex[account], 0, nil
+	return m.AccountIndex[account], len(m.AccountIndex[account]), nil
 }
 
 func (m *MockConnectionManager) GetAllConnections(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.Receptor, int, error) {
-	return m.AccountIndex, 0, nil
+	return m.AccountIndex, len(m.AccountIndex), nil
 }
 
 func init() {
@@ -312,6 +313,8 @@ var _ = Describe("MessageReceiver", func() {
 				jr.router.ServeHTTP(rr, req)
 
 				Expect(rr.Code).To(Equal(http.StatusForbidden))
+
+				verifyErrorResponse(rr.Body, accountMismatchErrorMsg)
 			})
 
 		})
@@ -376,6 +379,8 @@ var _ = Describe("MessageReceiver", func() {
 				jr.router.ServeHTTP(rr, req)
 
 				Expect(rr.Code).To(Equal(http.StatusForbidden))
+
+				verifyErrorResponse(rr.Body, accountMismatchErrorMsg)
 			})
 		})
 
@@ -429,4 +434,12 @@ func buildIdentityHeader(account domain.AccountID) string {
 		"{ \"identity\": {\"account_number\": \"%s\", \"type\": \"User\", \"internal\": { \"org_id\": \"1979710\" } } }",
 		account)
 	return base64.StdEncoding.EncodeToString([]byte(identityJson))
+}
+
+func verifyErrorResponse(body *bytes.Buffer, expectedDetail string) {
+	var errorResponse errorResponse
+	err := json.Unmarshal(body.Bytes(), &errorResponse)
+	Expect(err).NotTo(HaveOccurred())
+
+	Expect(errorResponse.Detail).To(Equal(expectedDetail))
 }
