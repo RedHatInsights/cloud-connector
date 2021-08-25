@@ -126,14 +126,10 @@ type Config struct {
 	JwtTokenExpiry                          int
 	JwtPrivateKeyFile                       string
 	JwtPublicKeyFile                        string
-<<<<<<< HEAD
-	SleepTimeHack                           time.Duration
 	PendoApiEndpoint                        string
 	PendoRequestTimeout                     time.Duration
 	PendoIntegrationKey                     string
 	PendoRequestSize                        int
-=======
->>>>>>> master
 }
 
 func (c Config) String() string {
