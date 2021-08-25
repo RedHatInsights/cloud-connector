@@ -1,13 +1,13 @@
 package main
 
 import (
-	"os"
-	"fmt"
 	"context"
+	"fmt"
+	"os"
 
-	"github.com/spf13/cobra"
 	cr "github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
+	"github.com/spf13/cobra"
 )
 
 func NewRootCommand() *cobra.Command {

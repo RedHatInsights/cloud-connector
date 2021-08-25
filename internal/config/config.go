@@ -65,10 +65,10 @@ const (
 	JWT_TOKEN_EXPIRY                             = "JWT_Token_Expiry_Minutes"
 	JWT_PRIVATE_KEY_FILE                         = "JWT_Private_Key_File"
 	JWT_PUBLIC_KEY_FILE                          = "JWT_Public_Key_File"
-	PENDO_API_ENDPOINT							 = "Pendo_Api_Endpoint"
-	PENDO_REQUEST_TIMEOUT						 = "Pendo_Request_Timeout"
-	PENDO_INTEGRATION_KEY						 = "Pendo_Integration_Key"
-	PENDO_REQUEST_SIZE							 = "Pendo_Request_Size"
+	PENDO_API_ENDPOINT                           = "Pendo_Api_Endpoint"
+	PENDO_REQUEST_TIMEOUT                        = "Pendo_Request_Timeout"
+	PENDO_INTEGRATION_KEY                        = "Pendo_Integration_Key"
+	PENDO_REQUEST_SIZE                           = "Pendo_Request_Size"
 )
 
 type Config struct {
@@ -126,10 +126,10 @@ type Config struct {
 	JwtPrivateKeyFile                       string
 	JwtPublicKeyFile                        string
 	SleepTimeHack                           time.Duration
-	PendoApiEndpoint						string
-	PendoRequestTimeout						time.Duration
-	PendoIntegrationKey						string
-	PendoRequestSize						int
+	PendoApiEndpoint                        string
+	PendoRequestTimeout                     time.Duration
+	PendoIntegrationKey                     string
+	PendoRequestSize                        int
 }
 
 func (c Config) String() string {
@@ -303,10 +303,10 @@ func GetConfig() *Config {
 		JwtPrivateKeyFile:                       options.GetString(JWT_PRIVATE_KEY_FILE),
 		JwtPublicKeyFile:                        options.GetString(JWT_PUBLIC_KEY_FILE),
 		SleepTimeHack:                           options.GetDuration("Sleep_Time_Hack") * time.Second,
-		PendoApiEndpoint:						 options.GetString(PENDO_API_ENDPOINT),
-		PendoRequestTimeout:					 options.GetDuration(PENDO_REQUEST_TIMEOUT) * time.Second,
-		PendoIntegrationKey:					 options.GetString(PENDO_INTEGRATION_KEY),
-		PendoRequestSize:						 options.GetInt(PENDO_REQUEST_SIZE),
+		PendoApiEndpoint:                        options.GetString(PENDO_API_ENDPOINT),
+		PendoRequestTimeout:                     options.GetDuration(PENDO_REQUEST_TIMEOUT) * time.Second,
+		PendoIntegrationKey:                     options.GetString(PENDO_INTEGRATION_KEY),
+		PendoRequestSize:                        options.GetInt(PENDO_REQUEST_SIZE),
 	}
 }
 

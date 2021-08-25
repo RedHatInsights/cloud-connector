@@ -2,9 +2,9 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -18,14 +18,13 @@ import (
 var accInfo []accountInfo
 
 type accountInfo struct {
-	AccountID	domain.AccountID	`json:"accountId"`
-	Values		connectionValue	`json:"values"`
+	AccountID domain.AccountID `json:"accountId"`
+	Values    connectionValue  `json:"values"`
 }
 
 type connectionValue struct {
-	ConnCount  int	`json:"connectionCount"`
+	ConnCount int `json:"connectionCount"`
 }
-
 
 func connectionCountProcessor(ctx context.Context, account domain.AccountID, count int) error {
 	fmt.Printf("%s - %d\n", account, count)
@@ -47,7 +46,7 @@ func makeRequst(endpoint string, timeout time.Duration, apiKey string, requestSi
 			logger.Log.Error(err)
 		}
 
-		url := endpoint+"/metadata/account/custom/value"
+		url := endpoint + "/metadata/account/custom/value"
 
 		client := http.Client{
 			Timeout: timeout,
@@ -80,7 +79,6 @@ func makeRequst(endpoint string, timeout time.Duration, apiKey string, requestSi
 	}
 }
 
-
 func main() {
 	logger.InitLogger()
 
@@ -96,4 +94,3 @@ func main() {
 
 	makeRequst(cfg.PendoApiEndpoint, cfg.PendoRequestTimeout, cfg.PendoIntegrationKey, cfg.PendoRequestSize)
 }
-

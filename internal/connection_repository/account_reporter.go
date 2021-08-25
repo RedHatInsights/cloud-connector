@@ -34,4 +34,3 @@ func StartConnectedAccountReport(accountsToExcludeCmdLineArg string, processorFu
 		accountsToExclude,
 		processorFunc)
 }
-
