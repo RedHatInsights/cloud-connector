@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -88,11 +87,10 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 
 	mqttClient, err := mqtt.CreateBrokerConnection(cfg.MqttBrokerAddress,
 		func(MQTT.Client) {
-			fmt.Println("CONNECTED!!")
+			logger.Log.Trace("Connected to MQTT broker")
 			initialConnection.Do(func() {
 				connectedChan <- struct{}{}
 			})
-			fmt.Println("LEAVING CONNECTED!!")
 		},
 		brokerOptions...,
 	)

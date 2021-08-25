@@ -4,10 +4,10 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"fmt"
 	"net/url"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -121,12 +121,14 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 	}
 
 	connectedChan := make(chan struct{})
+	var initialConnection sync.Once
 
 	mqttClient, err := mqtt.CreateBrokerConnection(cfg.MqttBrokerAddress,
 		func(MQTT.Client) {
-			fmt.Println("CONNECTED!!")
-			connectedChan <- struct{}{}
-			fmt.Println("LEAVING CONNECTED!!")
+			logger.Log.Trace("Connected to MQTT broker")
+			initialConnection.Do(func() {
+				connectedChan <- struct{}{}
+			})
 		},
 		brokerOptions...,
 	)
@@ -136,7 +138,6 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 
 	select {
 	case <-connectedChan:
-		fmt.Println("CONNECTED!!")
 		break
 	case <-time.After(2 * time.Second):
 		logger.Log.Fatal("Failed ot connect")
