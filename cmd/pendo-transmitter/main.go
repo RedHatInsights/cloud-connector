@@ -15,7 +15,10 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 )
 
+
 var accInfo []accountInfo
+var cfg *config.Config
+
 
 type accountInfo struct {
 	AccountID domain.AccountID `json:"accountId"`
@@ -29,54 +32,51 @@ type connectionValue struct {
 func connectionCountProcessor(ctx context.Context, account domain.AccountID, count int) error {
 	fmt.Printf("%s - %d\n", account, count)
 	accInfo = append(accInfo, accountInfo{AccountID: account, Values: connectionValue{ConnCount: count}})
+
+	if len(accInfo) >= cfg.PendoRequestSize {
+		makeRequst(cfg.PendoApiEndpoint, cfg.PendoRequestTimeout, cfg.PendoIntegrationKey)
+		accInfo = nil
+	}
 	return nil
 }
 
-func makeRequst(endpoint string, timeout time.Duration, apiKey string, requestSize int) {
-	for i := 0; i < len(accInfo); i += requestSize {
-		end := i + requestSize
+func makeRequst(endpoint string, timeout time.Duration, apiKey string) {
+	reqBody, err := json.Marshal(accInfo)
 
-		if end > len(accInfo) {
-			end = len(accInfo)
-		}
-
-		reqBody, err := json.Marshal(accInfo[i:end])
-
-		if err != nil {
-			logger.Log.Error(err)
-		}
-
-		url := endpoint + "/metadata/account/custom/value"
-
-		client := http.Client{
-			Timeout: timeout,
-		}
-
-		req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBody))
-		req.Header.Set("content-type", "application/json")
-		req.Header.Set("x-pendo-integration-key", apiKey)
-
-		if err != nil {
-			logger.Log.Error(err)
-		}
-
-		resp, err := client.Do(req)
-		if err != nil {
-			logger.Log.Error(err)
-		}
-
-		defer resp.Body.Close()
-
-		body, err := ioutil.ReadAll(resp.Body)
-
-		switch {
-		case err != nil:
-			logger.Log.Error(err)
-		case len(body) == 0:
-			logger.Log.Error("Invalid Request. API key may be invalid.")
-		}
-		logger.Log.Info(string(body))
+	if err != nil {
+		logger.Log.Error(err)
 	}
+
+	url := endpoint + "/metadata/account/custom/value"
+
+	client := http.Client{
+		Timeout: timeout,
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(reqBody))
+	req.Header.Set("content-type", "application/json")
+	req.Header.Set("x-pendo-integration-key", apiKey)
+
+	if err != nil {
+		logger.Log.Error(err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		logger.Log.Error(err)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	switch {
+	case err != nil:
+		logger.Log.Error(err)
+	case len(body) == 0:
+		logger.Log.Error("Invalid Request. API key may be invalid.")
+	}
+	logger.Log.Info(string(body))
 }
 
 func main() {
@@ -84,7 +84,7 @@ func main() {
 
 	logger.Log.Info("Starting Cloud-Connector Pendo Transmitter")
 
-	cfg := config.GetConfig()
+	cfg = config.GetConfig()
 
 	if cfg.PendoIntegrationKey == "" {
 		logger.Log.Fatal("No Pendo Integration key.")
@@ -92,5 +92,7 @@ func main() {
 
 	cr.StartConnectedAccountReport("477931,6089719,540155", connectionCountProcessor)
 
-	makeRequst(cfg.PendoApiEndpoint, cfg.PendoRequestTimeout, cfg.PendoIntegrationKey, cfg.PendoRequestSize)
+	if len(accInfo) > 0 {
+		makeRequst(cfg.PendoApiEndpoint, cfg.PendoRequestTimeout, cfg.PendoIntegrationKey)
+	}
 }
