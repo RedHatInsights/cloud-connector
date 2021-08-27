@@ -15,10 +15,8 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 )
 
-
 var accInfo []accountInfo
 var cfg *config.Config
-
 
 type accountInfo struct {
 	AccountID domain.AccountID `json:"accountId"`
@@ -34,17 +32,27 @@ func connectionCountProcessor(ctx context.Context, account domain.AccountID, cou
 	accInfo = append(accInfo, accountInfo{AccountID: account, Values: connectionValue{ConnCount: count}})
 
 	if len(accInfo) >= cfg.PendoRequestSize {
-		makeRequst(cfg.PendoApiEndpoint, cfg.PendoRequestTimeout, cfg.PendoIntegrationKey)
+		requestHandler(cfg.PendoApiEndpoint, cfg.PendoRequestTimeout, cfg.PendoIntegrationKey)
 		accInfo = nil
 	}
 	return nil
 }
 
-func makeRequst(endpoint string, timeout time.Duration, apiKey string) {
-	reqBody, err := json.Marshal(accInfo)
+func requestHandler(endpoint string, timeout time.Duration, apiKey string) {
+	info, err := makeRequest(endpoint, timeout, apiKey)
 
 	if err != nil {
 		logger.Log.Error(err)
+	} else {
+		logger.Log.Info(info)
+	}
+}
+
+func makeRequest(endpoint string, timeout time.Duration, apiKey string) (string, error) {
+	reqBody, err := json.Marshal(accInfo)
+
+	if err != nil {
+		return "", err
 	}
 
 	url := endpoint + "/metadata/account/custom/value"
@@ -58,25 +66,26 @@ func makeRequst(endpoint string, timeout time.Duration, apiKey string) {
 	req.Header.Set("x-pendo-integration-key", apiKey)
 
 	if err != nil {
-		logger.Log.Error(err)
+		return "", err
 	}
 
 	resp, err := client.Do(req)
-	if err != nil {
-		logger.Log.Error(err)
+
+	switch {
+	case err != nil:
+		return "", err
+	case resp.StatusCode != 200:
+		return "", fmt.Errorf("Pendo Request Unsuccessful. Status: %v", resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
 
 	body, err := ioutil.ReadAll(resp.Body)
-
-	switch {
-	case err != nil:
-		logger.Log.Error(err)
-	case len(body) == 0:
-		logger.Log.Error("Invalid Request. API key may be invalid.")
+	if err != nil {
+		return "", err
 	}
-	logger.Log.Info(string(body))
+
+	return string(body), nil
 }
 
 func main() {
@@ -93,6 +102,6 @@ func main() {
 	cr.StartConnectedAccountReport("477931,6089719,540155", connectionCountProcessor)
 
 	if len(accInfo) > 0 {
-		makeRequst(cfg.PendoApiEndpoint, cfg.PendoRequestTimeout, cfg.PendoIntegrationKey)
+		requestHandler(cfg.PendoApiEndpoint, cfg.PendoRequestTimeout, cfg.PendoIntegrationKey)
 	}
 }
