@@ -43,9 +43,9 @@ objects:
                 memory: 512Mi
             terminationMessagePath: /dev/termination-log
             terminationMessagePolicy: File
-            #volumeMounts:
-            #  - mountPath: /mosquitto/config
-            #    name: mosquitto-broker-volume-1
+            volumeMounts:
+              - mountPath: /mosquitto/config
+                name: mosquitto-broker-volume-1
             #  - mountPath: /mosquitto/data
             #    name: mosquitto-broker-volume-2
             #  - mountPath: /mosquitto/log
@@ -59,16 +59,16 @@ objects:
         schedulerName: default-scheduler
         securityContext: {}
         terminationGracePeriodSeconds: 30
-        #volumes:
-        #  - configMap:
-        #      defaultMode: 420
-        #      items:
-        #        - key: mosquitto.conf
-        #          path: mosquitto.conf
+        volumes:
+          - configMap:
+              defaultMode: 420
+              items:
+                - key: mosquitto.conf
+                  path: mosquitto.conf
         #        - key: mosquitto.acl
         #          path: mosquitto.acl
-        #      name: mosquitto-config
-        #    name: mosquitto-broker-volume-1
+              name: mosquitto-config
+            name: mosquitto-broker-volume-1
         #  - emptyDir: {}
         #    name: mosquitto-broker-volume-2
         #  - emptyDir: {}
@@ -77,4 +77,61 @@ objects:
         #    secret:
         #      defaultMode: 420
         #      secretName: rhc-cert
-  
+
+
+
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: mosquitto-config
+    labels:
+      app: cloud-connector
+  data:
+    mosquitto.conf: >-
+      port 1883
+      allow_anonymous true
+      ## PATH to ca file
+      #cafile /mosquitto/config/certs/ca.pem
+      ## PATH to server certificate
+      #certfile /mosquitto/config/certs/server_cert.pem
+      ## PATH to encoded keyfile
+      #keyfile /mosquitto/config/certs/server_key.pem
+      ## Certificates required
+      #require_certificate true
+      ## If Certs are required you can use certs as username
+      #use_identity_as_username true
+      ## Do not allow anonymous clients
+      #allow_anonymous false
+      ## Declare acl_file
+      #acl_file /mosquitto/config/mosquitto.acl
+    mosquitto.acl: >-
+      user connector-service
+      topic readwrite redhat/insights/#
+
+      # This works
+      #pattern readwrite redhat/insights/%c/#
+
+      # This is a bit more strict
+      pattern read redhat/insights/%c/out
+      pattern write redhat/insights/%c/in
+
+
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: mosquitto
+    labels:
+      app: cloud-connector
+    annotations:
+  spec:
+    ports:
+    - name: port-1883
+      port: 1883
+      protocol: TCP
+      targetPort: 1883
+    selector:
+      app: cloud-connector
+      pod: mosquitto-broker
+    sessionAffinity: None
+    type: ClusterIP
+
