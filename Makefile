@@ -1,7 +1,6 @@
 CONNECTOR_SERVICE_BINARY=cloud-connector
 CONNECTED_CLIENT_BINARY=test_client
 MIGRATE_DB_BINARY=migrate_db
-PENDO_TRANSMITTER_BINARY=pendo-transmitter
 
 DOCKER_COMPOSE_CFG=dev.yml
 
