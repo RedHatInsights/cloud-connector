@@ -70,7 +70,7 @@ objects:
     labels:
       app: cloud-connector
   data:
-    mosquitto.conf: >-
+    mosquitto.conf: |-
       port 1883
       allow_anonymous true
       ## PATH to ca file
@@ -87,7 +87,7 @@ objects:
       #allow_anonymous false
       ## Declare acl_file
       #acl_file /mosquitto/config/mosquitto.acl
-    mosquitto.acl: >-
+    mosquitto.acl: |-
       user connector-service
       topic readwrite redhat/insights/#
 
