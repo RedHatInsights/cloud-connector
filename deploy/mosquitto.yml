@@ -46,38 +46,21 @@ objects:
             volumeMounts:
               - mountPath: /mosquitto/config
                 name: mosquitto-broker-volume-1
-            #  - mountPath: /mosquitto/data
-            #    name: mosquitto-broker-volume-2
-            #  - mountPath: /mosquitto/log
-            #    name: mosquitto-broker-volume-3
-            #  - mountPath: /mosquitto/config/certs
-            #    name: mosquitto-certs
-        dnsPolicy: ClusterFirst
+            volumes:
+              - configMap:
+                  defaultMode: 420
+                  items:
+                    - key: mosquitto.conf
+                      path: mosquitto.conf
+                  name: mosquitto-config
+                name: mosquitto-broker-volume-1
+       dnsPolicy: ClusterFirst
         imagePullSecrets:
           - name: quay-cloudservices-pull
         restartPolicy: Always
         schedulerName: default-scheduler
         securityContext: {}
         terminationGracePeriodSeconds: 30
-        volumes:
-          - configMap:
-              defaultMode: 420
-              items:
-                - key: mosquitto.conf
-                  path: mosquitto.conf
-        #        - key: mosquitto.acl
-        #          path: mosquitto.acl
-              name: mosquitto-config
-            name: mosquitto-broker-volume-1
-        #  - emptyDir: {}
-        #    name: mosquitto-broker-volume-2
-        #  - emptyDir: {}
-        #    name: mosquitto-broker-volume-3
-        #  - name: mosquitto-certs
-        #    secret:
-        #      defaultMode: 420
-        #      secretName: rhc-cert
-
 
 
 - apiVersion: v1
@@ -134,4 +117,3 @@ objects:
       pod: mosquitto-broker
     sessionAffinity: None
     type: ClusterIP
-
