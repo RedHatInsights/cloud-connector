@@ -1,4 +1,4 @@
-package main
+package pendo_transmitter
 
 import (
 	"bytes"
@@ -88,7 +88,7 @@ func makeRequest(endpoint string, timeout time.Duration, apiKey string) (string,
 	return string(body), nil
 }
 
-func main() {
+func PendoReporter(exculdeAccounts string) {
 	logger.InitLogger()
 
 	logger.Log.Info("Starting Cloud-Connector Pendo Transmitter")
@@ -99,7 +99,7 @@ func main() {
 		logger.Log.Fatal("No Pendo Integration key.")
 	}
 
-	cr.StartConnectedAccountReport("477931,6089719,540155", connectionCountProcessor)
+	cr.StartConnectedAccountReport(exculdeAccounts, connectionCountProcessor)
 
 	if len(accInfo) > 0 {
 		requestHandler(cfg.PendoApiEndpoint, cfg.PendoRequestTimeout, cfg.PendoIntegrationKey)

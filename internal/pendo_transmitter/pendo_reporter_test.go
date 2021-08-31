@@ -1,4 +1,4 @@
-package main
+package pendo_transmitter
 
 import (
 	"net/http"
