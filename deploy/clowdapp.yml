@@ -154,6 +154,21 @@ objects:
     mqtt.user: ZnJlZA==
 
 
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: client-id-to-account-id-map-config
+    labels:
+      app: cloud-connector
+  data:
+    client_id_to_account_id_map.json: >
+      {
+          "8a823918-f801-474c-9f79-7cc7e9d79a7f": "010101",
+          "client-1": "010102"
+      }
+
+
+
 parameters:
 - description: Initial amount of memory the cloud-connector container will request.
   displayName: Memory Request
