@@ -46,14 +46,14 @@ objects:
             volumeMounts:
               - mountPath: /mosquitto/config
                 name: mosquitto-broker-volume-1
-            volumes:
-              - configMap:
-                  defaultMode: 420
-                  items:
-                    - key: mosquitto.conf
-                      path: mosquitto.conf
-                  name: mosquitto-config
-                name: mosquitto-broker-volume-1
+        volumes:
+          - configMap:
+              defaultMode: 420
+              items:
+                - key: mosquitto.conf
+                  path: mosquitto.conf
+              name: mosquitto-config
+            name: mosquitto-broker-volume-1
         dnsPolicy: ClusterFirst
         imagePullSecrets:
           - name: quay-cloudservices-pull
