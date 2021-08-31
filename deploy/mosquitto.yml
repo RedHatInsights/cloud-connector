@@ -54,7 +54,7 @@ objects:
                       path: mosquitto.conf
                   name: mosquitto-config
                 name: mosquitto-broker-volume-1
-       dnsPolicy: ClusterFirst
+        dnsPolicy: ClusterFirst
         imagePullSecrets:
           - name: quay-cloudservices-pull
         restartPolicy: Always
