@@ -67,7 +67,12 @@ objects:
         volumeMounts:
         - mountPath: /tmp/mqtt_certs
           name: mqtt-certs
+        - mountPath: /tmp/cloud-connector-config
+          name: client-id-to-account-id-map
         volumes:
+        - name: client-id-to-account-id-map
+          configMap:
+            name: client-id-to-account-id-map-config
         - name: mqtt-certs
           secret:
             defaultMode: 420
@@ -375,6 +380,21 @@ objects:
           "8a823918-f801-474c-9f79-7cc7e9d79a7f": "010101",
           "client-1": "010102"
       }
+
+
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: client-id-to-account-id-map-config
+    labels:
+      app: cloud-connector
+  data:
+    client_id_to_account_id_map.json: >
+      {
+          "8a823918-f801-474c-9f79-7cc7e9d79a7f": "010101",
+          "client-1": "010102"
+      }
+
 
 
 parameters:
