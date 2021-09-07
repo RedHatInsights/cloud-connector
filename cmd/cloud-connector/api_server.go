@@ -140,7 +140,7 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 	case <-connectedChan:
 		break
 	case <-time.After(2 * time.Second):
-		logger.Log.Fatal("Failed ot connect")
+		logger.Log.Fatal("Failed to connect")
 	}
 
 	mqttTopicBuilder := mqtt.NewTopicBuilder(cfg.MqttTopicPrefix)
