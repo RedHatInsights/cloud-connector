@@ -28,7 +28,7 @@ objects:
       spec:
         containers:
           - image: >-
-              quay.io/cloudservices/eclipse-mosquitto@sha256:ec4c88bdd21e4edb5cd426224ce32b9375dfa17e0abf0006ec8a9bd1648df860
+              quay.io/cloudservices/eclipse-mosquitto@sha256:latest
             imagePullPolicy: Always
             name: mosquitto-broker
             ports:
