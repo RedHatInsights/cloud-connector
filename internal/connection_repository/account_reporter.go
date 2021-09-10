@@ -1,18 +1,15 @@
-package main
+package connection_repository
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
-	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
-	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/db"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 )
 
-func startConnectedAccountReport(accountsToExcludeCmdLineArg string) {
+func StartConnectedAccountReport(accountsToExcludeCmdLineArg string, processorFunc ConnectionCountProcessor) {
 
 	logger.InitLogger()
 
@@ -30,15 +27,10 @@ func startConnectedAccountReport(accountsToExcludeCmdLineArg string) {
 
 	accountsToExclude := strings.Split(accountsToExcludeCmdLineArg, ",")
 
-	connection_repository.ProcessConnectionCounts(
+	ProcessConnectionCounts(
 		context.TODO(),
 		databaseConn,
 		sqlTimeout,
 		accountsToExclude,
-		stdoutConnectionCountProcessor)
-}
-
-func stdoutConnectionCountProcessor(ctx context.Context, account domain.AccountID, count int) error {
-	fmt.Printf("%s - %d\n", account, count)
-	return nil
+		processorFunc)
 }

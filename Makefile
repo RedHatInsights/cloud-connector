@@ -14,6 +14,9 @@ build:
 	go build -o $(CONNECTED_CLIENT_BINARY) cmd/$(CONNECTED_CLIENT_BINARY)/*.go
 	go build -o $(MIGRATE_DB_BINARY) cmd/$(MIGRATE_DB_BINARY)/main.go
 
+run-pendo-transmitter:
+	./$(CONNECTOR_SERVICE_BINARY) connection_count_per_account_reporter -r pendo
+
 deps:
 	go get -u golang.org/x/lint/golint
 
