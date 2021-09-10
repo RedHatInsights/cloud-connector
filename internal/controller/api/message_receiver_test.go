@@ -317,6 +317,23 @@ var _ = Describe("MessageReceiver", func() {
 				verifyErrorResponse(rr.Body, accountMismatchErrorMsg)
 			})
 
+			It("Should not allow sending a job with empty directive field", func() {
+
+				postBody := "{\"account\": \"1234\", \"recipient\": \"345\", \"payload\": [\"678\"], \"directive\": \"   \"}"
+
+				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
+				Expect(err).NotTo(HaveOccurred())
+
+				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
+
+				rr := httptest.NewRecorder()
+
+				jr.router.ServeHTTP(rr, req)
+
+				Expect(rr.Code).To(Equal(http.StatusBadRequest))
+				verifyErrorResponse(rr.Body, emptyDirectictiveErrorMsg)
+			})
+
 		})
 
 		Context("Without an identity header or pre shared key", func() {

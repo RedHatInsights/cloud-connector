@@ -10,7 +10,7 @@ require (
 	github.com/go-playground/assert/v2 v2.0.1
 	github.com/go-playground/validator/v10 v10.4.1
 	github.com/golang-migrate/migrate/v4 v4.14.1
-	github.com/google/go-cmp v0.5.1 // indirect
+	github.com/google/go-cmp v0.5.1
 	github.com/google/uuid v1.1.4
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
@@ -22,7 +22,7 @@ require (
 	github.com/onsi/gomega v1.9.0
 	github.com/pelletier/go-toml v1.8.1 // indirect
 	github.com/prometheus/client_golang v1.9.0
-	github.com/redhatinsights/app-common-go v1.5.1 // indirect
+	github.com/redhatinsights/app-common-go v1.5.1
 	github.com/redhatinsights/platform-go-middlewares v0.8.1
 	github.com/segmentio/kafka-go v0.4.8
 	github.com/sirupsen/logrus v1.8.1
