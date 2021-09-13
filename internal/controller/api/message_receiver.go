@@ -2,6 +2,7 @@ package api
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
@@ -16,7 +17,8 @@ import (
 )
 
 const (
-	accountMismatchErrorMsg = "Account mismatch"
+	accountMismatchErrorMsg   = "Account mismatch"
+	emptyDirectictiveErrorMsg = "Directive field is empty"
 )
 
 type MessageReceiver struct {
@@ -88,6 +90,15 @@ func (jr *MessageReceiver) handleJob() http.HandlerFunc {
 			errorResponse := errorResponse{Title: accountMismatchErrorMsg,
 				Status: http.StatusForbidden,
 				Detail: accountMismatchErrorMsg}
+			writeJSONResponse(w, errorResponse.Status, errorResponse)
+			return
+		}
+
+		if len(strings.TrimSpace(msgRequest.Directive)) == 0 {
+			logger.Debug(emptyDirectictiveErrorMsg)
+			errorResponse := errorResponse{Title: emptyDirectictiveErrorMsg,
+				Status: http.StatusBadRequest,
+				Detail: emptyDirectictiveErrorMsg}
 			writeJSONResponse(w, errorResponse.Status, errorResponse)
 			return
 		}

@@ -74,6 +74,10 @@ const (
 	RHC_MESSAGE_KAFKA_BATCH_SIZE                 = "RHC_Message_Kafka_Batch_Size"
 	RHC_MESSAGE_KAFKA_BATCH_BYTES                = "RHC_Message_Kafka_Batch_Bytes"
 	RHC_MESSAGE_KAFKA_CONSUMER_GROUP             = "RHC_Message_Kafka_Consumer_Group"
+	PENDO_API_ENDPOINT                           = "Pendo_Api_Endpoint"
+	PENDO_REQUEST_TIMEOUT                        = "Pendo_Request_Timeout"
+	PENDO_INTEGRATION_KEY                        = "Pendo_Integration_Key"
+	PENDO_REQUEST_SIZE                           = "Pendo_Request_Size"
 )
 
 type Config struct {
@@ -137,6 +141,10 @@ type Config struct {
 	RhcMessageKafkaBatchSize                int
 	RhcMessageKafkaBatchBytes               int
 	RhcMessageKafkaConsumerGroup            string
+	PendoApiEndpoint                        string
+	PendoRequestTimeout                     time.Duration
+	PendoIntegrationKey                     string
+	PendoRequestSize                        int
 }
 
 func (c Config) String() string {
@@ -258,6 +266,10 @@ func GetConfig() *Config {
 	options.SetDefault(RHC_MESSAGE_KAFKA_BATCH_SIZE, 100)
 	options.SetDefault(RHC_MESSAGE_KAFKA_BATCH_BYTES, 1048576)
 	options.SetDefault(RHC_MESSAGE_KAFKA_CONSUMER_GROUP, "cloud-connector-rhc-message-consumer")
+	options.SetDefault(PENDO_API_ENDPOINT, "https://app.pendo.io/api/v1")
+	options.SetDefault(PENDO_REQUEST_TIMEOUT, 5)
+	options.SetDefault(PENDO_INTEGRATION_KEY, "")
+	options.SetDefault(PENDO_REQUEST_SIZE, 100)
 
 	options.SetEnvPrefix(ENV_PREFIX)
 	options.AutomaticEnv()
@@ -322,6 +334,10 @@ func GetConfig() *Config {
 		RhcMessageKafkaBatchSize:                options.GetInt(RHC_MESSAGE_KAFKA_BATCH_SIZE),
 		RhcMessageKafkaBatchBytes:               options.GetInt(RHC_MESSAGE_KAFKA_BATCH_BYTES),
 		RhcMessageKafkaConsumerGroup:            options.GetString(RHC_MESSAGE_KAFKA_CONSUMER_GROUP),
+		PendoApiEndpoint:                        options.GetString(PENDO_API_ENDPOINT),
+		PendoRequestTimeout:                     options.GetDuration(PENDO_REQUEST_TIMEOUT) * time.Second,
+		PendoIntegrationKey:                     options.GetString(PENDO_INTEGRATION_KEY),
+		PendoRequestSize:                        options.GetInt(PENDO_REQUEST_SIZE),
 	}
 
 	if clowder.IsClowderEnabled() {

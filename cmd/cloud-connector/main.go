@@ -1,8 +1,13 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"os"
 
+	cr "github.com/RedHatInsights/cloud-connector/internal/connection_repository"
+	"github.com/RedHatInsights/cloud-connector/internal/domain"
+	pt "github.com/RedHatInsights/cloud-connector/internal/pendo_transmitter"
 	"github.com/spf13/cobra"
 )
 
@@ -10,6 +15,7 @@ func NewRootCommand() *cobra.Command {
 
 	var listenAddr string
 	var excludeAccounts string
+	var reportMode string
 
 	// rootCmd represents the base command when called without any subcommands
 	var rootCmd = &cobra.Command{
@@ -55,10 +61,16 @@ func NewRootCommand() *cobra.Command {
 		Use:   "connection_count_per_account_reporter",
 		Short: "Generate a report on the number of connections per account",
 		Run: func(cmd *cobra.Command, args []string) {
-			startConnectedAccountReport(excludeAccounts)
+			switch reportMode {
+			case "pendo":
+				pt.PendoReporter(excludeAccounts)
+			case "stdout":
+				cr.StartConnectedAccountReport(excludeAccounts, stdoutConnectionCountProcessor)
+			}
 		},
 	}
 	connectedAccountReportCmd.Flags().StringVarP(&excludeAccounts, "exclude-accounts", "e", "477931,6089719,540155", "477931,6089719,540155")
+	connectedAccountReportCmd.Flags().StringVarP(&reportMode, "report-exporter", "r", "stdout", "Report export method - stdout/pendo")
 
 	rootCmd.AddCommand(mqttMessageConsumerCmd)
 	rootCmd.AddCommand(inventoryStaleTimestampeUpdaterCmd)
@@ -67,6 +79,11 @@ func NewRootCommand() *cobra.Command {
 	rootCmd.AddCommand(connectedAccountReportCmd)
 
 	return rootCmd
+}
+
+func stdoutConnectionCountProcessor(ctx context.Context, account domain.AccountID, count int) error {
+	fmt.Printf("%s - %d\n", account, count)
+	return nil
 }
 
 func main() {
