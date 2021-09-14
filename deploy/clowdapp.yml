@@ -261,7 +261,7 @@ parameters:
   value: "wss://just.falloverfornow.com:8883/"
   required: true
 - name: MQTT_TOPIC_PREFIX
-  value: "ci"
+  value: "redhat"
   required: true
 
 - name: CLIENT_ID_TO_ACCOUNT_ID_IMPL
