@@ -114,6 +114,24 @@ objects:
 
         - name: CLOUD_CONNECTOR_SLEEP_TIME_HACK
           value: "0"
+        initContainers:
+        - args:
+          - ./migrate_db
+          - upgrade
+          env:
+          - name: CLOUD_CONNECTOR_LOG_LEVEL
+            value: DEBUG
+          - name: CLOUD_CONNECTOR_LOG_FORMAT
+            value: ${{LOG_FORMAT}}
+          image: ${IMAGE}:${IMAGE_TAG}
+          name: cloud-connector-init
+          resources:
+            limits:
+              cpu: ${{CPU_LIMIT}}
+              memory: ${{MEMORY_LIMIT}}
+            requests:
+              cpu: 250m
+              memory: 256Mi
 
 
     jobs:
