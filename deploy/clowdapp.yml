@@ -171,7 +171,7 @@ objects:
     - name: legacy-cloud-connector-port
       port: 8080
       protocol: TCP
-      targetPort: 9000
+      targetPort: 10000
     selector:
       app: cloud-connector
       pod: cloud-connector-api-clowder
