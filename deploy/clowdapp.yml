@@ -106,25 +106,6 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
           value: ${{MQTT_TOPIC_PREFIX}}
-        initContainers:
-        - args:
-          - ./migrate_db
-          - upgrade
-          env:
-          - name: CLOUD_CONNECTOR_LOG_LEVEL
-            value: DEBUG
-          - name: CLOUD_CONNECTOR_LOG_FORMAT
-            value: ${{LOG_FORMAT}}
-          image: ${IMAGE}:${IMAGE_TAG}
-          name: cloud-connector-init
-          resources:
-            limits:
-              cpu: ${{CPU_LIMIT}}
-              memory: ${{MEMORY_LIMIT}}
-            requests:
-              cpu: 250m
-              memory: 256Mi
-
 
 
     - name: mqtt-message-consumer
@@ -135,7 +116,7 @@ objects:
           enabled: False
         metrics:
           enabled: True
-      minReplicas: ${{MQTT_CONSUMER_REPLICAS}}
+      minReplicas: 1
       podSpec:
         minReadySeconds: 15
         progressDeadlineSeconds: 600
@@ -208,6 +189,25 @@ objects:
           value: ${RHC_MESSAGE_KAFKA_BATCH_SIZE}
         - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BATCH_BYTES
           value: ${RHC_MESSAGE_KAFKA_BATCH_BYTES}
+        initContainers:
+        - args:
+          - ./migrate_db
+          - upgrade
+          env:
+          - name: CLOUD_CONNECTOR_LOG_LEVEL
+            value: DEBUG
+          - name: CLOUD_CONNECTOR_LOG_FORMAT
+            value: ${{LOG_FORMAT}}
+          image: ${IMAGE}:${IMAGE_TAG}
+          name: cloud-connector-init
+          resources:
+            limits:
+              cpu: ${{CPU_LIMIT}}
+              memory: ${{MEMORY_LIMIT}}
+            requests:
+              cpu: 250m
+              memory: 256Mi
+
 
 
     - name: kafka-message-consumer
@@ -346,7 +346,7 @@ objects:
     - name: legacy-cloud-connector-port
       port: 8080
       protocol: TCP
-      targetPort: 9000
+      targetPort: 10000
     selector:
       app: cloud-connector
       pod: cloud-connector-api-service
@@ -372,7 +372,7 @@ objects:
     labels:
       app: cloud-connector
   data:
-    mqtt.user: bXF0dC1jb25zdW1lcg==
+    mqtt.user: Y2xvdWQtY29ubmVjdG9yLW1xdHQtY29uc3VtZXI
 
 
 - apiVersion: v1
