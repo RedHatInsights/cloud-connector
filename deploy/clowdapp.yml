@@ -21,7 +21,7 @@ objects:
       topicName: platform.inventory.host-ingress-p1
     deployments:
 
-    - name: api-clowder
+    - name: api-service
       webServices:
         private:
           enabled: True
@@ -127,7 +127,7 @@ objects:
 
 
 
-    - name: mqtt-message-consumer-clowder
+    - name: mqtt-message-consumer
       webServices:
         private:
           enabled: False
@@ -210,7 +210,7 @@ objects:
           value: ${RHC_MESSAGE_KAFKA_BATCH_BYTES}
 
 
-    - name: kafka-message-consumer-clowder
+    - name: kafka-message-consumer
       webServices:
         private:
           enabled: False
@@ -349,7 +349,7 @@ objects:
       targetPort: 9000
     selector:
       app: cloud-connector
-      pod: cloud-connector-api-clowder
+      pod: cloud-connector-api-service
     sessionAffinity: None
     type: ClusterIP
 
