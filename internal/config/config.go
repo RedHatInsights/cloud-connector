@@ -70,7 +70,7 @@ const (
 	JWT_PUBLIC_KEY_FILE                          = "JWT_Public_Key_File"
 	RHC_MESSAGE_KAFKA_BROKERS                    = "RHC_Message_Kafka_Brokers"
 	RHC_MESSAGE_KAFKA_TOPIC                      = "RHC_Message_Kafka_Topic"
-	RHC_MESSAGE_KAFKA_TOPIC_DEFAULT              = "platform.cloud-connector.mqtt_messages"
+	RHC_MESSAGE_KAFKA_TOPIC_DEFAULT              = "platform.cloud-connector.rhc-message-ingress"
 	RHC_MESSAGE_KAFKA_BATCH_SIZE                 = "RHC_Message_Kafka_Batch_Size"
 	RHC_MESSAGE_KAFKA_BATCH_BYTES                = "RHC_Message_Kafka_Batch_Bytes"
 	RHC_MESSAGE_KAFKA_CONSUMER_GROUP             = "RHC_Message_Kafka_Consumer_Group"

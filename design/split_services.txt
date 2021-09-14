@@ -6,7 +6,7 @@
 
 kafka
 -----
-- platform.cloud-connector.mqtt_messages
+- platform.cloud-connector.rhc-message-ingress
 
 - message format
   

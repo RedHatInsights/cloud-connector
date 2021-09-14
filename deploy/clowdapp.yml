@@ -477,7 +477,7 @@ parameters:
 
 - name: RHC_MESSAGE_KAFKA_TOPIC
   required: true
-  value: platform.cloud-connector.mqtt_messages
+  value: platform.cloud-connector.rhc-message-ingress
 - name: RHC_MESSAGE_KAFKA_CONSUMER_GROUP
   required: true
   value: cloud-connector-rhc-message-consumer
