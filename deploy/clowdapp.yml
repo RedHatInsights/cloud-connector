@@ -20,7 +20,7 @@ objects:
       partitions: 16
       topicName: platform.inventory.host-ingress-p1
     deployments:
-    - name: cloud-connector-api-clowder
+    - name: api-clowder
       webServices:
         private:
           enabled: True
@@ -156,7 +156,7 @@ objects:
       targetPort: 9000
     selector:
       app: cloud-connector
-      pod: cloud-connector-cloud-connector-api-clowder
+      pod: cloud-connector-api-clowder
     sessionAffinity: None
     type: ClusterIP
 
