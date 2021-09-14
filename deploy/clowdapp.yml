@@ -197,7 +197,7 @@ objects:
     labels:
       app: cloud-connector
   data:
-    mqtt.user: ZnJlZA==
+    mqtt.user: Y2xvdWQtY29ubmVjdG9y
 
 
 - apiVersion: v1
