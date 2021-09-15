@@ -135,11 +135,11 @@ objects:
 
 
     jobs:
-    - name: cloud-connector-connection-per-account-reporter
+    - name: connection-per-account-reporter
       schedule: ${CONNECTION_PER_ACCOUNT_REPORTER_SCHEDULE}
       suspend: ${{CONNECTION_PER_ACCOUNT_REPORTER_SUSPEND}}
       podSpec:
-        name: cloud-connector-connection-per-account-reporter
+        name: connection-per-account-reporter
         restartPolicy: OnFailure
         image: ${IMAGE}:${IMAGE_TAG}
         command:
