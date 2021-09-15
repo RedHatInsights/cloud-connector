@@ -179,10 +179,21 @@ objects:
             value: ${{CLIENT_ID_TO_ACCOUNT_ID_IMPL}}
           - name: CLOUD_CONNECTOR_AUTH_GATEWAY_URL
             value: ${{AUTH_GATEWAY_URL}}
+          - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE
+            value: "/tmp/cloud-connector-config/client_id_to_account_id_map.json"
 
           - name: CLOUD_CONNECTOR_CONNECTED_CLIENT_RECORDER_IMPL
             value: inventory
 
+          - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
+            value: ${{MQTT_TOPIC_PREFIX}}
+        volumeMounts:
+        - mountPath: /tmp/cloud-connector-config
+          name: client-id-to-account-id-map
+        volumes:
+        - name: client-id-to-account-id-map
+          configMap:
+            name: client-id-to-account-id-map-config
         concurrencyPolicy: Forbid
         resources:
           limits:
@@ -191,7 +202,6 @@ objects:
           requests:
             cpu: 50m
             memory: 512Mi
-
 
 
 - apiVersion: v1
