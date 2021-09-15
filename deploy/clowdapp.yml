@@ -314,17 +314,61 @@ objects:
       schedule: ${CONNECTION_PER_ACCOUNT_REPORTER_SCHEDULE}
       suspend: ${{CONNECTION_PER_ACCOUNT_REPORTER_SUSPEND}}
       podSpec:
-        name: cloud-connector-connection-per-account-reporter
+        name: connection-per-account-reporter
         restartPolicy: OnFailure
         image: ${IMAGE}:${IMAGE_TAG}
         command:
-          - ./connection-cleaner
+          - ./cloud-connector
           - connection_count_per_account_reporter
         env:
           - name: CLOUD_CONNECTOR_LOG_LEVEL
             value: ${{LOG_LEVEL}}
           - name: CLOUD_CONNECTOR_LOG_FORMAT
             value: ${{CONNECTION_PER_ACCOUNT_REPORTER_LOG_FORMAT}}
+        concurrencyPolicy: Forbid
+        resources:
+          limits:
+            cpu: 300m
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 512Mi
+
+    - name: stale-timestamp-updater
+      schedule: ${STALE_TIMESTAMP_UPDATER_SCHEDULE}
+      suspend: ${{STALE_TIMESTAMP_UPDATER_SUSPEND}}
+      podSpec:
+        name: stale-timestamp-updater
+        restartPolicy: OnFailure
+        image: ${IMAGE}:${IMAGE_TAG}
+        command:
+          - ./cloud-connector
+          - inventory_stale_timestamp_updater
+        env:
+          - name: CLOUD_CONNECTOR_LOG_LEVEL
+            value: ${{LOG_LEVEL}}
+          - name: CLOUD_CONNECTOR_LOG_FORMAT
+            value: ${{STALE_TIMESTAMP_UPDATER_LOG_FORMAT}}
+
+          - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_IMPL
+            value: ${{CLIENT_ID_TO_ACCOUNT_ID_IMPL}}
+          - name: CLOUD_CONNECTOR_AUTH_GATEWAY_URL
+            value: ${{AUTH_GATEWAY_URL}}
+          - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE
+            value: "/tmp/cloud-connector-config/client_id_to_account_id_map.json"
+
+          - name: CLOUD_CONNECTOR_CONNECTED_CLIENT_RECORDER_IMPL
+            value: inventory
+
+          - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
+            value: ${{MQTT_TOPIC_PREFIX}}
+        volumeMounts:
+        - mountPath: /tmp/cloud-connector-config
+          name: client-id-to-account-id-map
+        volumes:
+        - name: client-id-to-account-id-map
+          configMap:
+            name: client-id-to-account-id-map-config
         concurrencyPolicy: Forbid
         resources:
           limits:
@@ -507,4 +551,11 @@ parameters:
 - name: CONNECTION_PER_ACCOUNT_REPORTER_SUSPEND
   value: "false"
 - name: CONNECTION_PER_ACCOUNT_REPORTER_LOG_FORMAT
+  value: "logstash"
+
+- name: STALE_TIMESTAMP_UPDATER_SCHEDULE
+  value: "*/10 * * * *"
+- name: STALE_TIMESTAMP_UPDATER_SUSPEND
+  value: "false"
+- name: STALE_TIMESTAMP_UPDATER_LOG_FORMAT
   value: "logstash"
