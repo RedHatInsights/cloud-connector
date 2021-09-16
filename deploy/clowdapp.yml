@@ -67,16 +67,16 @@ objects:
         - mountPath: /tmp/jwt_keys
           name: volume-mqtt-jwt-keys
           readOnly: true
-        #- mountPath: /tmp/cloud-connector-config
-        #  name: client-id-to-account-id-map
+        - mountPath: /tmp/cloud-connector-config
+          name: client-id-to-account-id-map
         volumes:
         - name: volume-mqtt-jwt-keys
           secret:
             defaultMode: 420
             secretName: cloud-connector-mqtt-credentials
-        #- name: client-id-to-account-id-map
-        #  configMap:
-        #    name: client-id-to-account-id-map-config
+        - name: client-id-to-account-id-map
+          configMap:
+            name: client-id-to-account-id-map-config
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -194,6 +194,13 @@ objects:
 
           - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
             value: ${{MQTT_TOPIC_PREFIX}}
+        volumeMounts:
+        - mountPath: /tmp/cloud-connector-config
+          name: client-id-to-account-id-map
+        volumes:
+        - name: client-id-to-account-id-map
+          configMap:
+            name: client-id-to-account-id-map-config
         concurrencyPolicy: Forbid
         resources:
           limits:
