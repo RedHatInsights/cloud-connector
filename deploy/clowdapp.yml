@@ -63,6 +63,20 @@ objects:
           requests:
             cpu: ${CPU_REQUEST}
             memory: ${MEMORY_REQUEST}
+        volumeMounts:
+        - mountPath: /tmp/jwt_keys
+          name: volume-mqtt-jwt-keys
+          readOnly: true
+        #- mountPath: /tmp/cloud-connector-config
+        #  name: client-id-to-account-id-map
+        volumes:
+        - name: volume-mqtt-jwt-keys
+          secret:
+            defaultMode: 420
+            secretName: cloud-connector-mqtt-credentials
+        #- name: client-id-to-account-id-map
+        #  configMap:
+        #    name: client-id-to-account-id-map-config
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -95,7 +109,7 @@ objects:
           value: "/tmp/cloud-connector-config/client_id_to_account_id_map.json"
 
         - name: CLOUD_CONNECTOR_CONNECTED_CLIENT_RECORDER_IMPL
-          value: inventory
+          value: ${{CONNECTED_CLIENT_RECORDER_IMPL}}
 
         - name: CLOUD_CONNECTOR_SOURCES_RECORDER_IMPL
           value: ${{SOURCES_RECORDER_IMPL}}
@@ -176,7 +190,7 @@ objects:
             value: "/tmp/cloud-connector-config/client_id_to_account_id_map.json"
 
           - name: CLOUD_CONNECTOR_CONNECTED_CLIENT_RECORDER_IMPL
-            value: inventory
+            value: ${{CONNECTED_CLIENT_RECORDER_IMPL}}
 
           - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
             value: ${{MQTT_TOPIC_PREFIX}}
@@ -293,6 +307,10 @@ parameters:
 - name: MQTT_TOPIC_PREFIX
   value: "redhat"
   required: true
+
+- name: CONNECTED_CLIENT_RECORDER_IMPL
+  required: true
+  value: "inventory"
 
 - name: CLIENT_ID_TO_ACCOUNT_ID_IMPL
   value: "fake"
