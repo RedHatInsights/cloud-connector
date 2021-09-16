@@ -63,13 +63,6 @@ objects:
           requests:
             cpu: ${CPU_REQUEST}
             memory: ${MEMORY_REQUEST}
-        volumeMounts:
-        - mountPath: /tmp/cloud-connector-config
-          name: client-id-to-account-id-map
-        volumes:
-        - name: client-id-to-account-id-map
-          configMap:
-            name: client-id-to-account-id-map-config
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -187,13 +180,6 @@ objects:
 
           - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
             value: ${{MQTT_TOPIC_PREFIX}}
-        volumeMounts:
-        - mountPath: /tmp/cloud-connector-config
-          name: client-id-to-account-id-map
-        volumes:
-        - name: client-id-to-account-id-map
-          configMap:
-            name: client-id-to-account-id-map-config
         concurrencyPolicy: Forbid
         resources:
           limits:
