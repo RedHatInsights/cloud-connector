@@ -321,19 +321,13 @@ func GetConfig() *Config {
 
 		config.ConnectionDatabaseSslMode = cfg.Database.SslMode
 		if cfg.Database.RdsCa != nil {
-			config.ConnectionDatabaseSslRootCert = *cfg.Database.RdsCa
+			pathToDBCertFile, err := cfg.RdsCa()
+			if err != nil {
+				panic(err)
+			}
+
+			config.ConnectionDatabaseSslRootCert = pathToDBCertFile
 		}
-
-		/*
-			options.SetDefault("Web_Port", cfg.WebPort)
-			options.SetDefault("Metrics_Port", cfg.MetricsPort)
-			options.SetDefault("Metrics_Path", cfg.MetricsPath)
-
-			options.SetDefault("Log_Group", cfg.Logging.Cloudwatch.LogGroup)
-			options.SetDefault("Aws_Region", cfg.Logging.Cloudwatch.Region)
-			options.SetDefault("Aws_Access_Key_Id", cfg.Logging.Cloudwatch.AccessKeyId)
-			options.SetDefault("Aws_Secret_Access_Key", cfg.Logging.Cloudwatch.SecretAccessKey)
-		*/
 	}
 
 	return config
