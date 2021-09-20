@@ -20,8 +20,7 @@ objects:
       partitions: 16
       topicName: platform.inventory.host-ingress-p1
     deployments:
-
-    - name: api-service
+    - name: api
       webServices:
         private:
           enabled: True
@@ -65,18 +64,14 @@ objects:
             cpu: ${CPU_REQUEST}
             memory: ${MEMORY_REQUEST}
         volumeMounts:
-        - mountPath: /tmp/mqtt_certs
-          name: mqtt-certs
-        - mountPath: /tmp/cloud-connector-config
-          name: client-id-to-account-id-map
+        - mountPath: /tmp/jwt_keys
+          name: volume-mqtt-jwt-keys
+          readOnly: true
         volumes:
-        - name: client-id-to-account-id-map
-          configMap:
-            name: client-id-to-account-id-map-config
-        - name: mqtt-certs
+        - name: volume-mqtt-jwt-keys
           secret:
             defaultMode: 420
-            secretName: cloud-connector-mqtt-consumer-cert
+            secretName: cloud-connector-mqtt-credentials
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -85,16 +80,12 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
           value: ${{MQTT_BROKER_ADDRESS}}
-        #- name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
-        #  value: jwt_rsa_generator
-        #- name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
-        #  value: /tmp/jwt_keys/jwt_signing_key.pem
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+          value: jwt_rsa_generator
+        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+          value: /tmp/jwt_keys/jwt_signing_key.pem
         - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
           value: "true"
-        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
-          value: "/tmp/mqtt_certs/key.pem"
-        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
-          value: "/tmp/mqtt_certs/cert.pem"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
           value: ${{MQTT_BROKER_TLS_SKIP_VERIFY}}
 
@@ -106,7 +97,6 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
           value: ${{MQTT_TOPIC_PREFIX}}
-
 
     - name: mqtt-message-consumer
       webServices:
@@ -152,13 +142,14 @@ objects:
             cpu: ${CPU_REQUEST}
             memory: ${MEMORY_REQUEST}
         volumeMounts:
-        - mountPath: /tmp/mqtt_certs
-          name: mqtt-certs
+        - mountPath: /tmp/jwt_keys
+          name: volume-mqtt-jwt-keys
+          readOnly: true
         volumes:
-        - name: mqtt-certs
+        - name: volume-mqtt-jwt-keys
           secret:
             defaultMode: 420
-            secretName: cloud-connector-mqtt-consumer-cert
+            secretName: cloud-connector-mqtt-credentials
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -167,10 +158,10 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
           value: ${{MQTT_BROKER_ADDRESS}}
-        #- name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
-        #  value: jwt_rsa_generator
-        #- name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
-        #  value: /tmp/jwt_keys/jwt_signing_key.pem
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+          value: jwt_rsa_generator
+        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+          value: /tmp/jwt_keys/jwt_signing_key.pem
         - name: CLOUD_CONNECTOR_MQTT_CLIENT_ID
           valueFrom:
             secretKeyRef:
@@ -178,10 +169,6 @@ objects:
               name: cloud-connector-mqtt-credentials
         - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
           value: ${{MQTT_TOPIC_PREFIX}}
-        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
-          value: "/tmp/mqtt_certs/key.pem"
-        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
-          value: "/tmp/mqtt_certs/cert.pem"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
           value: ${{MQTT_BROKER_TLS_SKIP_VERIFY}}
 
@@ -207,7 +194,6 @@ objects:
             requests:
               cpu: 250m
               memory: 256Mi
-
 
 
     - name: kafka-message-consumer
@@ -254,18 +240,20 @@ objects:
             cpu: ${CPU_REQUEST}
             memory: ${MEMORY_REQUEST}
         volumeMounts:
-        - mountPath: /tmp/mqtt_certs
-          name: mqtt-certs
+        - mountPath: /tmp/jwt_keys
+          name: volume-mqtt-jwt-keys
+          readOnly: true
         - mountPath: /tmp/cloud-connector-config
           name: client-id-to-account-id-map
         volumes:
-        - name: mqtt-certs
+        - name: volume-mqtt-jwt-keys
           secret:
             defaultMode: 420
-            secretName: cloud-connector-mqtt-consumer-cert
+            secretName: cloud-connector-mqtt-credentials
         - name: client-id-to-account-id-map
-          configMap:
-            name: client-id-to-account-id-map-config
+          secret:
+            defaultMode: 420
+            secretName: client-id-to-account-id-map-config
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -274,19 +262,14 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
           value: ${{MQTT_BROKER_ADDRESS}}
-        #- name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
-        #  value: jwt_rsa_generator
-        #- name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
-        #  value: /tmp/jwt_keys/jwt_signing_key.pem
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+          value: jwt_rsa_generator
+        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+          value: /tmp/jwt_keys/jwt_signing_key.pem
         - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
           value: ${{MQTT_TOPIC_PREFIX}}
         - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
           value: "true"
-        # FIXME: this needs to be corrected...use a different cert
-        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
-          value: "/tmp/mqtt_certs/key.pem"
-        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
-          value: "/tmp/mqtt_certs/cert.pem"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
           value: ${{MQTT_BROKER_TLS_SKIP_VERIFY}}
 
@@ -301,7 +284,7 @@ objects:
           value: "/tmp/cloud-connector-config/client_id_to_account_id_map.json"
 
         - name: CLOUD_CONNECTOR_CONNECTED_CLIENT_RECORDER_IMPL
-          value: inventory
+          value: ${{CONNECTED_CLIENT_RECORDER_IMPL}}
 
         - name: CLOUD_CONNECTOR_SOURCES_RECORDER_IMPL
           value: ${{SOURCES_RECORDER_IMPL}}
@@ -358,7 +341,7 @@ objects:
             value: "/tmp/cloud-connector-config/client_id_to_account_id_map.json"
 
           - name: CLOUD_CONNECTOR_CONNECTED_CLIENT_RECORDER_IMPL
-            value: inventory
+            value: ${{CONNECTED_CLIENT_RECORDER_IMPL}}
 
           - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
             value: ${{MQTT_TOPIC_PREFIX}}
@@ -367,8 +350,9 @@ objects:
           name: client-id-to-account-id-map
         volumes:
         - name: client-id-to-account-id-map
-          configMap:
-            name: client-id-to-account-id-map-config
+          secret:
+            defaultMode: 420
+            secretName: client-id-to-account-id-map-config
         concurrencyPolicy: Forbid
         resources:
           limits:
@@ -393,7 +377,7 @@ objects:
       targetPort: 10000
     selector:
       app: cloud-connector
-      pod: cloud-connector-api-service
+      pod: cloud-connector-api
     sessionAffinity: None
     type: ClusterIP
 
@@ -416,7 +400,7 @@ objects:
     labels:
       app: cloud-connector
   data:
-    mqtt.user: Y2xvdWQtY29ubmVjdG9yLW1xdHQtY29uc3VtZXI
+    mqtt.user: Y2xvdWQtY29ubmVjdG9yLW1xdHQtY29uc3VtZXI=
 
 
 - apiVersion: v1
@@ -432,33 +416,14 @@ objects:
 
 
 - apiVersion: v1
-  kind: ConfigMap
+  kind: Secret
   metadata:
     name: client-id-to-account-id-map-config
     labels:
       app: cloud-connector
   data:
-    client_id_to_account_id_map.json: >
-      {
-          "8a823918-f801-474c-9f79-7cc7e9d79a7f": "010101",
-          "client-1": "010102"
-      }
-
-
-- apiVersion: v1
-  kind: ConfigMap
-  metadata:
-    name: client-id-to-account-id-map-config
-    labels:
-      app: cloud-connector
-  data:
-    client_id_to_account_id_map.json: >
-      {
-          "8a823918-f801-474c-9f79-7cc7e9d79a7f": "010101",
-          "client-1": "010102"
-      }
-
-
+    client_id_to_account_id_map.json: eyI4YTgyMzkxOC1mODAxLTQ3NGMtOWY3OS03Y2M3ZTlkNzlhN2YiOiAiMDEwMTAxIiwgImNsaWVudC0xIjogIjAxMDEwMiJ9
+  type: Opaque
 
 
 parameters:
@@ -529,6 +494,10 @@ parameters:
   value: "100"
 - name: RHC_MESSAGE_KAFKA_BATCH_BYTES
   value: "1048576"
+
+- name: CONNECTED_CLIENT_RECORDER_IMPL
+  required: true
+  value: "inventory"
 
 - name: CLIENT_ID_TO_ACCOUNT_ID_IMPL
   value: "bop"
