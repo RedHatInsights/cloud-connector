@@ -75,8 +75,9 @@ objects:
             defaultMode: 420
             secretName: cloud-connector-mqtt-credentials
         - name: client-id-to-account-id-map
-          configMap:
-            name: client-id-to-account-id-map-config
+          secret:
+            defaultMode: 420
+            secretName: client-id-to-account-id-map-config
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -199,8 +200,9 @@ objects:
           name: client-id-to-account-id-map
         volumes:
         - name: client-id-to-account-id-map
-          configMap:
-            name: client-id-to-account-id-map-config
+          secret:
+            defaultMode: 420
+            secretName: client-id-to-account-id-map-config
         concurrencyPolicy: Forbid
         resources:
           limits:
