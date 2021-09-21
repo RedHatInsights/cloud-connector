@@ -153,11 +153,24 @@ objects:
         command:
           - ./cloud-connector
           - connection_count_per_account_reporter
+          - -e ${CONNECTION_COUNT_PER_ACCOUNT_REPORT_ACCOUNT_EXCLUSION_LIST}
+          - -r ${CONNECTION_COUNT_PER_ACCOUNT_REPORT_OUTPUT_DESTINATION}
         env:
           - name: CLOUD_CONNECTOR_LOG_LEVEL
             value: ${{LOG_LEVEL}}
           - name: CLOUD_CONNECTOR_LOG_FORMAT
             value: ${{CONNECTION_PER_ACCOUNT_REPORTER_LOG_FORMAT}}
+          - name: CLOUD_CONNECTOR_PENDO_API_ENDPOINT
+            value: ${{PENDO_API_ENDPOINT}}
+          - name: CLOUD_CONNECTOR_PENDO_REQUEST_TIMEOUT
+            value: ${PENDO_REQUEST_TIMEOUT}
+          - name: CLOUD_CONNECTOR_PENDO_INTEGRATION_KEY
+            valueFrom:
+              secretKeyRef:
+                key: apikey
+                name: pendo-creds
+          - name: CLOUD_CONNECTOR_PENDO_REQUEST_SIZE
+            value: ${PENDO_REQUEST_SIZE}
         concurrencyPolicy: Forbid
         resources:
           limits:
@@ -263,6 +276,16 @@ objects:
     client_id_to_account_id_map.json: eyI4YTgyMzkxOC1mODAxLTQ3NGMtOWY3OS03Y2M3ZTlkNzlhN2YiOiAiMDEwMTAxIiwgImNsaWVudC0xIjogIjAxMDEwMiJ9
 
 
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: pendo-creds
+    labels:
+      app: cloud-connector
+  data:
+    apikey: Tk9UIEEgUkVBTCBLRVk=
+
+
 parameters:
 - description: Initial amount of memory the cloud-connector container will request.
   displayName: Memory Request
@@ -345,3 +368,14 @@ parameters:
   value: "false"
 - name: STALE_TIMESTAMP_UPDATER_LOG_FORMAT
   value: "logstash"
+
+- name: PENDO_API_ENDPOINT
+  value: "https://app.pendo.io/api/v1"
+- name: PENDO_REQUEST_TIMEOUT
+  value: "5"
+- name: PENDO_REQUEST_SIZE
+  value: "100"
+- name: CONNECTION_COUNT_PER_ACCOUNT_REPORT_OUTPUT_DESTINATION
+  value: "stdout"
+- name: CONNECTION_COUNT_PER_ACCOUNT_REPORT_ACCOUNT_EXCLUSION_LIST
+  value: "477931,6089719,540155"
