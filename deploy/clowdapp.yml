@@ -154,7 +154,7 @@ objects:
           - ./cloud-connector
           - connection_count_per_account_reporter
           - -r
-          - stdout
+          - ${{CONNECTION_COUNT_PER_ACCOUNT_REPORT_OUTPUT_DESTINATION}}
         env:
           - name: CLOUD_CONNECTOR_LOG_LEVEL
             value: ${{LOG_LEVEL}}
