@@ -153,8 +153,6 @@ objects:
         command:
           - ./cloud-connector
           - connection_count_per_account_reporter
-          - -e ${CONNECTION_COUNT_PER_ACCOUNT_REPORT_ACCOUNT_EXCLUSION_LIST}
-          - -r ${CONNECTION_COUNT_PER_ACCOUNT_REPORT_OUTPUT_DESTINATION}
         env:
           - name: CLOUD_CONNECTOR_LOG_LEVEL
             value: ${{LOG_LEVEL}}
