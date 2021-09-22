@@ -152,8 +152,7 @@ objects:
         image: ${IMAGE}:${IMAGE_TAG}
         command:
           - ./cloud-connector
-          - connection_count_per_account_reporter
-          - -r stdout
+          - connection_count_per_account_reporter -r stdout
         env:
           - name: CLOUD_CONNECTOR_LOG_LEVEL
             value: ${{LOG_LEVEL}}
