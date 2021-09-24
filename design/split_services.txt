@@ -12,8 +12,13 @@ kafka
   
   - message key - rhc_client_id (from topic)
 
+    - Use the client id as the message key.  All messages with the same key,
+      get sent to the same partitions.  This is important so that the ordering
+      of the messages is retained.
+
+
   - kafka headers
     - topic
-    - rhc_client_id
+    - mqtt message id
 
   - message - json encoded message

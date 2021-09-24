@@ -186,7 +186,8 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 		topic := getHeaderValueAsString(msg.Headers, mqtt.TopicKafkaHeaderKey)
 		mqttMessageID := getHeaderValueAsString(msg.Headers, mqtt.MessageIDKafkaHeaderKey)
 
-		logger := logger.Log.WithFields(logrus.Fields{"mqtt_message_id": mqttMessageID})
+		logger := logger.Log.WithFields(logrus.Fields{"mqtt_message_id": mqttMessageID,
+			"client_id": string(msg.Key)})
 
 		logger.Debug("Read message off of kafka topic")
 

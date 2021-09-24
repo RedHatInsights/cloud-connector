@@ -90,12 +90,16 @@ func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topic
 			metrics.kafkaWriterGoRoutineGauge.Inc()
 			defer metrics.kafkaWriterGoRoutineGauge.Dec()
 
+			// Use the client id as the message key.  All messages with the same key,
+			// get sent to the same partitions.  This is important so that the ordering
+			// of the messages is retained.
 			err := kafkaWriter.WriteMessages(ctx,
 				kafka.Message{
 					Headers: []kafka.Header{
 						{TopicKafkaHeaderKey, []byte(message.Topic())},
 						{MessageIDKafkaHeaderKey, []byte(mqttMessageID)},
 					},
+					Key:   []byte(clientID),
 					Value: message.Payload(),
 				})
 
