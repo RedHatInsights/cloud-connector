@@ -297,7 +297,7 @@ objects:
     jobs:
     - name: connection-per-account-reporter
       schedule: ${CONNECTION_PER_ACCOUNT_REPORTER_SCHEDULE}
-      suspend: ${CONNECTION_PER_ACCOUNT_REPORTER_SUSPEND}
+      suspend: ${{CONNECTION_PER_ACCOUNT_REPORTER_SUSPEND}}
       podSpec:
         name: connection-per-account-reporter
         restartPolicy: OnFailure
@@ -336,7 +336,7 @@ objects:
 
     - name: stale-timestamp-updater
       schedule: ${STALE_TIMESTAMP_UPDATER_SCHEDULE}
-      suspend: ${STALE_TIMESTAMP_UPDATER_SUSPEND}
+      suspend: ${{STALE_TIMESTAMP_UPDATER_SUSPEND}}
       podSpec:
         name: stale-timestamp-updater
         restartPolicy: OnFailure
