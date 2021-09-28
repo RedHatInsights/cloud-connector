@@ -7,9 +7,9 @@ APP_NAME="cloud-connector"  # name of app-sre "application" folder this componen
 COMPONENT_NAME="cloud-connector"  # name of app-sre "resourceTemplate" in deploy.yaml for this component
 IMAGE="quay.io/cloudservices/cloud-connector"
 
-IQE_PLUGINS="cloud-connector"
+IQE_PLUGINS="iqe-rhc-plugin"
 IQE_MARKER_EXPRESSION="smoke"
-IQE_FILTER_EXPRESSION=""
+IQE_FILTER_EXPRESSION="cloud-connector"
 IQE_CJI_TIMEOUT="10m"
 
 
