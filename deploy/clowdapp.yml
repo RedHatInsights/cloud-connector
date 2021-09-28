@@ -89,7 +89,7 @@ objects:
         - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
           value: "true"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
-          value: ${{MQTT_BROKER_TLS_SKIP_VERIFY}}
+          value: ${MQTT_BROKER_TLS_SKIP_VERIFY}
 
         - name: CLOUD_CONNECTOR_SERVICE_TO_SERVICE_CREDENTIALS
           valueFrom:
@@ -172,7 +172,7 @@ objects:
         - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
           value: ${{MQTT_TOPIC_PREFIX}}
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
-          value: ${{MQTT_BROKER_TLS_SKIP_VERIFY}}
+          value: ${MQTT_BROKER_TLS_SKIP_VERIFY}
 
         - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BATCH_SIZE
           value: ${RHC_MESSAGE_KAFKA_BATCH_SIZE}
@@ -273,7 +273,7 @@ objects:
         - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
           value: "true"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
-          value: ${{MQTT_BROKER_TLS_SKIP_VERIFY}}
+          value: ${MQTT_BROKER_TLS_SKIP_VERIFY}
 
         - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_CONSUMER_GROUP
           value: ${{RHC_MESSAGE_KAFKA_CONSUMER_GROUP}}
