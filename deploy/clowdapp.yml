@@ -297,7 +297,7 @@ objects:
     jobs:
     - name: connection-per-account-reporter
       schedule: ${CONNECTION_PER_ACCOUNT_REPORTER_SCHEDULE}
-      suspend: ${{CONNECTION_PER_ACCOUNT_REPORTER_SUSPEND}}
+      suspend: ${CONNECTION_PER_ACCOUNT_REPORTER_SUSPEND}
       podSpec:
         name: connection-per-account-reporter
         restartPolicy: OnFailure
@@ -336,7 +336,7 @@ objects:
 
     - name: stale-timestamp-updater
       schedule: ${STALE_TIMESTAMP_UPDATER_SCHEDULE}
-      suspend: ${{STALE_TIMESTAMP_UPDATER_SUSPEND}}
+      suspend: ${STALE_TIMESTAMP_UPDATER_SUSPEND}
       podSpec:
         name: stale-timestamp-updater
         restartPolicy: OnFailure
@@ -545,14 +545,14 @@ parameters:
 - name: CONNECTION_PER_ACCOUNT_REPORTER_SCHEDULE
   value: "00 01 * * 1"
 - name: CONNECTION_PER_ACCOUNT_REPORTER_SUSPEND
-  value: false
+  value: "false"
 - name: CONNECTION_PER_ACCOUNT_REPORTER_LOG_FORMAT
   value: "logstash"
 
 - name: STALE_TIMESTAMP_UPDATER_SCHEDULE
   value: "*/10 * * * *"
 - name: STALE_TIMESTAMP_UPDATER_SUSPEND
-  value: false
+  value: "false"
 - name: STALE_TIMESTAMP_UPDATER_LOG_FORMAT
   value: "logstash"
 
