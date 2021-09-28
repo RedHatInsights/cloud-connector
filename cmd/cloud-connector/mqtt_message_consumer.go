@@ -2,25 +2,38 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
-	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
-	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/controller/api"
 	"github.com/RedHatInsights/cloud-connector/internal/mqtt"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/RedHatInsights/cloud-connector/internal/platform/queue"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/tls_utils"
-	"github.com/redhatinsights/platform-go-middlewares/request_id"
 
 	"github.com/gorilla/mux"
 )
 
-func startMqttConnectionHandler(mgmtAddr string) {
+func buildMessageHandlerMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config) ([]mqtt.MqttClientOptionsFunc, error) {
+
+	brokerConfigFuncs, err := buildDefaultMqttBrokerConfigFuncList(brokerUrl, tlsConfig, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithCleanSession(cfg.MqttCleanSession))
+
+	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithResumeSubs(cfg.MqttResumeSubs))
+
+	return brokerConfigFuncs, nil
+}
+
+func startMqttMessageConsumer(mgmtAddr string) {
 
 	logger.InitLogger()
 
@@ -39,30 +52,19 @@ func startMqttConnectionHandler(mgmtAddr string) {
 		logger.LogFatalError("Unable to configure TLS for MQTT Broker connection", err)
 	}
 
-	sqlConnectionRegistrar, err := connection_repository.NewSqlConnectionRegistrar(cfg)
-	if err != nil {
-		logger.LogFatalError("Failed to create SQL Connection Registrar", err)
-	}
-
-	accountResolver, err := controller.NewAccountIdResolver(cfg.ClientIdToAccountIdImpl, cfg)
-	if err != nil {
-		logger.LogFatalError("Failed to create Account ID Resolver", err)
-	}
-
-	connectedClientRecorder, err := controller.NewConnectedClientRecorder(cfg.ConnectedClientRecorderImpl, cfg)
-	if err != nil {
-		logger.LogFatalError("Failed to create Connected Client Recorder", err)
-	}
-
-	sourcesRecorder, err := controller.NewSourcesRecorder(cfg.SourcesRecorderImpl, cfg)
-	if err != nil {
-		logger.LogFatalError("Failed to create Sources Recorder", err)
-	}
-
 	mqttTopicBuilder := mqtt.NewTopicBuilder(cfg.MqttTopicPrefix)
 	mqttTopicVerifier := mqtt.NewTopicVerifier(cfg.MqttTopicPrefix)
 
-	controlMsgHandler := mqtt.ControlMessageHandler(cfg, mqttTopicVerifier, mqttTopicBuilder, sqlConnectionRegistrar, accountResolver, connectedClientRecorder, sourcesRecorder)
+	kafkaProducerCfg := &queue.ProducerConfig{
+		Brokers:    cfg.RhcMessageKafkaBrokers,
+		Topic:      cfg.RhcMessageKafkaTopic,
+		BatchSize:  cfg.RhcMessageKafkaBatchSize,
+		BatchBytes: cfg.RhcMessageKafkaBatchBytes,
+	}
+
+	kafkaProducer := queue.StartProducer(kafkaProducerCfg)
+
+	controlMsgHandler := mqtt.ControlMessageHandler(context.TODO(), kafkaProducer, mqttTopicVerifier)
 	dataMsgHandler := mqtt.DataMessageHandler()
 
 	defaultMsgHandler := mqtt.DefaultMessageHandler(mqttTopicVerifier, controlMsgHandler, dataMsgHandler)
@@ -80,35 +82,20 @@ func startMqttConnectionHandler(mgmtAddr string) {
 		},
 	}
 
-	mqttClient, err := mqtt.RegisterSubscribers(cfg.MqttBrokerAddress, tlsConfig, cfg, subscribers, defaultMsgHandler)
+	brokerOptions, err := buildMessageHandlerMqttBrokerConfigFuncList(cfg.MqttBrokerAddress, tlsConfig, cfg)
+	if err != nil {
+		logger.LogFatalError("Unable to configure MQTT Broker connection", err)
+	}
+
+	mqttClient, err := mqtt.RegisterSubscribers(cfg.MqttBrokerAddress, subscribers, defaultMsgHandler, brokerOptions...)
 	if err != nil {
 		logger.LogFatalError("Failed to connect to MQTT broker", err)
 	}
 
-	proxyFactory, err := mqtt.NewReceptorMQTTProxyFactory(cfg, mqttClient, mqttTopicBuilder)
-	if err != nil {
-		logger.LogFatalError("Unable to create proxy factory", err)
-	}
-
-	sqlConnectionLocator, err := connection_repository.NewSqlConnectionLocator(cfg, proxyFactory)
-	if err != nil {
-		logger.LogFatalError("Failed to create SQL Connection Locator", err)
-	}
-
 	apiMux := mux.NewRouter()
-	apiMux.Use(request_id.ConfiguredRequestID("x-rh-insights-request-id"))
-
-	apiSpecServer := api.NewApiSpecServer(apiMux, cfg.UrlBasePath, cfg.OpenApiSpecFilePath)
-	apiSpecServer.Routes()
 
 	monitoringServer := api.NewMonitoringServer(apiMux, cfg)
 	monitoringServer.Routes()
-
-	mgmtServer := api.NewManagementServer(sqlConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
-	mgmtServer.Routes()
-
-	jr := api.NewMessageReceiver(sqlConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
-	jr.Routes()
 
 	apiSrv := utils.StartHTTPServer(mgmtAddr, "management", apiMux)
 
@@ -123,6 +110,10 @@ func startMqttConnectionHandler(mgmtAddr string) {
 	defer cancel()
 
 	utils.ShutdownHTTPServer(ctx, "management", apiSrv)
+
+	mqttClient.Disconnect(cfg.MqttDisconnectQuiesceTime)
+
+	kafkaProducer.Close()
 
 	logger.Log.Info("Cloud-Connector shutting down")
 }

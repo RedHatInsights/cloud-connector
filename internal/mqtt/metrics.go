@@ -5,16 +5,17 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
-type Metrics struct {
+type mqttMetrics struct {
 	controlMessageReceivedCounter  prometheus.Counter
 	dataMessageReceivedCounter     prometheus.Counter
 	sentMessageDirectiveCounter    *prometheus.CounterVec
 	messagePublishedSuccessCounter prometheus.Counter
 	messagePublishedFailureCounter prometheus.Counter
+	kafkaWriterGoRoutineGauge      prometheus.Gauge
 }
 
-func NewMetrics() *Metrics {
-	metrics := new(Metrics)
+func newMqttMetrics() *mqttMetrics {
+	metrics := new(mqttMetrics)
 
 	metrics.controlMessageReceivedCounter = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "cloud_connector_mqtt_control_message_received_count",
@@ -41,9 +42,14 @@ func NewMetrics() *Metrics {
 		Help: "The number of messages published failures",
 	})
 
+	metrics.kafkaWriterGoRoutineGauge = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "cloud_connector_mqtt_message_consumer_kafka_writer_go_routine_count",
+		Help: "The total number of active kakfa writer go routines for the mqtt message consumer",
+	})
+
 	return metrics
 }
 
 var (
-	metrics = NewMetrics()
+	metrics = newMqttMetrics()
 )

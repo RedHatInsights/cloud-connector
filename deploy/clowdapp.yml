@@ -37,7 +37,183 @@ objects:
         image: ${IMAGE}:${IMAGE_TAG}
         command:
           - ./cloud-connector
-          - mqtt_connection_handler
+          - api_server
+          - -l
+          - :10000
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /liveness
+            port: 10000
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /readiness
+            port: 10000
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: ${CPU_LIMIT}
+            memory: ${MEMORY_LIMIT}
+          requests:
+            cpu: ${CPU_REQUEST}
+            memory: ${MEMORY_REQUEST}
+        volumeMounts:
+        - mountPath: /tmp/jwt_keys
+          name: volume-mqtt-jwt-keys
+          readOnly: true
+        volumes:
+        - name: volume-mqtt-jwt-keys
+          secret:
+            defaultMode: 420
+            secretName: cloud-connector-mqtt-credentials
+        env:
+        - name: CLOUD_CONNECTOR_LOG_LEVEL
+          value: ${{LOG_LEVEL}}
+        - name: CLOUD_CONNECTOR_LOG_FORMAT
+          value: ${{LOG_FORMAT}}
+
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
+          value: ${{MQTT_BROKER_ADDRESS}}
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+          value: jwt_rsa_generator
+        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+          value: /tmp/jwt_keys/jwt_signing_key.pem
+        - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
+          value: "true"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
+          value: ${{MQTT_BROKER_TLS_SKIP_VERIFY}}
+
+        - name: CLOUD_CONNECTOR_SERVICE_TO_SERVICE_CREDENTIALS
+          valueFrom:
+            secretKeyRef:
+              key: connector-psk-map
+              name: cloud-connector-psks
+
+        - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
+          value: ${{MQTT_TOPIC_PREFIX}}
+
+    - name: mqtt-message-consumer
+      webServices:
+        private:
+          enabled: False
+        public:
+          enabled: False
+        metrics:
+          enabled: True
+      minReplicas: 1
+      podSpec:
+        minReadySeconds: 15
+        progressDeadlineSeconds: 600
+        image: ${IMAGE}:${IMAGE_TAG}
+        command:
+          - ./cloud-connector
+          - mqtt_message_consumer
+          - -l
+          - :10000
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /liveness
+            port: 10000
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /readiness
+            port: 10000
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: ${CPU_LIMIT}
+            memory: ${MEMORY_LIMIT}
+          requests:
+            cpu: ${CPU_REQUEST}
+            memory: ${MEMORY_REQUEST}
+        volumeMounts:
+        - mountPath: /tmp/jwt_keys
+          name: volume-mqtt-jwt-keys
+          readOnly: true
+        volumes:
+        - name: volume-mqtt-jwt-keys
+          secret:
+            defaultMode: 420
+            secretName: cloud-connector-mqtt-credentials
+        env:
+        - name: CLOUD_CONNECTOR_LOG_LEVEL
+          value: ${{LOG_LEVEL}}
+        - name: CLOUD_CONNECTOR_LOG_FORMAT
+          value: ${{LOG_FORMAT}}
+
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
+          value: ${{MQTT_BROKER_ADDRESS}}
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+          value: jwt_rsa_generator
+        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+          value: /tmp/jwt_keys/jwt_signing_key.pem
+        - name: CLOUD_CONNECTOR_MQTT_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              key: mqtt.user
+              name: cloud-connector-mqtt-credentials
+        - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
+          value: ${{MQTT_TOPIC_PREFIX}}
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
+          value: ${{MQTT_BROKER_TLS_SKIP_VERIFY}}
+
+        - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BATCH_SIZE
+          value: ${RHC_MESSAGE_KAFKA_BATCH_SIZE}
+        - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BATCH_BYTES
+          value: ${RHC_MESSAGE_KAFKA_BATCH_BYTES}
+        initContainers:
+        - args:
+          - ./migrate_db
+          - upgrade
+          env:
+          - name: CLOUD_CONNECTOR_LOG_LEVEL
+            value: DEBUG
+          - name: CLOUD_CONNECTOR_LOG_FORMAT
+            value: ${{LOG_FORMAT}}
+          image: ${IMAGE}:${IMAGE_TAG}
+          name: cloud-connector-init
+          resources:
+            limits:
+              cpu: ${{CPU_LIMIT}}
+              memory: ${{MEMORY_LIMIT}}
+            requests:
+              cpu: 250m
+              memory: 256Mi
+
+
+    - name: kafka-message-consumer
+      webServices:
+        private:
+          enabled: False
+        public:
+          enabled: False
+        metrics:
+          enabled: True
+      minReplicas: ${{KAFKA_CONSUMER_REPLICAS}}
+      podSpec:
+        minReadySeconds: 15
+        progressDeadlineSeconds: 600
+        image: ${IMAGE}:${IMAGE_TAG}
+        command:
+          - ./cloud-connector
+          - kafka_message_consumer
           - -l
           - :10000
         livenessProbe:
@@ -92,17 +268,15 @@ objects:
           value: jwt_rsa_generator
         - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
           value: /tmp/jwt_keys/jwt_signing_key.pem
-        - name: CLOUD_CONNECTOR_MQTT_CLIENT_ID
-          valueFrom:
-            secretKeyRef:
-              key: mqtt.user
-              name: cloud-connector-mqtt-credentials
+        - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
+          value: ${{MQTT_TOPIC_PREFIX}}
+        - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
+          value: "true"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
+          value: ${{MQTT_BROKER_TLS_SKIP_VERIFY}}
 
-        - name: CLOUD_CONNECTOR_SERVICE_TO_SERVICE_CREDENTIALS
-          valueFrom:
-            secretKeyRef:
-              key: connector-psk-map
-              name: cloud-connector-psks
+        - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_CONSUMER_GROUP
+          value: ${{RHC_MESSAGE_KAFKA_CONSUMER_GROUP}}
 
         - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_IMPL
           value: ${{CLIENT_ID_TO_ACCOUNT_ID_IMPL}}
@@ -118,30 +292,6 @@ objects:
           value: ${{SOURCES_RECORDER_IMPL}}
         - name: CLOUD_CONNECTOR_SOURCES_BASE_URL
           value: ${{SOURCES_BASE_URL}}
-
-        - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
-          value: ${{MQTT_TOPIC_PREFIX}}
-
-        - name: CLOUD_CONNECTOR_SLEEP_TIME_HACK
-          value: "0"
-        initContainers:
-        - args:
-          - ./migrate_db
-          - upgrade
-          env:
-          - name: CLOUD_CONNECTOR_LOG_LEVEL
-            value: DEBUG
-          - name: CLOUD_CONNECTOR_LOG_FORMAT
-            value: ${{LOG_FORMAT}}
-          image: ${IMAGE}:${IMAGE_TAG}
-          name: cloud-connector-init
-          resources:
-            limits:
-              cpu: ${{CPU_LIMIT}}
-              memory: ${{MEMORY_LIMIT}}
-            requests:
-              cpu: 250m
-              memory: 256Mi
 
 
     jobs:
@@ -267,7 +417,19 @@ objects:
     labels:
       app: cloud-connector
   data:
-    mqtt.user: Y2xvdWQtY29ubmVjdG9y
+    mqtt.user: Y2xvdWQtY29ubmVjdG9yLW1xdHQtY29uc3VtZXI=
+
+
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: cloud-connector-mqtt-consumer-cert
+    labels:
+      app: cloud-connector
+  data:
+    cert.pem: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNtRENDQWdHZ0F3SUJBZ0lVVFc5R0h1MmExYWh6cWxOZ0FyKzduWHJoamQwd0RRWUpLb1pJaHZjTkFRRUwKQlFBd1hqRUxNQWtHQTFVRUJoTUNXRmd4RlRBVEJnTlZCQWNNREVSbFptRjFiSFFnUTJsMGVURWNNQm9HQTFVRQpDZ3dUUkdWbVlYVnNkQ0JEYjIxd1lXNTVJRXgwWkRFYU1CZ0dBMVVFQXd3UlkyOXVibVZqZEc5eUxYTmxjblpwClkyVXdIaGNOTWpBeE1URTNNVGt4TURBM1doY05NakV4TVRFM01Ua3hNREEzV2pCZU1Rc3dDUVlEVlFRR0V3SlkKV0RFVk1CTUdBMVVFQnd3TVJHVm1ZWFZzZENCRGFYUjVNUnd3R2dZRFZRUUtEQk5FWldaaGRXeDBJRU52YlhCaApibmtnVEhSa01Sb3dHQVlEVlFRRERCRmpiMjV1WldOMGIzSXRjMlZ5ZG1salpUQ0JuekFOQmdrcWhraUc5dzBCCkFRRUZBQU9CalFBd2dZa0NnWUVBeTg3amZHS0ZEaHp5aGVCVDA4QmRIdTdyZ2pKSEI1WDJvb3l0L3llZlVLRzYKd0VMS2dsQktIK2VHNURlWEpVVWc3MXc3OXgwOFJjbmNUNHpFckhMRGRselpDTmNXUFFucnpYUlBDSURGY0ZuUgpYRTdkRk9uQk1vWHkvODltc3cvWmgyajdhVnI3Z0plSHVpNUhFTkJYaTBOYkJVTnBVbDg4dCtwdGt0NnZjOE1DCkF3RUFBYU5UTUZFd0hRWURWUjBPQkJZRUZJZE9SampuWWVWMHBOa2tnMUpMWkIzcEV5NzRNQjhHQTFVZEl3UVkKTUJhQUZJZE9SampuWWVWMHBOa2tnMUpMWkIzcEV5NzRNQThHQTFVZEV3RUIvd1FGTUFNQkFmOHdEUVlKS29aSQpodmNOQVFFTEJRQURnWUVBWllqa0cycGViN3NkOG9teTJ5QzhkVmdGWlcreFF6a2lxSXpiYlpLT3FQVzQxSmRXCkFlTTM4eTFzZDhObG5meS9XUEhCMHdYdGVNUGowb2wxTUxrQ0ZraHNQajVPWkI4eXRYYlNjeTNxNmVjaUJJdUEKQVFTT1NNOVpxd3FDYmtZNTllOUNNdWd5SzZabmV4dk5PYmFLcUwxWU5FcUZwT3VZL2lVanZaTHErM0k9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    
+    key.pem: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUNlQUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQW1Jd2dnSmVBZ0VBQW9HQkFNdk80M3hpaFE0YzhvWGcKVTlQQVhSN3U2NEl5UndlVjlxS01yZjhubjFDaHVzQkN5b0pRU2gvbmh1UTNseVZGSU85Y08vY2RQRVhKM0UrTQp4S3h5dzNaYzJRalhGajBKNjgxMFR3aUF4WEJaMFZ4TzNSVHB3VEtGOHYvUFpyTVAyWWRvKzJsYSs0Q1hoN291ClJ4RFFWNHREV3dWRGFWSmZQTGZxYlpMZXIzUERBZ01CQUFFQ2dZRUFuSXVPV29WR0ZFQVIzTmtoS2wzd2FRazEKWm16OStBcXRSYy91K2pUUi8xb3FtdkR5b2NQUUc4OTM0aVg4OThpd2NvcVRHTTJnOVM0SEJpZG5EZHFjM1JlWApLdUhlY0svTkt0anZFZjViOHZSNmRjcTlLN0pLQmlXeFNLb1E3WW9ua1o4M1JFZ1d3Q0thdXZ1VzJDRit1NVNOCm8rNk0veWcrcXFLZ3lwSXpnRWtDUVFEcHlFbTNFYnlON2ZpQmhYSDlmcDliOHBrRklpYmFZblY2dXV0WkNlY28KZy92K0NOa1dEWENNejNkbGQ5ZkVrQVFjclN1c1FuM1VtcWtUOGJKQ1ptQkZBa0VBM3kxYTllSGxyZ3lPWXVOVApmUkZIamFhbDJNKytKRldCaWlMZHpTaTg3OEZXb3VEdDlUNm9KeThoeGM0SGR5NWpKT2N6dGNCcUdHU1BNeStJClZMdFlad0pBRE9menVkbU8wVDhMOHdxTTZuT3RGSVJtRWpSNmRKL3U0R0dsVUhzTmVkMGZjanpHejBMYXJjdGUKU2dtOXJhcE5yOCtYazZEd0ZXYWNZdTk2NmRPQkNRSkJBSkM2VlBhSFcrOFc3VzlyaEVUaTQ4Z1VmaEN3QjlxQQpLTlZ2N3U2UXNKVzZoM2h3N1YvUkZqTHkrYS9SQUQ1bHNwM0g0VnpJUHdVNmtUTGNiRWltaFprQ1FRQ2l1b1J6CjdTS2Q1ZmhsUmxBTmFHdzcvQ3FodHBjekVwbmo1RkJRblpjVnVOazdHYW4vZmc1YnJpL1pIekpGQ1ZWZkNJcXEKTWF6L1ltSy9SZTE0VjUvYgotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg==
 
 
 - apiVersion: v1
@@ -278,6 +440,7 @@ objects:
       app: cloud-connector
   data:
     client_id_to_account_id_map.json: eyI4YTgyMzkxOC1mODAxLTQ3NGMtOWY3OS03Y2M3ZTlkNzlhN2YiOiAiMDEwMTAxIiwgImNsaWVudC0xIjogIjAxMDEwMiJ9
+  type: Opaque
 
 
 - apiVersion: v1
@@ -321,6 +484,12 @@ parameters:
 - description: The number of replicas to use for the cloud-connector api
   name: API_REPLICAS
   value: '1'
+- description: The number of replicas to use for the cloud-connector api
+  name: MQTT_CONSUMER_REPLICAS
+  value: '1'
+- description: The number of replicas to use for the cloud-connector api
+  name: KAFKA_CONSUMER_REPLICAS
+  value: '1'
 - description: Image
   name: IMAGE
   required: true
@@ -333,18 +502,32 @@ parameters:
   required: true
 
 - name: MQTT_BROKER_ADDRESS
-  value: "wss://just.falloverfornow.com:8883/"
+  value: "ssl://mosquitto:8883/"
   required: true
 - name: MQTT_TOPIC_PREFIX
   value: "redhat"
   required: true
+- name: MQTT_BROKER_TLS_SKIP_VERIFY
+  value: "false"
+  required: true
+
+- name: RHC_MESSAGE_KAFKA_TOPIC
+  required: true
+  value: platform.cloud-connector.rhc-message-ingress
+- name: RHC_MESSAGE_KAFKA_CONSUMER_GROUP
+  required: true
+  value: cloud-connector-rhc-message-consumer
+- name: RHC_MESSAGE_KAFKA_BATCH_SIZE
+  value: "100"
+- name: RHC_MESSAGE_KAFKA_BATCH_BYTES
+  value: "1048576"
 
 - name: CONNECTED_CLIENT_RECORDER_IMPL
   required: true
   value: "inventory"
 
 - name: CLIENT_ID_TO_ACCOUNT_ID_IMPL
-  value: "fake"
+  value: "bop"
   required: true
 
 - name: AUTH_GATEWAY_URL

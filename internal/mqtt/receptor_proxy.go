@@ -4,11 +4,14 @@ import (
 	"context"
 	"errors"
 
+	"github.com/RedHatInsights/cloud-connector/internal/cloud_connector/protocol"
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
 
@@ -27,7 +30,9 @@ type ReceptorMQTTProxy struct {
 
 func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
 
-	messageID, message, err := buildDataMessage(directive, metadata, payload)
+	metrics.sentMessageDirectiveCounter.With(prometheus.Labels{"directive": directive}).Inc()
+
+	messageID, message, err := protocol.BuildDataMessage(directive, metadata, payload)
 
 	logger := logger.Log.WithFields(logrus.Fields{"message_id": messageID, "account": rhp.AccountID, "client_id": rhp.ClientID})
 
@@ -42,7 +47,7 @@ func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber dom
 
 func (rhp *ReceptorMQTTProxy) Ping(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID) error {
 
-	commandMessageContent := CommandMessageContent{Command: "ping"}
+	commandMessageContent := protocol.CommandMessageContent{Command: "ping"}
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": rhp.AccountID})
 
@@ -59,7 +64,7 @@ func (rhp *ReceptorMQTTProxy) Reconnect(ctx context.Context, accountNumber domai
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": rhp.AccountID})
 
-	err := sendReconnectMessageToClient(rhp.Client, logger, rhp.TopicBuilder, rhp.Config.MqttControlPublishQoS, rhp.ClientID, message, delay)
+	err := SendReconnectMessageToClient(rhp.Client, logger, rhp.TopicBuilder, rhp.Config.MqttControlPublishQoS, rhp.ClientID, delay)
 
 	return err
 }
@@ -70,7 +75,7 @@ func (rhp *ReceptorMQTTProxy) GetDispatchers(ctx context.Context) (domain.Dispat
 
 func (rhp *ReceptorMQTTProxy) Disconnect(ctx context.Context, message string) error {
 
-	commandMessageContent := CommandMessageContent{Command: "disconnect", Message: message}
+	commandMessageContent := protocol.CommandMessageContent{Command: "disconnect"}
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": rhp.AccountID})
 

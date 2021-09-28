@@ -22,6 +22,7 @@ const (
 	MQTT_BROKER_ADDRESS                          = "MQTT_Broker_Address"
 	MQTT_BROKER_ADDRESS_DEFAULT                  = "ssl://localhost:8883"
 	MQTT_CLIENT_ID                               = "MQTT_Client_Id"
+	MQTT_USE_HOSTNAME_AS_CLIENT_ID               = "MQTT_Use_Hostname_As_Client_Id"
 	MQTT_CLEAN_SESSION                           = "MQTT_Clean_Session"
 	MQTT_RESUME_SUBS                             = "MQTT_Resume_Subs"
 	MQTT_BROKER_TLS_CERT_FILE                    = "MQTT_Broker_Tls_Cert_File"
@@ -35,6 +36,7 @@ const (
 	MQTT_CONTROL_PUBLISH_QOS                     = "MQTT_Control_Publish_QoS"
 	MQTT_DATA_SUBSCRIPTION_QOS                   = "MQTT_Data_Subscription_QoS"
 	MQTT_DATA_PUBLISH_QOS                        = "MQTT_Data_Publish_QoS"
+	MQTT_DISCONNECT_QUIESCE_TIME                 = "MQTT_Disconnect_Quiesce_Time"
 	INVALID_HANDSHAKE_RECONNECT_DELAY            = "Invalid_Handshake_Reconnect_Delay"
 	CLIENT_ID_TO_ACCOUNT_ID_IMPL                 = "Client_Id_To_Account_Id_Impl"
 	CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE          = "Client_Id_To_Account_Id_Config_File"
@@ -66,6 +68,12 @@ const (
 	JWT_TOKEN_EXPIRY                             = "JWT_Token_Expiry_Minutes"
 	JWT_PRIVATE_KEY_FILE                         = "JWT_Private_Key_File"
 	JWT_PUBLIC_KEY_FILE                          = "JWT_Public_Key_File"
+	RHC_MESSAGE_KAFKA_BROKERS                    = "RHC_Message_Kafka_Brokers"
+	RHC_MESSAGE_KAFKA_TOPIC                      = "RHC_Message_Kafka_Topic"
+	RHC_MESSAGE_KAFKA_TOPIC_DEFAULT              = "platform.cloud-connector.rhc-message-ingress"
+	RHC_MESSAGE_KAFKA_BATCH_SIZE                 = "RHC_Message_Kafka_Batch_Size"
+	RHC_MESSAGE_KAFKA_BATCH_BYTES                = "RHC_Message_Kafka_Batch_Bytes"
+	RHC_MESSAGE_KAFKA_CONSUMER_GROUP             = "RHC_Message_Kafka_Consumer_Group"
 	PENDO_API_ENDPOINT                           = "Pendo_Api_Endpoint"
 	PENDO_REQUEST_TIMEOUT                        = "Pendo_Request_Timeout"
 	PENDO_INTEGRATION_KEY                        = "Pendo_Integration_Key"
@@ -82,6 +90,7 @@ type Config struct {
 	Profile                                 bool
 	MqttBrokerAddress                       string
 	MqttClientId                            string
+	MqttUseHostnameAsClientId               bool
 	MqttCleanSession                        bool
 	MqttResumeSubs                          bool
 	MqttBrokerTlsCertFile                   string
@@ -95,6 +104,7 @@ type Config struct {
 	MqttControlPublishQoS                   byte
 	MqttDataSubscriptionQoS                 byte
 	MqttDataPublishQoS                      byte
+	MqttDisconnectQuiesceTime               uint
 	InvalidHandshakeReconnectDelay          int
 	KafkaBrokers                            []string
 	ClientIdToAccountIdImpl                 string
@@ -126,6 +136,11 @@ type Config struct {
 	JwtTokenExpiry                          int
 	JwtPrivateKeyFile                       string
 	JwtPublicKeyFile                        string
+	RhcMessageKafkaBrokers                  []string
+	RhcMessageKafkaTopic                    string
+	RhcMessageKafkaBatchSize                int
+	RhcMessageKafkaBatchBytes               int
+	RhcMessageKafkaConsumerGroup            string
 	PendoApiEndpoint                        string
 	PendoRequestTimeout                     time.Duration
 	PendoIntegrationKey                     string
@@ -142,6 +157,7 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %t\n", PROFILE, c.Profile)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_ADDRESS, c.MqttBrokerAddress)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_CLIENT_ID, c.MqttClientId)
+	fmt.Fprintf(&b, "%s: %v\n", MQTT_USE_HOSTNAME_AS_CLIENT_ID, c.MqttUseHostnameAsClientId)
 	fmt.Fprintf(&b, "%s: %v\n", MQTT_CLEAN_SESSION, c.MqttCleanSession)
 	fmt.Fprintf(&b, "%s: %v\n", MQTT_RESUME_SUBS, c.MqttResumeSubs)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_TLS_CERT_FILE, c.MqttBrokerTlsCertFile)
@@ -155,6 +171,7 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %d\n", MQTT_CONTROL_PUBLISH_QOS, c.MqttControlPublishQoS)
 	fmt.Fprintf(&b, "%s: %d\n", MQTT_DATA_SUBSCRIPTION_QOS, c.MqttDataSubscriptionQoS)
 	fmt.Fprintf(&b, "%s: %d\n", MQTT_DATA_PUBLISH_QOS, c.MqttDataPublishQoS)
+	fmt.Fprintf(&b, "%s: %d\n", MQTT_DISCONNECT_QUIESCE_TIME, c.MqttDisconnectQuiesceTime)
 	fmt.Fprintf(&b, "%s: %d\n", INVALID_HANDSHAKE_RECONNECT_DELAY, c.InvalidHandshakeReconnectDelay)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_IMPL, c.ClientIdToAccountIdImpl)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE, c.ClientIdToAccountIdConfigFile)
@@ -184,6 +201,11 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", JWT_PUBLIC_KEY_FILE, c.JwtPublicKeyFile)
 	fmt.Fprintf(&b, "%s: %s\n", AUTH_GATEWAY_URL, c.AuthGatewayUrl)
 	fmt.Fprintf(&b, "%s: %s\n", AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT, c.AuthGatewayHttpClientTimeout)
+	fmt.Fprintf(&b, "%s: %s\n", RHC_MESSAGE_KAFKA_BROKERS, c.RhcMessageKafkaBrokers)
+	fmt.Fprintf(&b, "%s: %s\n", RHC_MESSAGE_KAFKA_TOPIC, c.RhcMessageKafkaTopic)
+	fmt.Fprintf(&b, "%s: %d\n", RHC_MESSAGE_KAFKA_BATCH_SIZE, c.RhcMessageKafkaBatchSize)
+	fmt.Fprintf(&b, "%s: %d\n", RHC_MESSAGE_KAFKA_BATCH_BYTES, c.RhcMessageKafkaBatchBytes)
+	fmt.Fprintf(&b, "%s: %s\n", RHC_MESSAGE_KAFKA_CONSUMER_GROUP, c.RhcMessageKafkaConsumerGroup)
 	return b.String()
 }
 
@@ -197,7 +219,7 @@ func GetConfig() *Config {
 	options.SetDefault(SERVICE_TO_SERVICE_CREDENTIALS, "")
 	options.SetDefault(PROFILE, false)
 	options.SetDefault(MQTT_BROKER_ADDRESS, MQTT_BROKER_ADDRESS_DEFAULT)
-	options.SetDefault(MQTT_CLIENT_ID, "connector-service")
+	options.SetDefault(MQTT_CLIENT_ID, "")
 	options.SetDefault(MQTT_CLEAN_SESSION, false)
 	options.SetDefault(MQTT_RESUME_SUBS, true)
 	options.SetDefault(MQTT_BROKER_TLS_SKIP_VERIFY, false)
@@ -208,6 +230,7 @@ func GetConfig() *Config {
 	options.SetDefault(MQTT_CONTROL_PUBLISH_QOS, 1)
 	options.SetDefault(MQTT_DATA_SUBSCRIPTION_QOS, 1)
 	options.SetDefault(MQTT_DATA_PUBLISH_QOS, 1)
+	options.SetDefault(MQTT_DISCONNECT_QUIESCE_TIME, 1000)
 	options.SetDefault(INVALID_HANDSHAKE_RECONNECT_DELAY, 5)
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_IMPL, "config_file_based")
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE, "client_id_to_account_id_map.json")
@@ -238,6 +261,11 @@ func GetConfig() *Config {
 	options.SetDefault(JWT_PUBLIC_KEY_FILE, "/etc/jwt/mqtt-public-key.rsa")
 	options.SetDefault(AUTH_GATEWAY_URL, "http://apicast.3scale-staging.svc.cluster.local:8890/internal/certauth")
 	options.SetDefault(AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT, 15)
+	options.SetDefault(RHC_MESSAGE_KAFKA_BROKERS, []string{DEFAULT_KAFKA_BROKER_ADDRESS})
+	options.SetDefault(RHC_MESSAGE_KAFKA_TOPIC, RHC_MESSAGE_KAFKA_TOPIC_DEFAULT)
+	options.SetDefault(RHC_MESSAGE_KAFKA_BATCH_SIZE, 100)
+	options.SetDefault(RHC_MESSAGE_KAFKA_BATCH_BYTES, 1048576)
+	options.SetDefault(RHC_MESSAGE_KAFKA_CONSUMER_GROUP, "cloud-connector-rhc-message-consumer")
 	options.SetDefault(PENDO_API_ENDPOINT, "https://app.pendo.io/api/v1")
 	options.SetDefault(PENDO_REQUEST_TIMEOUT, 5)
 	options.SetDefault(PENDO_INTEGRATION_KEY, "")
@@ -256,6 +284,7 @@ func GetConfig() *Config {
 		Profile:                                 options.GetBool(PROFILE),
 		MqttBrokerAddress:                       options.GetString(MQTT_BROKER_ADDRESS),
 		MqttClientId:                            options.GetString(MQTT_CLIENT_ID),
+		MqttUseHostnameAsClientId:               options.GetBool(MQTT_USE_HOSTNAME_AS_CLIENT_ID),
 		MqttCleanSession:                        options.GetBool(MQTT_CLEAN_SESSION),
 		MqttResumeSubs:                          options.GetBool(MQTT_RESUME_SUBS),
 		MqttBrokerTlsCertFile:                   options.GetString(MQTT_BROKER_TLS_CERT_FILE),
@@ -269,6 +298,7 @@ func GetConfig() *Config {
 		MqttControlPublishQoS:                   byte(options.GetInt(MQTT_CONTROL_PUBLISH_QOS)),
 		MqttDataSubscriptionQoS:                 byte(options.GetInt(MQTT_DATA_SUBSCRIPTION_QOS)),
 		MqttDataPublishQoS:                      byte(options.GetInt(MQTT_DATA_PUBLISH_QOS)),
+		MqttDisconnectQuiesceTime:               options.GetUint(MQTT_DISCONNECT_QUIESCE_TIME),
 		InvalidHandshakeReconnectDelay:          options.GetInt(INVALID_HANDSHAKE_RECONNECT_DELAY),
 		ClientIdToAccountIdImpl:                 options.GetString(CLIENT_ID_TO_ACCOUNT_ID_IMPL),
 		ClientIdToAccountIdConfigFile:           options.GetString(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE),
@@ -299,6 +329,11 @@ func GetConfig() *Config {
 		JwtTokenExpiry:                          options.GetInt(JWT_TOKEN_EXPIRY),
 		JwtPrivateKeyFile:                       options.GetString(JWT_PRIVATE_KEY_FILE),
 		JwtPublicKeyFile:                        options.GetString(JWT_PUBLIC_KEY_FILE),
+		RhcMessageKafkaBrokers:                  options.GetStringSlice(RHC_MESSAGE_KAFKA_BROKERS),
+		RhcMessageKafkaTopic:                    options.GetString(RHC_MESSAGE_KAFKA_TOPIC),
+		RhcMessageKafkaBatchSize:                options.GetInt(RHC_MESSAGE_KAFKA_BATCH_SIZE),
+		RhcMessageKafkaBatchBytes:               options.GetInt(RHC_MESSAGE_KAFKA_BATCH_BYTES),
+		RhcMessageKafkaConsumerGroup:            options.GetString(RHC_MESSAGE_KAFKA_CONSUMER_GROUP),
 		PendoApiEndpoint:                        options.GetString(PENDO_API_ENDPOINT),
 		PendoRequestTimeout:                     options.GetDuration(PENDO_REQUEST_TIMEOUT) * time.Second,
 		PendoIntegrationKey:                     options.GetString(PENDO_INTEGRATION_KEY),
@@ -312,6 +347,15 @@ func GetConfig() *Config {
 
 		config.InventoryKafkaBrokers = clowder.KafkaServers
 		config.InventoryKafkaTopic = clowder.KafkaTopics["platform.inventory.host-ingress-p1"].Name
+
+		config.RhcMessageKafkaBrokers = clowder.KafkaServers
+		config.RhcMessageKafkaTopic = clowder.KafkaTopics[RHC_MESSAGE_KAFKA_TOPIC_DEFAULT].Name
+
+		if config.RhcMessageKafkaTopic == "" {
+			fmt.Println("WARNING:  RHC Message kafka topic is not set within clowder!!")
+			// FIXME:  this is a hack!!
+			config.RhcMessageKafkaTopic = RHC_MESSAGE_KAFKA_TOPIC_DEFAULT
+		}
 
 		config.ConnectionDatabaseHost = cfg.Database.Hostname
 		config.ConnectionDatabasePort = cfg.Database.Port
