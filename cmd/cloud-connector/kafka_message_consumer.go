@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/RedHatInsights/cloud-connector/internal/cloud_connector"
+    //"github.com/RedHatInsights/cloud-connector/internal/cloud_connector"
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
@@ -165,6 +165,7 @@ func getHeaderValueAsString(headers []kafka.Header, headerName string) string {
 
 func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mqtt.TopicVerifier, topicBuilder *mqtt.TopicBuilder, connectionRegistrar connection_repository.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(*kafka.Message) error {
 
+    /*
 	controlMessageHandler := cloud_connector.HandleControlMessage(
 		cfg,
 		mqttClient,
@@ -173,6 +174,7 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 		accountResolver,
 		connectedClientRecorder,
 		sourcesRecorder)
+        */
 
 	return func(msg *kafka.Message) error {
 
@@ -212,7 +214,8 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 			return nil
 		}
 
-		controlMessageHandler(mqttClient, clientID, payload)
+		//controlMessageHandler(mqttClient, clientID, payload)
+		logger.Debug("Throwing kafka message away!!", clientID)
 
 		return nil
 	}
