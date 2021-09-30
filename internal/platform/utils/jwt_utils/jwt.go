@@ -68,7 +68,7 @@ func NewRSABasedJwtGenerator(privateKeyFile string, clientId string, tokenExpiry
 	}
 	return func(context context.Context) (string, error) {
 		expiryDate := time.Now().Add(time.Minute * time.Duration(tokenExpiry))
-		logger.Log.Info("Generating an RSA JWT token with expiry : ", expiryDate)
+		logger.Log.Debugf("Generating an RSA JWT token with client-id %s and expiry: %s\n", clientId, expiryDate)
 		return createRsaToken(clientId, "admin", expiryDate, signKey)
 	}, nil
 }
