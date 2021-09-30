@@ -108,7 +108,7 @@ objects:
           enabled: False
         metrics:
           enabled: True
-      minReplicas: 1
+      minReplicas: ${{MQTT_CONSUMER_REPLICAS}}
       podSpec:
         minReadySeconds: 15
         progressDeadlineSeconds: 600
