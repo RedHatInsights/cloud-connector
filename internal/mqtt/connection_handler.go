@@ -86,39 +86,34 @@ func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topic
 			return
 		}
 
-		go func() {
-			metrics.kafkaWriterGoRoutineGauge.Inc()
-			defer metrics.kafkaWriterGoRoutineGauge.Dec()
+		// Use the client id as the message key.  All messages with the same key,
+		// get sent to the same partitions.  This is important so that the ordering
+		// of the messages is retained.
+		err = kafkaWriter.WriteMessages(ctx,
+			kafka.Message{
+				Headers: []kafka.Header{
+					{TopicKafkaHeaderKey, []byte(message.Topic())},
+					{MessageIDKafkaHeaderKey, []byte(mqttMessageID)},
+				},
+				Key:   []byte(clientID),
+				Value: message.Payload(),
+			})
 
-			// Use the client id as the message key.  All messages with the same key,
-			// get sent to the same partitions.  This is important so that the ordering
-			// of the messages is retained.
-			err := kafkaWriter.WriteMessages(ctx,
-				kafka.Message{
-					Headers: []kafka.Header{
-						{TopicKafkaHeaderKey, []byte(message.Topic())},
-						{MessageIDKafkaHeaderKey, []byte(mqttMessageID)},
-					},
-					Key:   []byte(clientID),
-					Value: message.Payload(),
-				})
+		logger.Debug("MQTT message written to kafka")
 
-			logger.Debug("MQTT message written to kafka")
+		if err != nil {
+			logger.WithFields(logrus.Fields{"error": err}).Error("Error writing MQTT message to kafka")
 
-			if err != nil {
-				logger.WithFields(logrus.Fields{"error": err}).Error("Error writing MQTT message to kafka")
-
-				if errors.Is(err, context.Canceled) == true {
-					// The context was canceled.  This likely happened due to the process shutting down,
-					// so just return and allow things to shutdown cleanly
-					return
-				}
-
-				// If writing to kafka fails, then just fall over and do not read anymore
-				// messages from the mqtt broker
-				logger.Fatal("Failed writing to kafka")
+			if errors.Is(err, context.Canceled) == true {
+				// The context was canceled.  This likely happened due to the process shutting down,
+				// so just return and allow things to shutdown cleanly
+				return
 			}
-		}()
+
+			// If writing to kafka fails, then just fall over and do not read anymore
+			// messages from the mqtt broker
+			logger.Fatal("Failed writing to kafka")
+		}
 	}
 }
 
