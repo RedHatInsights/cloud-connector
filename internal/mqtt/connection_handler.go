@@ -8,6 +8,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
+	"github.com/prometheus/client_golang/prometheus"
 	kafka "github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 )
@@ -67,6 +68,9 @@ func RegisterSubscribers(brokerUrl string, subscribers []Subscriber, defaultMess
 func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topicVerifier *TopicVerifier) func(MQTT.Client, MQTT.Message) {
 	return func(client MQTT.Client, message MQTT.Message) {
 
+		metrics.kafkaWriterGoRoutineGauge.Inc()
+		defer metrics.kafkaWriterGoRoutineGauge.Dec()
+
 		metrics.controlMessageReceivedCounter.Inc()
 
 		mqttMessageID := fmt.Sprintf("%d", message.MessageID())
@@ -86,6 +90,8 @@ func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topic
 			return
 		}
 
+		kafkwWriteDurationTimer := prometheus.NewTimer(metrics.kafkaWriterPublishDuration)
+
 		// Use the client id as the message key.  All messages with the same key,
 		// get sent to the same partitions.  This is important so that the ordering
 		// of the messages is retained.
@@ -98,6 +104,8 @@ func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topic
 				Key:   []byte(clientID),
 				Value: message.Payload(),
 			})
+
+		kafkwWriteDurationTimer.ObserveDuration()
 
 		logger.Debug("MQTT message written to kafka")
 
