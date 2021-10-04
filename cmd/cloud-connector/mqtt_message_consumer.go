@@ -60,6 +60,7 @@ func startMqttMessageConsumer(mgmtAddr string) {
 		Topic:      cfg.RhcMessageKafkaTopic,
 		BatchSize:  cfg.RhcMessageKafkaBatchSize,
 		BatchBytes: cfg.RhcMessageKafkaBatchBytes,
+		Balancer:   "hash",
 	}
 
 	kafkaProducer := queue.StartProducer(kafkaProducerCfg)

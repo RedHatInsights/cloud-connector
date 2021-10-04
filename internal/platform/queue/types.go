@@ -5,6 +5,7 @@ type ProducerConfig struct {
 	Topic      string
 	BatchSize  int
 	BatchBytes int
+	Balancer   string
 }
 
 type ConsumerConfig struct {
