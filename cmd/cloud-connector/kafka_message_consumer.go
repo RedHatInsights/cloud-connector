@@ -230,7 +230,7 @@ func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*kafka
 			}
 			break
 		}
-		logger.Log.Infof("message at offset %d: %s = %s\n", m.Offset, string(m.Key), string(m.Value))
+		logger.Log.Infof("message from partition %d at offset %d: %s = %s\n", m.Partition, m.Offset, string(m.Key), string(m.Value))
 
 		metrics.kafkaMessageReceivedCounter.Inc()
 
