@@ -145,7 +145,7 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 
 	mqttTopicBuilder := mqtt.NewTopicBuilder(cfg.MqttTopicPrefix)
 
-	proxyFactory, err := mqtt.NewReceptorMQTTProxyFactory(cfg, mqttClient, mqttTopicBuilder)
+	proxyFactory, err := mqtt.NewConnectorClientMQTTProxyFactory(cfg, mqttClient, mqttTopicBuilder)
 	if err != nil {
 		logger.LogFatalError("Unable to create proxy factory", err)
 	}

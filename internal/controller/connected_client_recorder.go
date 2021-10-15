@@ -19,7 +19,7 @@ import (
 )
 
 type ConnectedClientRecorder interface {
-	RecordConnectedClient(context.Context, domain.Identity, domain.RhcClient) error
+	RecordConnectedClient(context.Context, domain.Identity, domain.ConnectorClientState) error
 }
 
 const inventoryTagNamespace = "rhc_client"
@@ -78,7 +78,7 @@ type InventoryBasedConnectedClientRecorder struct {
 	ReporterName         string
 }
 
-func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx context.Context, identity domain.Identity, rhcClient domain.RhcClient) error {
+func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx context.Context, identity domain.Identity, rhcClient domain.ConnectorClientState) error {
 
 	account := rhcClient.Account
 	clientID := rhcClient.ClientID
@@ -206,7 +206,7 @@ func convertRHCTagsToInventoryTags(rhcTags domain.Tags) map[string]map[string][]
 type FakeConnectedClientRecorder struct {
 }
 
-func (fccr *FakeConnectedClientRecorder) RecordConnectedClient(ctx context.Context, identity domain.Identity, rhcClient domain.RhcClient) error {
+func (fccr *FakeConnectedClientRecorder) RecordConnectedClient(ctx context.Context, identity domain.Identity, rhcClient domain.ConnectorClientState) error {
 	logger := logger.Log.WithFields(logrus.Fields{"account": rhcClient.Account, "client_id": rhcClient.ClientID})
 
 	logger.Debug("FAKE: connected client recorder: ", rhcClient.CanonicalFacts)

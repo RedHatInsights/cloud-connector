@@ -15,12 +15,12 @@ const (
 )
 
 type ConnectionRegistrar interface {
-	Register(context.Context, domain.RhcClient) (RegistrationResults, error)
+	Register(context.Context, domain.ConnectorClientState) (RegistrationResults, error)
 	Unregister(context.Context, domain.ClientID)
 }
 
 type ConnectionLocator interface {
-	GetConnection(context.Context, domain.AccountID, domain.ClientID) controller.Receptor
-	GetConnectionsByAccount(context.Context, domain.AccountID, int, int) (map[domain.ClientID]controller.Receptor, int, error)
-	GetAllConnections(context.Context, int, int) (map[domain.AccountID]map[domain.ClientID]controller.Receptor, int, error)
+	GetConnection(context.Context, domain.AccountID, domain.ClientID) controller.ConnectorClient
+	GetConnectionsByAccount(context.Context, domain.AccountID, int, int) (map[domain.ClientID]controller.ConnectorClient, int, error)
+	GetAllConnections(context.Context, int, int) (map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient, int, error)
 }

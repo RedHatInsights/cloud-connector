@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type ConnectionProcessor func(context.Context, domain.RhcClient) error
+type ConnectionProcessor func(context.Context, domain.ConnectorClientState) error
 
 func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, staleTimeCutoff time.Time, chunkSize int, processConnection ConnectionProcessor) error {
 
@@ -64,7 +64,7 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 			continue
 		}
 
-		rhcClient := domain.RhcClient{
+		rhcClient := domain.ConnectorClientState{
 			Account:        account,
 			ClientID:       clientID,
 			CanonicalFacts: canonicalFacts,
@@ -77,7 +77,7 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 	return nil
 }
 
-func UpdateStaleTimestampInDB(log *logrus.Entry, ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, rhcClient domain.RhcClient) {
+func UpdateStaleTimestampInDB(log *logrus.Entry, ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, rhcClient domain.ConnectorClientState) {
 
 	log.Debug("Updating stale timestamp")
 

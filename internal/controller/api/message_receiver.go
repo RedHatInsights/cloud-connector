@@ -103,7 +103,7 @@ func (jr *MessageReceiver) handleJob() http.HandlerFunc {
 			return
 		}
 
-		var client controller.Receptor
+		var client controller.ConnectorClient
 		client = jr.connectionMgr.GetConnection(req.Context(), domain.AccountID(msgRequest.Account), domain.ClientID(msgRequest.Recipient))
 		if client == nil {
 			writeConnectionFailureResponse(logger, w)

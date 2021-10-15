@@ -19,7 +19,7 @@ var (
 	errUnableToSendMessage = errors.New("unable to send message")
 )
 
-type ReceptorMQTTProxy struct {
+type ConnectorClientMQTTProxy struct {
 	Config       *config.Config
 	AccountID    domain.AccountID
 	ClientID     domain.ClientID
@@ -28,7 +28,7 @@ type ReceptorMQTTProxy struct {
 	Dispatchers  domain.Dispatchers
 }
 
-func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
+func (rhp *ConnectorClientMQTTProxy) SendMessage(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
 
 	metrics.sentMessageDirectiveCounter.With(prometheus.Labels{"directive": directive}).Inc()
 
@@ -45,7 +45,7 @@ func (rhp *ReceptorMQTTProxy) SendMessage(ctx context.Context, accountNumber dom
 	return messageID, err
 }
 
-func (rhp *ReceptorMQTTProxy) Ping(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID) error {
+func (rhp *ConnectorClientMQTTProxy) Ping(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID) error {
 
 	commandMessageContent := protocol.CommandMessageContent{Command: "ping"}
 
@@ -60,7 +60,7 @@ func (rhp *ReceptorMQTTProxy) Ping(ctx context.Context, accountNumber domain.Acc
 	return err
 }
 
-func (rhp *ReceptorMQTTProxy) Reconnect(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID, message string, delay int) error {
+func (rhp *ConnectorClientMQTTProxy) Reconnect(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID, message string, delay int) error {
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": rhp.AccountID})
 
@@ -69,11 +69,11 @@ func (rhp *ReceptorMQTTProxy) Reconnect(ctx context.Context, accountNumber domai
 	return err
 }
 
-func (rhp *ReceptorMQTTProxy) GetDispatchers(ctx context.Context) (domain.Dispatchers, error) {
+func (rhp *ConnectorClientMQTTProxy) GetDispatchers(ctx context.Context) (domain.Dispatchers, error) {
 	return rhp.Dispatchers, nil
 }
 
-func (rhp *ReceptorMQTTProxy) Disconnect(ctx context.Context, message string) error {
+func (rhp *ConnectorClientMQTTProxy) Disconnect(ctx context.Context, message string) error {
 
 	commandMessageContent := protocol.CommandMessageContent{Command: "disconnect"}
 

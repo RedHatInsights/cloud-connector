@@ -109,7 +109,7 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg proto
 
 	handshakePayload := msg.Content.(map[string]interface{})
 
-	rhcClient := domain.RhcClient{ClientID: clientID,
+	rhcClient := domain.ConnectorClientState{ClientID: clientID,
 		Account:        account,
 		Dispatchers:    handshakePayload[dispatchersKey],
 		CanonicalFacts: handshakePayload[canonicalFactsKey],
