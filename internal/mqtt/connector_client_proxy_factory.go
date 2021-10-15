@@ -9,20 +9,20 @@ import (
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
 
-type ReceptorMQTTProxyFactory struct {
+type ConnectorClientMQTTProxyFactory struct {
 	mqttClient   MQTT.Client
 	topicBuilder *TopicBuilder
 	config       *config.Config
 }
 
-func NewReceptorMQTTProxyFactory(cfg *config.Config, mqttClient MQTT.Client, topicBuilder *TopicBuilder) (controller.ReceptorProxyFactory, error) {
-	proxyFactory := ReceptorMQTTProxyFactory{mqttClient: mqttClient, topicBuilder: topicBuilder, config: cfg}
+func NewConnectorClientMQTTProxyFactory(cfg *config.Config, mqttClient MQTT.Client, topicBuilder *TopicBuilder) (controller.ConnectorClientProxyFactory, error) {
+	proxyFactory := ConnectorClientMQTTProxyFactory{mqttClient: mqttClient, topicBuilder: topicBuilder, config: cfg}
 	return &proxyFactory, nil
 }
 
-func (rhp *ReceptorMQTTProxyFactory) CreateProxy(ctx context.Context, account domain.AccountID, client_id domain.ClientID, dispatchers domain.Dispatchers) (controller.Receptor, error) {
+func (rhp *ConnectorClientMQTTProxyFactory) CreateProxy(ctx context.Context, account domain.AccountID, client_id domain.ClientID, dispatchers domain.Dispatchers) (controller.ConnectorClient, error) {
 
-	proxy := ReceptorMQTTProxy{
+	proxy := ConnectorClientMQTTProxy{
 		Config:       rhp.config,
 		AccountID:    account,
 		ClientID:     client_id,

@@ -19,7 +19,7 @@ type Dispatchers interface{}
 type CanonicalFacts interface{}
 type Tags interface{}
 
-type RhcClient struct {
+type ConnectorClientState struct {
 	Account        AccountID
 	ClientID       ClientID
 	CanonicalFacts CanonicalFacts

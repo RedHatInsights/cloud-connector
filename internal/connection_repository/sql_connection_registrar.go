@@ -56,7 +56,7 @@ func NewSqlConnectionRegistrar(cfg *config.Config) (*SqlConnectionRegistrar, err
 	}, nil
 }
 
-func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domain.RhcClient) (RegistrationResults, error) {
+func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domain.ConnectorClientState) (RegistrationResults, error) {
 
 	callDurationTimer := prometheus.NewTimer(scm.metrics.sqlConnectionRegistrationDuration)
 	defer callDurationTimer.ObserveDuration()

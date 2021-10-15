@@ -14,7 +14,7 @@ var (
 	ErrDisconnectedNode    = errors.New("disconnected node")
 )
 
-type Receptor interface {
+type ConnectorClient interface {
 	SendMessage(context.Context, domain.AccountID, domain.ClientID, string, interface{}, interface{}) (*uuid.UUID, error)
 	Ping(context.Context, domain.AccountID, domain.ClientID) error
 	Reconnect(context.Context, domain.AccountID, domain.ClientID, string, int) error
@@ -22,6 +22,6 @@ type Receptor interface {
 	Disconnect(context.Context, string) error
 }
 
-type ReceptorProxyFactory interface {
-	CreateProxy(context.Context, domain.AccountID, domain.ClientID, domain.Dispatchers) (Receptor, error)
+type ConnectorClientProxyFactory interface {
+	CreateProxy(context.Context, domain.AccountID, domain.ClientID, domain.Dispatchers) (ConnectorClient, error)
 }

@@ -17,7 +17,7 @@ import (
 
 type SqlConnectionLocator struct {
 	database     *sql.DB
-	proxyFactory controller.ReceptorProxyFactory
+	proxyFactory controller.ConnectorClientProxyFactory
 	metrics      *sqlConnectionLookupMetrics
 }
 
@@ -48,7 +48,7 @@ func initializeSqlConnectionLookupMetrics() *sqlConnectionLookupMetrics {
 	return metrics
 }
 
-func NewSqlConnectionLocator(cfg *config.Config, proxyFactory controller.ReceptorProxyFactory) (*SqlConnectionLocator, error) {
+func NewSqlConnectionLocator(cfg *config.Config, proxyFactory controller.ConnectorClientProxyFactory) (*SqlConnectionLocator, error) {
 
 	database, err := db.InitializeDatabaseConnection(cfg)
 	if err != nil {
@@ -62,8 +62,8 @@ func NewSqlConnectionLocator(cfg *config.Config, proxyFactory controller.Recepto
 	}, nil
 }
 
-func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account domain.AccountID, client_id domain.ClientID) controller.Receptor {
-	var conn controller.Receptor
+func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account domain.AccountID, client_id domain.ClientID) controller.ConnectorClient {
+	var conn controller.ConnectorClient
 	var err error
 
 	callDurationTimer := prometheus.NewTimer(scm.metrics.sqlLookupConnectionByAccountAndClientIDDuration)
@@ -102,14 +102,14 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account doma
 	return conn
 }
 
-func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, account domain.AccountID, offset int, limit int) (map[domain.ClientID]controller.Receptor, int, error) {
+func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, account domain.AccountID, offset int, limit int) (map[domain.ClientID]controller.ConnectorClient, int, error) {
 
 	var totalConnections int
 
 	callDurationTimer := prometheus.NewTimer(scm.metrics.sqlLookupConnectionsByAccountDuration)
 	defer callDurationTimer.ObserveDuration()
 
-	connectionsPerAccount := make(map[domain.ClientID]controller.Receptor)
+	connectionsPerAccount := make(map[domain.ClientID]controller.ConnectorClient)
 
 	statement, err := scm.database.Prepare(
 		`SELECT client_id, dispatchers, COUNT(*) OVER() FROM connections
@@ -156,14 +156,14 @@ func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, ac
 	return connectionsPerAccount, totalConnections, nil
 }
 
-func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.Receptor, int, error) {
+func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient, int, error) {
 
 	var totalConnections int
 
 	callDurationTimer := prometheus.NewTimer(scm.metrics.sqlLookupAllConnectionsDuration)
 	defer callDurationTimer.ObserveDuration()
 
-	connectionMap := make(map[domain.AccountID]map[domain.ClientID]controller.Receptor)
+	connectionMap := make(map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient)
 
 	statement, err := scm.database.Prepare(
 		`SELECT account, client_id, dispatchers, COUNT(*) OVER() FROM connections
@@ -206,7 +206,7 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context, offset i
 		}
 
 		if _, exists := connectionMap[account]; !exists {
-			connectionMap[account] = make(map[domain.ClientID]controller.Receptor)
+			connectionMap[account] = make(map[domain.ClientID]controller.ConnectorClient)
 		}
 
 		connectionMap[account][clientId] = proxy

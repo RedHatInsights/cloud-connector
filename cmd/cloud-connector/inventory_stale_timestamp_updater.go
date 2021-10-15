@@ -64,7 +64,7 @@ func startInventoryStaleTimestampUpdater() {
 	logger.Log.Debug("Host's should be updated if their stale_timestamp is before ", tooOldIfBeforeThisTime)
 
 	connection_repository.ProcessStaleConnections(context.TODO(), databaseConn, sqlTimeout, tooOldIfBeforeThisTime, chunkSize,
-		func(ctx context.Context, rhcClient domain.RhcClient) error {
+		func(ctx context.Context, rhcClient domain.ConnectorClientState) error {
 
 			log := logger.Log.WithFields(logrus.Fields{"client_id": rhcClient.ClientID, "account": rhcClient.Account})
 

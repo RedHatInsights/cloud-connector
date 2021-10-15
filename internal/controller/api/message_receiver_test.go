@@ -37,7 +37,7 @@ const (
 type MockClientProxyFactory struct {
 }
 
-func (MockClientProxyFactory) CreateProxy(context.Context, domain.AccountID, domain.ClientID, domain.Dispatchers) (controller.Receptor, error) {
+func (MockClientProxyFactory) CreateProxy(context.Context, domain.AccountID, domain.ClientID, domain.Dispatchers) (controller.ConnectorClient, error) {
 	return MockClient{}, nil
 }
 
@@ -80,20 +80,20 @@ func (mc MockClient) Disconnect(context.Context, string) error {
 }
 
 type MockConnectionManager struct {
-	AccountIndex map[domain.AccountID]map[domain.ClientID]controller.Receptor
+	AccountIndex map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient
 	ClientIndex  map[domain.ClientID]domain.AccountID
 }
 
 func NewMockConnectionManager() *MockConnectionManager {
-	mcm := MockConnectionManager{AccountIndex: make(map[domain.AccountID]map[domain.ClientID]controller.Receptor),
+	mcm := MockConnectionManager{AccountIndex: make(map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient),
 		ClientIndex: make(map[domain.ClientID]domain.AccountID)}
 	return &mcm
 }
 
-func (m *MockConnectionManager) Register(ctx context.Context, account domain.AccountID, clientID domain.ClientID, receptor controller.Receptor) error {
+func (m *MockConnectionManager) Register(ctx context.Context, account domain.AccountID, clientID domain.ClientID, receptor controller.ConnectorClient) error {
 	_, ok := m.AccountIndex[account]
 	if !ok {
-		m.AccountIndex[account] = make(map[domain.ClientID]controller.Receptor)
+		m.AccountIndex[account] = make(map[domain.ClientID]controller.ConnectorClient)
 	}
 	m.AccountIndex[account][clientID] = receptor
 	m.ClientIndex[clientID] = account
@@ -110,15 +110,15 @@ func (m *MockConnectionManager) Unregister(ctx context.Context, clientID domain.
 	delete(m.AccountIndex[account], clientID)
 }
 
-func (m *MockConnectionManager) GetConnection(ctx context.Context, account domain.AccountID, clientID domain.ClientID) controller.Receptor {
+func (m *MockConnectionManager) GetConnection(ctx context.Context, account domain.AccountID, clientID domain.ClientID) controller.ConnectorClient {
 	return m.AccountIndex[account][clientID]
 }
 
-func (m *MockConnectionManager) GetConnectionsByAccount(ctx context.Context, account domain.AccountID, offset int, limit int) (map[domain.ClientID]controller.Receptor, int, error) {
+func (m *MockConnectionManager) GetConnectionsByAccount(ctx context.Context, account domain.AccountID, offset int, limit int) (map[domain.ClientID]controller.ConnectorClient, int, error) {
 	return m.AccountIndex[account], len(m.AccountIndex[account]), nil
 }
 
-func (m *MockConnectionManager) GetAllConnections(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.Receptor, int, error) {
+func (m *MockConnectionManager) GetAllConnections(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient, int, error) {
 	return m.AccountIndex, len(m.AccountIndex), nil
 }
 

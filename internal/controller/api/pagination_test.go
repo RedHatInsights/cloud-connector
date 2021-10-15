@@ -19,15 +19,15 @@ import (
 )
 
 type PaginatedMockConnectionManager struct {
-	connections []controller.Receptor
+	connections []controller.ConnectorClient
 }
 
 func NewPaginatedMockConnectionManager() *PaginatedMockConnectionManager {
-	mcm := PaginatedMockConnectionManager{connections: make([]controller.Receptor, 0)}
+	mcm := PaginatedMockConnectionManager{connections: make([]controller.ConnectorClient, 0)}
 	return &mcm
 }
 
-func (m *PaginatedMockConnectionManager) Register(ctx context.Context, account domain.AccountID, clientID domain.ClientID, receptor controller.Receptor) error {
+func (m *PaginatedMockConnectionManager) Register(ctx context.Context, account domain.AccountID, clientID domain.ClientID, receptor controller.ConnectorClient) error {
 	m.connections = append(m.connections, receptor)
 	return nil
 }
@@ -36,13 +36,13 @@ func (m *PaginatedMockConnectionManager) Unregister(ctx context.Context, clientI
 	return
 }
 
-func (m *PaginatedMockConnectionManager) GetConnection(ctx context.Context, account domain.AccountID, clientID domain.ClientID) controller.Receptor {
+func (m *PaginatedMockConnectionManager) GetConnection(ctx context.Context, account domain.AccountID, clientID domain.ClientID) controller.ConnectorClient {
 	return nil
 }
 
-func (m *PaginatedMockConnectionManager) GetConnectionsByAccount(ctx context.Context, account domain.AccountID, offset int, limit int) (map[domain.ClientID]controller.Receptor, int, error) {
+func (m *PaginatedMockConnectionManager) GetConnectionsByAccount(ctx context.Context, account domain.AccountID, offset int, limit int) (map[domain.ClientID]controller.ConnectorClient, int, error) {
 
-	ret := make(map[domain.ClientID]controller.Receptor)
+	ret := make(map[domain.ClientID]controller.ConnectorClient)
 
 	i := offset
 	for i < len(m.connections) && len(ret) < limit {
@@ -53,11 +53,11 @@ func (m *PaginatedMockConnectionManager) GetConnectionsByAccount(ctx context.Con
 	return ret, len(m.connections), nil
 }
 
-func (m *PaginatedMockConnectionManager) GetAllConnections(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.Receptor, int, error) {
-	ret := make(map[domain.AccountID]map[domain.ClientID]controller.Receptor)
+func (m *PaginatedMockConnectionManager) GetAllConnections(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient, int, error) {
+	ret := make(map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient)
 
 	i := offset
-	ret["540155"] = make(map[domain.ClientID]controller.Receptor)
+	ret["540155"] = make(map[domain.ClientID]controller.ConnectorClient)
 	for i < len(m.connections) && len(ret["540155"]) < limit {
 		ret["540155"][domain.ClientID(strconv.Itoa(i))] = m.connections[i]
 		i++
