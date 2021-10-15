@@ -1,5 +1,9 @@
 package domain
 
+import (
+	"time"
+)
+
 type Identity string
 
 type ClientID string
@@ -19,10 +23,16 @@ type Dispatchers interface{}
 type CanonicalFacts interface{}
 type Tags interface{}
 
+type MessageMetadata struct {
+	LatestMessageID string
+	LatestTimestamp time.Time
+}
+
 type ConnectorClientState struct {
-	Account        AccountID
-	ClientID       ClientID
-	CanonicalFacts CanonicalFacts
-	Dispatchers    Dispatchers
-	Tags           Tags
+	Account         AccountID
+	ClientID        ClientID
+	CanonicalFacts  CanonicalFacts
+	Dispatchers     Dispatchers
+	Tags            Tags
+	MessageMetadata MessageMetadata
 }

@@ -17,6 +17,7 @@ const (
 type ConnectionRegistrar interface {
 	Register(context.Context, domain.ConnectorClientState) (RegistrationResults, error)
 	Unregister(context.Context, domain.ClientID)
+	FindConnectionByClientID(context.Context, domain.ClientID) (domain.ConnectorClientState, error)
 }
 
 type ConnectionLocator interface {

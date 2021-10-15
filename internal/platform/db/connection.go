@@ -12,7 +12,7 @@ import (
 )
 
 func initializePostgresConnection(cfg *config.Config) (*sql.DB, error) {
-	psqlConnectionInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s",
+	psqlConnectionInfo := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s TimeZone=UTC",
 		cfg.ConnectionDatabaseHost,
 		cfg.ConnectionDatabasePort,
 		cfg.ConnectionDatabaseUser,
