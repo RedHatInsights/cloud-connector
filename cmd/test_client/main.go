@@ -147,6 +147,8 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 	}
 	fmt.Println("Connected to server ", broker)
 
+	sentTime := time.Now()
+
 	cf := Connector.CanonicalFacts{
 		InsightsID:            generateUUID(),
 		MachineID:             generateUUID(),
@@ -159,22 +161,65 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 	}
 
 	dispatchers := make(Connector.Dispatchers)
-	dispatchers["rhc-worker-playbook"] = make(map[string]string)
-	dispatchers["rhc-worker-playbook"]["ansible-runner-version"] = "1.2.3"
-	dispatchers["echo"] = make(map[string]string)
-
-	dispatchers["catalog"] = make(map[string]string)
-	dispatchers["catalog"]["ApplicationType"] = "/insights/platform/catalog"
-	dispatchers["catalog"]["SourceRef"] = "df2bac3e-c7b4-4a8b-8226-b943b9a12eaf"
-	dispatchers["catalog"]["SrcName"] = "dehort Testing Bulk Create"
-	dispatchers["catalog"]["SrcType"] = "ansible-tower"
-	dispatchers["catalog"]["WorkerBuild"] = "2021-02-19 10:18:24"
-	dispatchers["catalog"]["WorkerSHA"] = "48d28791e3b59f7334d2671c07978113b0d40374"
-	dispatchers["catalog"]["WorkerVersion"] = "v0.1.0"
-
 	tags := make(Connector.Tags)
-	tags["key1"] = "value1"
-	tags["key2"] = "value2"
+
+	publishConnectionStatusMessage(client, controlWriteTopic, qos, retained, "1234", cf, dispatchers, tags, sentTime)
+
+	go func() {
+
+		// Publish a message afterward to original message which has empty dispatcher and tags
+		// Make sure this message is recorded
+
+		time.Sleep(10 * time.Second)
+
+		dispatchers := make(Connector.Dispatchers)
+		dispatchers["rhc-worker-playbook"] = make(map[string]string)
+		dispatchers["rhc-worker-playbook"]["ansible-runner-version"] = "1.2.3"
+		dispatchers["echo"] = make(map[string]string)
+
+		dispatchers["catalog"] = make(map[string]string)
+		dispatchers["catalog"]["ApplicationType"] = "/insights/platform/catalog"
+		dispatchers["catalog"]["SourceRef"] = "df2bac3e-c7b4-4a8b-8226-b943b9a12eaf"
+		dispatchers["catalog"]["SrcName"] = "dehort Testing Bulk Create"
+		dispatchers["catalog"]["SrcType"] = "ansible-tower"
+		dispatchers["catalog"]["WorkerBuild"] = "2021-02-19 10:18:24"
+		dispatchers["catalog"]["WorkerSHA"] = "48d28791e3b59f7334d2671c07978113b0d40374"
+		dispatchers["catalog"]["WorkerVersion"] = "v0.1.0"
+
+		tags := make(Connector.Tags)
+		tags["key1"] = "value1"
+		tags["key2"] = "value2"
+
+		msgId := "1235"
+		sentTime := time.Now()
+
+		publishConnectionStatusMessage(client, controlWriteTopic, qos, retained, msgId, cf, dispatchers, tags, sentTime)
+
+		time.Sleep(40 * time.Second)
+		dispatchers = make(Connector.Dispatchers)
+		dispatchers["IGNORE"] = make(map[string]string)
+		tags = make(Connector.Tags)
+		tags["IGNORE"] = "value1"
+
+		publishConnectionStatusMessage(client, controlWriteTopic, qos, retained, msgId, cf, dispatchers, tags, sentTime)
+	}()
+
+	go func() {
+
+		// Publish a message "before" the original message
+		// Make sure this message is IGNORED!!
+
+		time.Sleep(20 * time.Second)
+
+		dispatchers := make(Connector.Dispatchers)
+		tags := make(Connector.Tags)
+
+		publishConnectionStatusMessage(client, controlWriteTopic, qos, retained, "1233", cf, dispatchers, tags, sentTime.Add(-10*time.Second))
+	}()
+}
+
+func publishConnectionStatusMessage(client MQTT.Client, topic string, qos byte, retained bool, messageID string, cf Connector.CanonicalFacts, dispatchers Connector.Dispatchers, tags Connector.Tags, sentTime time.Time) {
+	fmt.Println("sentTime: ", sentTime)
 
 	connectionStatusPayload := Connector.ConnectionStatusMessageContent{
 		CanonicalFacts:  cf,
@@ -184,23 +229,24 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 	}
 	connMsg := Connector.ControlMessage{
 		MessageType: "connection-status",
-		MessageID:   "1234",
+		MessageID:   messageID,
 		Version:     1,
-		Sent:        time.Now(),
+		Sent:        sentTime,
 		Content:     connectionStatusPayload,
 	}
 
-	payload, err = json.Marshal(connMsg)
+	payload, err := json.Marshal(connMsg)
 
 	if err != nil {
 		fmt.Println("marshal of message failed, err:", err)
 		panic(err)
 	}
 
-	fmt.Println("publishing to topic:", controlWriteTopic)
+	fmt.Println("publishing to topic:", topic)
 	fmt.Println("retained: ", retained)
 	fmt.Println("qos: ", qos)
-	client.Publish(controlWriteTopic, qos, retained, payload)
+
+	client.Publish(topic, qos, retained, payload)
 }
 
 func onMessageReceived(client MQTT.Client, message MQTT.Message) {

@@ -23,8 +23,9 @@ type SqlConnectionRegistrar struct {
 }
 
 type sqlConnectionRegistrarMetrics struct {
-	sqlConnectionRegistrationDuration   prometheus.Histogram
-	sqlConnectionUnregistrationDuration prometheus.Histogram
+	sqlConnectionRegistrationDuration     prometheus.Histogram
+	sqlConnectionUnregistrationDuration   prometheus.Histogram
+	sqlConnectionLookupByClientIDDuration prometheus.Histogram
 }
 
 func initializeSqlConnectionRegistrationMetrics() *sqlConnectionRegistrarMetrics {
@@ -38,6 +39,11 @@ func initializeSqlConnectionRegistrationMetrics() *sqlConnectionRegistrarMetrics
 	metrics.sqlConnectionUnregistrationDuration = promauto.NewHistogram(prometheus.HistogramOpts{
 		Name: "cloud_connector_sql_unregister_connection_duration",
 		Help: "The amount of time the it took to unregister a connection in the db",
+	})
+
+	metrics.sqlConnectionLookupByClientIDDuration = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name: "cloud_connector_sql_lookup_connection_by_client_id_duration",
+		Help: "The amount of time the it took to register a connection in the db",
 	})
 
 	return metrics
@@ -66,8 +72,8 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": account, "client_id": client_id})
 
-	update := "UPDATE connections SET dispatchers=$1, tags = $2, updated_at = NOW() WHERE account=$3 AND client_id=$4"
-	insert := "INSERT INTO connections (account, client_id, dispatchers, canonical_facts, tags) SELECT $5, $6, $7, $8, $9"
+	update := "UPDATE connections SET dispatchers=$1, tags = $2, updated_at = NOW(), message_id = $3, message_sent = $4 WHERE account=$5 AND client_id=$6"
+	insert := "INSERT INTO connections (account, client_id, dispatchers, canonical_facts, tags, message_id, message_sent) SELECT $7, $8, $9, $10, $11, $12, $13"
 	insertOrUpdate := fmt.Sprintf("WITH upsert AS (%s RETURNING *) %s WHERE NOT EXISTS (SELECT * FROM upsert)", update, insert)
 
 	statement, err := scm.database.Prepare(insertOrUpdate)
@@ -94,7 +100,7 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 		return NewConnection, err
 	}
 
-	results, err := statement.Exec(dispatchersString, tagsString, account, client_id, account, client_id, dispatchersString, canonicalFactsString, tagsString)
+	results, err := statement.Exec(dispatchersString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp, account, client_id, account, client_id, dispatchersString, canonicalFactsString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp)
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -137,4 +143,61 @@ func (scm *SqlConnectionRegistrar) Unregister(ctx context.Context, client_id dom
 	}
 
 	logger.Debug("Unregistered a connection")
+}
+
+func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context, client_id domain.ClientID) (domain.ConnectorClientState, error) {
+	var connectorClient domain.ConnectorClientState
+	var err error
+
+	callDurationTimer := prometheus.NewTimer(scm.metrics.sqlConnectionLookupByClientIDDuration)
+	defer callDurationTimer.ObserveDuration()
+
+	statement, err := scm.database.Prepare("SELECT account, client_id, dispatchers, canonical_facts, tags, message_id, message_sent FROM connections WHERE client_id = $1")
+	if err != nil {
+		logger.LogFatalError("SQL Prepare failed", err)
+		return connectorClient, err
+	}
+	defer statement.Close()
+
+	var account domain.AccountID
+	var dispatchersString string
+	var canonicalFactsString string
+	var tagsString string
+
+	err = statement.QueryRow(client_id).Scan(&account,
+		&connectorClient.ClientID,
+		&dispatchersString,
+		&canonicalFactsString,
+		&tagsString,
+		&connectorClient.MessageMetadata.LatestMessageID,
+		&connectorClient.MessageMetadata.LatestTimestamp)
+
+	if err != nil {
+		if err != sql.ErrNoRows {
+			logger.LogFatalError("SQL query failed:", err)
+		}
+		return connectorClient, err
+	}
+
+	connectorClient.Account = account
+
+	err = json.Unmarshal([]byte(dispatchersString), &connectorClient.Dispatchers)
+	if err != nil {
+		logger.LogErrorWithAccountAndClientId("Unable to unmarshal dispatchers from database", err, account, client_id)
+		return connectorClient, err
+	}
+
+	err = json.Unmarshal([]byte(canonicalFactsString), &connectorClient.CanonicalFacts)
+	if err != nil {
+		logger.LogErrorWithAccountAndClientId("Unable to unmarshal canonical facts from database", err, account, client_id)
+		return connectorClient, err
+	}
+
+	err = json.Unmarshal([]byte(tagsString), &connectorClient.Tags)
+	if err != nil {
+		logger.LogErrorWithAccountAndClientId("Unable to unmarshal tags from database", err, account, client_id)
+		return connectorClient, err
+	}
+
+	return connectorClient, nil
 }

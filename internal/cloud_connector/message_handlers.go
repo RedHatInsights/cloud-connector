@@ -17,6 +17,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	errDuplicateOrOldMQTTMessage = errors.New("duplicate or old message")
+)
+
 const (
 	canonicalFactsKey           = "canonical_facts"
 	dispatchersKey              = "dispatchers"
@@ -92,9 +96,16 @@ func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID,
 
 func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg protocol.ControlMessage, cfg *config.Config, topicBuilder *mqtt.TopicBuilder, accountResolver controller.AccountIdResolver, connectionRegistrar connection_repository.ConnectionRegistrar, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
 
-	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
+	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID, "message_id": msg.MessageID})
 
 	logger.Debug("handling online connection-status message")
+
+	connectionState, err := connectionRegistrar.FindConnectionByClientID(context.Background(), clientID)
+
+	if isDuplicateOrOldMessage(connectionState, msg) {
+		logger.Debug("ignoring message - duplicate or old message")
+		return errDuplicateOrOldMQTTMessage
+	}
 
 	identity, account, err := accountResolver.MapClientIdToAccountId(context.Background(), clientID)
 	if err != nil {
@@ -114,6 +125,8 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg proto
 		Dispatchers:    handshakePayload[dispatchersKey],
 		CanonicalFacts: handshakePayload[canonicalFactsKey],
 		Tags:           handshakePayload[tagsKey],
+		MessageMetadata: domain.MessageMetadata{LatestMessageID: msg.MessageID,
+			LatestTimestamp: msg.Sent},
 	}
 
 	_, err = connectionRegistrar.Register(context.Background(), rhcClient)
@@ -139,6 +152,16 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg proto
 	processDispatchers(sourcesRecorder, identity, account, clientID, handshakePayload)
 
 	return nil
+}
+
+func isDuplicateOrOldMessage(currentConnectionState domain.ConnectorClientState, incomingMsg protocol.ControlMessage) bool {
+
+	if currentConnectionState.MessageMetadata.LatestMessageID == incomingMsg.MessageID || incomingMsg.Sent.Before(currentConnectionState.MessageMetadata.LatestTimestamp) {
+		// Duplicate or old message
+		return true
+	}
+
+	return false
 }
 
 func shouldHostBeRegisteredWithInventory(handshakePayload map[string]interface{}) bool {
