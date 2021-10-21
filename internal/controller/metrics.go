@@ -19,11 +19,11 @@ func NewMetrics() *Metrics {
 
 	metrics.inventoryKafkaWriterGoRoutineGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "cloud_connector_inventory_kafka_writer_go_routine_count",
-		Help: "The total number of active kakfa response writer go routines",
+		Help: "The total number of active kafka response writer go routines",
 	})
 
 	metrics.inventoryKafkaWriterSuccessCounter = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "cloud_connector_inventory_kakfa_writer_success_count",
+		Name: "cloud_connector_inventory_kafka_writer_success_count",
 		Help: "The number of responses were sent to the kafka topic",
 	})
 
