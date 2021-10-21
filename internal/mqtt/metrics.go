@@ -45,7 +45,7 @@ func newMqttMetrics() *mqttMetrics {
 
 	metrics.kafkaWriterGoRoutineGauge = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "cloud_connector_mqtt_message_consumer_kafka_writer_go_routine_count",
-		Help: "The total number of active kakfa writer go routines for the mqtt message consumer",
+		Help: "The total number of active kafka writer go routines for the mqtt message consumer",
 	})
 
 	metrics.kafkaWriterPublishDuration = promauto.NewHistogram(prometheus.HistogramOpts{
