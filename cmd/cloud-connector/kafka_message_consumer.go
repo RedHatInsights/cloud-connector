@@ -212,19 +212,17 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 			return nil
 		}
 
-		controlMessageHandler(mqttClient, clientID, payload)
-
-		return nil
+		return controlMessageHandler(mqttClient, clientID, payload)
 	}
 }
 
 func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*kafka.Message) error, ctx context.Context, kafkaError chan struct{}) {
 
 	for {
-		m, err := kafkaReader.ReadMessage(ctx)
+		m, err := kafkaReader.FetchMessage(ctx)
 		if err != nil {
 			if errors.Is(err, context.Canceled) != true {
-				logger.LogError("Failed to read message from kafka", err)
+				logger.LogError("Failed to fetch message from kafka", err)
 				// Notify the main thread to shutdown
 				kafkaError <- struct{}{}
 			}
@@ -235,7 +233,20 @@ func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*kafka
 
 		metrics.kafkaMessageReceivedCounter.Inc()
 
-		process(&m)
+		err = process(&m)
+		if err != nil {
+			logger.Log.Debug("Error handling message")
+			continue
+		}
+
+		// explicitly commit the message
+		err = kafkaReader.CommitMessages(ctx, m)
+		if err != nil {
+			logger.LogError("Failed to commit message to kafka", err)
+			// Notify the main thread to shutdown
+			kafkaError <- struct{}{}
+			break
+		}
 	}
 
 	logger.Log.Infof("Stopped reading kafka messages")
