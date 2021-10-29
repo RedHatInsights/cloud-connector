@@ -45,7 +45,7 @@ type MockClient struct {
 	returnAnError bool
 }
 
-func (mc MockClient) SendMessage(ctx context.Context, account domain.AccountID, recipient domain.ClientID, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
+func (mc MockClient) SendMessage(ctx context.Context, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
 	if mc.returnAnError {
 		return nil, errors.New("ImaError")
 	}
@@ -53,14 +53,14 @@ func (mc MockClient) SendMessage(ctx context.Context, account domain.AccountID, 
 	return &myUUID, nil
 }
 
-func (mc MockClient) Ping(ctx context.Context, account domain.AccountID, recipient domain.ClientID) error {
+func (mc MockClient) Ping(ctx context.Context) error {
 	if mc.returnAnError {
 		return errors.New("ImaError")
 	}
 	return nil
 }
 
-func (mc MockClient) Reconnect(ctx context.Context, account domain.AccountID, recipient domain.ClientID, message string, delay int) error {
+func (mc MockClient) Reconnect(ctx context.Context, message string, delay int) error {
 	if mc.returnAnError {
 		return errors.New("ImaError")
 	}
