@@ -28,7 +28,7 @@ type ConnectorClientMQTTProxy struct {
 	Dispatchers  domain.Dispatchers
 }
 
-func (rhp *ConnectorClientMQTTProxy) SendMessage(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
+func (rhp *ConnectorClientMQTTProxy) SendMessage(ctx context.Context, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
 
 	metrics.sentMessageDirectiveCounter.With(prometheus.Labels{"directive": directive}).Inc()
 
@@ -45,7 +45,7 @@ func (rhp *ConnectorClientMQTTProxy) SendMessage(ctx context.Context, accountNum
 	return messageID, err
 }
 
-func (rhp *ConnectorClientMQTTProxy) Ping(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID) error {
+func (rhp *ConnectorClientMQTTProxy) Ping(ctx context.Context) error {
 
 	commandMessageContent := protocol.CommandMessageContent{Command: "ping"}
 
@@ -60,7 +60,7 @@ func (rhp *ConnectorClientMQTTProxy) Ping(ctx context.Context, accountNumber dom
 	return err
 }
 
-func (rhp *ConnectorClientMQTTProxy) Reconnect(ctx context.Context, accountNumber domain.AccountID, recipient domain.ClientID, message string, delay int) error {
+func (rhp *ConnectorClientMQTTProxy) Reconnect(ctx context.Context, message string, delay int) error {
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": rhp.AccountID})
 

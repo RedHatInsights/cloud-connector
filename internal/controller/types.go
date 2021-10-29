@@ -15,9 +15,9 @@ var (
 )
 
 type ConnectorClient interface {
-	SendMessage(context.Context, domain.AccountID, domain.ClientID, string, interface{}, interface{}) (*uuid.UUID, error)
-	Ping(context.Context, domain.AccountID, domain.ClientID) error
-	Reconnect(context.Context, domain.AccountID, domain.ClientID, string, int) error
+	SendMessage(context.Context, string, interface{}, interface{}) (*uuid.UUID, error)
+	Ping(context.Context) error
+	Reconnect(context.Context, string, int) error
 	GetDispatchers(context.Context) (domain.Dispatchers, error)
 	Disconnect(context.Context, string) error
 }

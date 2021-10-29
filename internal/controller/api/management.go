@@ -161,7 +161,7 @@ func (s *ManagementServer) handleReconnect() http.HandlerFunc {
 		logger.Infof("Attempting to disconnect account:%s - node id:%s",
 			reconnectReq.Account, reconnectReq.NodeID)
 
-		client.Reconnect(req.Context(), domain.AccountID(reconnectReq.Account), domain.ClientID(reconnectReq.NodeID), reconnectReq.Message, reconnectReq.Delay)
+		client.Reconnect(req.Context(), reconnectReq.Message, reconnectReq.Delay)
 
 		writeJSONResponse(w, http.StatusOK, nil)
 	}
@@ -373,7 +373,7 @@ func (s *ManagementServer) handleConnectionPing() http.HandlerFunc {
 
 		pingResponse.Status = CONNECTED_STATUS
 
-		err := client.Ping(req.Context(), domain.AccountID(connID.Account), domain.ClientID(connID.NodeID))
+		err := client.Ping(req.Context())
 
 		if err != nil {
 			errorResponse := errorResponse{Title: "Ping failed",
