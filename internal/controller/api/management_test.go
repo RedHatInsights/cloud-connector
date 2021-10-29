@@ -54,7 +54,7 @@ var _ = Describe("Management", func() {
 		ms = NewManagementServer(connectionManager, apiMux, URL_BASE_PATH, cfg)
 		ms.Routes()
 
-		identity := `{ "identity": {"account_number": "540155", "type": "User", "internal": { "org_id": "1979710" } } }`
+		identity := `{ "identity": {"account_number": "540155", "type": "Associate", "internal": { "org_id": "1979710" } } }`
 		validIdentityHeader = base64.StdEncoding.EncodeToString([]byte(identity))
 	})
 

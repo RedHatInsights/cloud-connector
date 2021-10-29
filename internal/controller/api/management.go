@@ -45,7 +45,8 @@ func (s *ManagementServer) Routes() {
 	securedSubRouter := s.router.PathPrefix(pathPrefix).Subrouter()
 	securedSubRouter.Use(logger.AccessLoggerMiddleware,
 		mmw.RecordHTTPMetrics,
-		amw.Authenticate)
+		amw.Authenticate,
+		middlewares.RequireTurnpikeAuthentication)
 
 	securedSubRouter.HandleFunc("", s.handleConnectionListing()).Methods(http.MethodGet)
 	securedSubRouter.HandleFunc("/{id:[0-9]+}", s.handleConnectionListingByAccount()).Methods(http.MethodGet)

@@ -461,7 +461,7 @@ var _ = Describe("MessageReceiver", func() {
 
 func buildIdentityHeader(account domain.AccountID) string {
 	identityJson := fmt.Sprintf(
-		"{ \"identity\": {\"account_number\": \"%s\", \"type\": \"User\", \"internal\": { \"org_id\": \"1979710\" } } }",
+		"{ \"identity\": {\"account_number\": \"%s\", \"type\": \"Associate\", \"internal\": { \"org_id\": \"1979710\" } } }",
 		account)
 	return base64.StdEncoding.EncodeToString([]byte(identityJson))
 }

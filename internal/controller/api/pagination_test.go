@@ -200,7 +200,7 @@ func testSetup(connectionCount int) (*ManagementServer, string) {
 	managementServer := NewManagementServer(connectionManager, apiMux, URL_BASE_PATH, cfg)
 	managementServer.Routes()
 
-	identity := `{ "identity": {"account_number": "540155", "type": "User", "internal": { "org_id": "1979710" } } }`
+	identity := `{ "identity": {"account_number": "540155", "type": "Associate", "internal": { "org_id": "1979710" } } }`
 	identityHeader := base64.StdEncoding.EncodeToString([]byte(identity))
 
 	return managementServer, identityHeader
