@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -14,44 +15,37 @@ func init() {
 	logger.InitLogger()
 }
 
-func TestTurnpikeAuthenticatorAssociate(t *testing.T) {
-	var req http.Request
-	rr := httptest.NewRecorder()
+func TestTurnpikeAuthenticator(t *testing.T) {
 
-	var xrhID identity.XRHID
-	xrhID.Identity.Type = "Associate"
-
-	applicationHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rw.WriteHeader(200)
-	})
-
-	handler := RequireTurnpikeAuthentication(applicationHandler)
-
-	ctx := context.WithValue(req.Context(), identity.Key, xrhID)
-	handler.ServeHTTP(rr, req.WithContext(ctx))
-
-	if rr.Code != 200 {
-		t.Fatal("Code != 200")
+	testCases := []struct {
+		IdentityType       string
+		ExpectedStatusCode int
+	}{
+		{"Associate", 200},
+		{"User", 401},
 	}
-}
 
-func TestTurnpikeAuthenticatorUser(t *testing.T) {
-	var req http.Request
-	rr := httptest.NewRecorder()
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("subtest identity type %s", tc.IdentityType), func(t *testing.T) {
 
-	var xrhID identity.XRHID
-	xrhID.Identity.Type = "User"
+			var req http.Request
+			rr := httptest.NewRecorder()
 
-	applicationHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rw.WriteHeader(200)
-	})
+			var xrhID identity.XRHID
+			xrhID.Identity.Type = tc.IdentityType
 
-	handler := RequireTurnpikeAuthentication(applicationHandler)
+			applicationHandler := http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+				rw.WriteHeader(200)
+			})
 
-	ctx := context.WithValue(req.Context(), identity.Key, xrhID)
-	handler.ServeHTTP(rr, req.WithContext(ctx))
+			handler := RequireTurnpikeAuthentication(applicationHandler)
 
-	if rr.Code != 401 {
-		t.Fatal("Code != 401")
+			ctx := context.WithValue(req.Context(), identity.Key, xrhID)
+			handler.ServeHTTP(rr, req.WithContext(ctx))
+
+			if rr.Code != tc.ExpectedStatusCode {
+				t.Fatalf("Invalid status code - actual: %d, expected: %d", rr.Code, tc.ExpectedStatusCode)
+			}
+		})
 	}
 }
