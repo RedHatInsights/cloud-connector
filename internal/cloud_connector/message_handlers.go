@@ -3,6 +3,7 @@ package cloud_connector
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/RedHatInsights/cloud-connector/internal/cloud_connector/protocol"
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -135,9 +136,14 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg proto
 			LatestTimestamp: msg.Sent},
 	}
 
-	_, err = connectionRegistrar.Register(context.Background(), rhcClient)
+	err = connectionRegistrar.Register(context.Background(), rhcClient)
 	if err != nil {
+		if errors.As(err, &connection_repository.FatalError{}) {
+			return err
+		}
+
 		mqtt.SendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, clientID, cfg.InvalidHandshakeReconnectDelay)
+
 		return nil
 	}
 
@@ -238,7 +244,10 @@ func handleOfflineMessage(client MQTT.Client, clientID domain.ClientID, msg prot
 
 	logger.Debug("handling offline connection-status message")
 
-	connectionRegistrar.Unregister(context.Background(), clientID)
+	err := connectionRegistrar.Unregister(context.Background(), clientID)
+	if errors.As(err, &connection_repository.FatalError{}) {
+		return err
+	}
 
 	return nil
 }

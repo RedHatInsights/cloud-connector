@@ -117,11 +117,11 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 		sourcesRecorder)
 
 	shutdownCtx, shutdownCtxCancel := context.WithCancel(context.Background())
-	// If the kafka consumer runs into a kafka error, notify the
+	// If the kafka consumer runs into a fatal error, notify the
 	// main thread so that it can shutdown the process
-	kafkaError := make(chan struct{})
+	fatalProcessingError := make(chan struct{})
 
-	go consumeMqttMessagesFromKafka(kafkaReader, messageProcessor, shutdownCtx, kafkaError)
+	go consumeMqttMessagesFromKafka(kafkaReader, messageProcessor, shutdownCtx, fatalProcessingError)
 
 	apiMux := mux.NewRouter()
 
@@ -138,8 +138,8 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	case sig := <-signalChan:
 		logger.Log.Info("Received signal to shutdown: ", sig)
 		shutdownCtxCancel() // Notify the consumer to shutdown
-	case <-kafkaError:
-		logger.Log.Info("Received kafka error...shutting down!")
+	case <-fatalProcessingError:
+		logger.Log.Info("Received a fatal processing error...shutting down!")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.HttpShutdownTimeout)
@@ -216,7 +216,7 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 	}
 }
 
-func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*kafka.Message) error, ctx context.Context, kafkaError chan struct{}) {
+func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*kafka.Message) error, ctx context.Context, fatalProcessingError chan struct{}) {
 
 	for {
 		m, err := kafkaReader.FetchMessage(ctx)
@@ -224,7 +224,7 @@ func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*kafka
 			if errors.Is(err, context.Canceled) != true {
 				logger.LogError("Failed to fetch message from kafka", err)
 				// Notify the main thread to shutdown
-				kafkaError <- struct{}{}
+				fatalProcessingError <- struct{}{}
 			}
 			break
 		}
@@ -235,8 +235,10 @@ func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*kafka
 
 		err = process(&m)
 		if err != nil {
-			logger.Log.Debug("Error handling message")
-			continue
+			logger.LogError("Error handling message:", err)
+			// Notify the main thread to shutdown
+			fatalProcessingError <- struct{}{}
+			break
 		}
 
 		// explicitly commit the message
@@ -244,7 +246,7 @@ func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*kafka
 		if err != nil {
 			logger.LogError("Failed to commit message to kafka", err)
 			// Notify the main thread to shutdown
-			kafkaError <- struct{}{}
+			fatalProcessingError <- struct{}{}
 			break
 		}
 	}

@@ -7,16 +7,15 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 )
 
-type RegistrationResults int
+type FatalError struct {
+	Err error
+}
 
-const (
-	NewConnection RegistrationResults = iota
-	ExistingConnection
-)
+func (fe FatalError) Error() string { return "FATAL: " + fe.Err.Error() }
 
 type ConnectionRegistrar interface {
-	Register(context.Context, domain.ConnectorClientState) (RegistrationResults, error)
-	Unregister(context.Context, domain.ClientID)
+	Register(context.Context, domain.ConnectorClientState) error
+	Unregister(context.Context, domain.ClientID) error
 	FindConnectionByClientID(context.Context, domain.ClientID) (domain.ConnectorClientState, error)
 }
 

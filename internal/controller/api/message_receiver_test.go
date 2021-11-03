@@ -14,7 +14,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
-	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
@@ -89,7 +88,7 @@ func NewMockConnectionManager() *MockConnectionManager {
 	return &mcm
 }
 
-func (m *MockConnectionManager) Register(ctx context.Context, rhcClient domain.ConnectorClientState) (connection_repository.RegistrationResults, error) {
+func (m *MockConnectionManager) Register(ctx context.Context, rhcClient domain.ConnectorClientState) error {
 	_, ok := m.AccountIndex[rhcClient.Account]
 	if !ok {
 		m.AccountIndex[rhcClient.Account] = make(map[domain.ClientID]controller.ConnectorClient)
@@ -104,7 +103,7 @@ func (m *MockConnectionManager) Register(ctx context.Context, rhcClient domain.C
 	m.AccountIndex[rhcClient.Account][rhcClient.ClientID] = mockClient
 	m.ClientIndex[rhcClient.ClientID] = rhcClient.Account
 
-	return connection_repository.NewConnection, nil
+	return nil
 }
 
 func (m *MockConnectionManager) Unregister(ctx context.Context, clientID domain.ClientID) {
