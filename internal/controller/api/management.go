@@ -42,7 +42,7 @@ func (s *ManagementServer) Routes() {
 	amw := &middlewares.AuthMiddleware{Secrets: s.config.ServiceToServiceCredentials,
 		IdentityAuth: func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				identity.EnforceIdentity(middlewares.RequireTurnpikeAuthentication(next)).ServeHTTP(w, r)
+				identity.EnforceIdentity(middlewares.EnforceTurnpikeAuthentication(next)).ServeHTTP(w, r)
 				return
 			})
 		},

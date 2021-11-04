@@ -9,9 +9,9 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 )
 
-// RequireTurnpikeAuthentication requires that the request be authenticated against Turnpike
-// This middlware should be installed after the RedHatInsights Identity middleware
-func RequireTurnpikeAuthentication(next http.Handler) http.Handler {
+// EnforceTurnpikeAuthentication requires that the request be authenticated against Turnpike
+// This middlware must be installed after the RedHatInsights Identity middleware
+func EnforceTurnpikeAuthentication(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		xrhID := identity.Get(r.Context())

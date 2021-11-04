@@ -40,7 +40,7 @@ func TestTurnpikeAuthenticator(t *testing.T) {
 				rw.WriteHeader(200)
 			})
 
-			handler := identity.EnforceIdentity(RequireTurnpikeAuthentication(applicationHandler))
+			handler := identity.EnforceIdentity(EnforceTurnpikeAuthentication(applicationHandler))
 
 			handler.ServeHTTP(rr, req)
 
