@@ -99,7 +99,8 @@ func (scv *serviceCredentialsValidator) validate(sc *serviceCredentials) error {
 
 // AuthMiddleware allows the passage of parameters into the Authenticate middleware
 type AuthMiddleware struct {
-	Secrets map[string]interface{}
+	Secrets      map[string]interface{}
+	IdentityAuth func(http.Handler) http.Handler
 }
 
 // Authenticate determines which authentication method should be used, and delegates identity header
@@ -107,7 +108,7 @@ type AuthMiddleware struct {
 func (amw *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get(identityHeader) != "" { // identity header auth
-			identity.EnforceIdentity(next).ServeHTTP(w, r)
+			amw.IdentityAuth(next).ServeHTTP(w, r)
 		} else { // token auth
 			sr, err := newServiceCredentials(
 				r.Header.Get(PSKClientIdHeader),

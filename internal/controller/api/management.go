@@ -9,6 +9,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/redhatinsights/platform-go-middlewares/identity"
 	"github.com/redhatinsights/platform-go-middlewares/request_id"
 
 	"github.com/gorilla/mux"
@@ -38,15 +39,21 @@ func NewManagementServer(cm connection_repository.ConnectionLocator, r *mux.Rout
 
 func (s *ManagementServer) Routes() {
 	mmw := &middlewares.MetricsMiddleware{}
-	amw := &middlewares.AuthMiddleware{Secrets: s.config.ServiceToServiceCredentials}
+	amw := &middlewares.AuthMiddleware{Secrets: s.config.ServiceToServiceCredentials,
+		IdentityAuth: func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				identity.EnforceIdentity(middlewares.RequireTurnpikeAuthentication(next)).ServeHTTP(w, r)
+				return
+			})
+		},
+	}
 
 	pathPrefix := fmt.Sprintf("%s/connection", s.urlPrefix)
 
 	securedSubRouter := s.router.PathPrefix(pathPrefix).Subrouter()
 	securedSubRouter.Use(logger.AccessLoggerMiddleware,
 		mmw.RecordHTTPMetrics,
-		amw.Authenticate,
-		middlewares.RequireTurnpikeAuthentication)
+		amw.Authenticate)
 
 	securedSubRouter.HandleFunc("", s.handleConnectionListing()).Methods(http.MethodGet)
 	securedSubRouter.HandleFunc("/{id:[0-9]+}", s.handleConnectionListingByAccount()).Methods(http.MethodGet)

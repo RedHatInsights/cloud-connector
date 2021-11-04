@@ -10,6 +10,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/redhatinsights/platform-go-middlewares/identity"
 	"github.com/redhatinsights/platform-go-middlewares/request_id"
 
 	"github.com/gorilla/mux"
@@ -39,7 +40,7 @@ func NewMessageReceiver(cm connection_repository.ConnectionLocator, r *mux.Route
 
 func (jr *MessageReceiver) Routes() {
 	mmw := &middlewares.MetricsMiddleware{}
-	amw := &middlewares.AuthMiddleware{Secrets: jr.config.ServiceToServiceCredentials}
+	amw := &middlewares.AuthMiddleware{Secrets: jr.config.ServiceToServiceCredentials, IdentityAuth: identity.EnforceIdentity}
 
 	securedSubRouter := jr.router.PathPrefix(jr.urlPrefix).Subrouter()
 	securedSubRouter.Use(logger.AccessLoggerMiddleware,

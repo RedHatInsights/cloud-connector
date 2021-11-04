@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
+	"github.com/redhatinsights/platform-go-middlewares/identity"
 )
 
 const (
@@ -49,7 +50,8 @@ var _ = Describe("Auth", func() {
 	BeforeEach(func() {
 		knownSecrets := make(map[string]interface{})
 		knownSecrets["test_client_1"] = "12345"
-		amw = &middlewares.AuthMiddleware{Secrets: knownSecrets}
+		amw = &middlewares.AuthMiddleware{Secrets: knownSecrets, IdentityAuth: identity.EnforceIdentity}
+
 		r, err := http.NewRequest("GET", "/api/cloud-connector/v1/job", nil)
 		if err != nil {
 			panic("Test error unable to get new request")
