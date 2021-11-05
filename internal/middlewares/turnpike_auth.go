@@ -1,7 +1,6 @@
 package middlewares
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/redhatinsights/platform-go-middlewares/identity"
@@ -15,11 +14,10 @@ func EnforceTurnpikeAuthentication(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		xrhID := identity.Get(r.Context())
-		fmt.Println("xrhID: ", xrhID)
 
 		if xrhID.Identity.Type != "Associate" {
 			logger.Log.Debug(authErrorLogHeader + "Invalid identity type")
-			http.Error(w, authErrorMessage, 401)
+			http.Error(w, authErrorMessage, http.StatusUnauthorized)
 			return
 		}
 
