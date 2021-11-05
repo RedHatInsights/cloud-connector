@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
+	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 
@@ -27,13 +28,18 @@ func NewPaginatedMockConnectionManager() *PaginatedMockConnectionManager {
 	return &mcm
 }
 
-func (m *PaginatedMockConnectionManager) Register(ctx context.Context, account domain.AccountID, clientID domain.ClientID, receptor controller.ConnectorClient) error {
-	m.connections = append(m.connections, receptor)
-	return nil
+func (m *PaginatedMockConnectionManager) Register(ctx context.Context, rhcClient domain.ConnectorClientState) (connection_repository.RegistrationResults, error) {
+	mockClient := MockClient{}
+	m.connections = append(m.connections, mockClient)
+	return connection_repository.NewConnection, nil
 }
 
 func (m *PaginatedMockConnectionManager) Unregister(ctx context.Context, clientID domain.ClientID) {
 	return
+}
+
+func (m *PaginatedMockConnectionManager) FindConnectionByClientID(ctx context.Context, clientID domain.ClientID) (domain.ConnectorClientState, error) {
+	return domain.ConnectorClientState{}, nil
 }
 
 func (m *PaginatedMockConnectionManager) GetConnection(ctx context.Context, account domain.AccountID, clientID domain.ClientID) controller.ConnectorClient {
@@ -185,9 +191,9 @@ func testSetup(connectionCount int) (*ManagementServer, string) {
 
 	i := 0
 	for i < connectionCount {
-		mc := MockClient{}
-		client_id := strconv.Itoa(i)
-		connectionManager.Register(context.TODO(), CONNECTED_ACCOUNT_NUMBER, domain.ClientID(client_id), mc)
+		clientID := domain.ClientID(strconv.Itoa(i))
+		clientState := domain.ConnectorClientState{Account: CONNECTED_ACCOUNT_NUMBER, ClientID: clientID}
+		connectionManager.Register(context.TODO(), clientState)
 		i++
 	}
 

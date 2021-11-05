@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
+	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
 	"github.com/gorilla/mux"
@@ -48,8 +49,8 @@ var _ = Describe("Management", func() {
 		apiMux := mux.NewRouter()
 		cfg := config.GetConfig()
 		connectionManager := NewMockConnectionManager()
-		mc := MockClient{}
-		connectionManager.Register(context.TODO(), CONNECTED_ACCOUNT_NUMBER, CONNECTED_NODE_ID, mc)
+		connectorClient := domain.ConnectorClientState{Account: CONNECTED_ACCOUNT_NUMBER, ClientID: CONNECTED_NODE_ID}
+		connectionManager.Register(context.TODO(), connectorClient)
 		ms = NewManagementServer(connectionManager, apiMux, URL_BASE_PATH, cfg)
 		ms.Routes()
 
