@@ -21,7 +21,9 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 
 	statement, err := databaseConn.Prepare(
 		`SELECT account, client_id, canonical_facts, tags FROM connections
-           WHERE canonical_facts != '{}' AND
+           WHERE
+             state = 1 AND
+             canonical_facts != '{}' AND
              dispatchers ? 'rhc-worker-playbook' AND
              stale_timestamp < $1
              order by stale_timestamp asc

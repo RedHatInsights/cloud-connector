@@ -18,7 +18,7 @@ func ProcessConnectionCounts(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 	queryCtx, cancel := context.WithTimeout(ctx, sqlTimeout)
 	defer cancel()
 
-	queryStmt := `SELECT account, COUNT(1) AS connection_count FROM connections`
+	queryStmt := `SELECT account, COUNT(1) AS connection_count FROM connections WHERE state=1`
 
 	if len(accountsToExclude) > 0 {
 		inClause := strings.Join(accountsToExclude, "','")
