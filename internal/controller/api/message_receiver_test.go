@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
+	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
@@ -90,14 +91,22 @@ func NewMockConnectionManager() *MockConnectionManager {
 	return &mcm
 }
 
-func (m *MockConnectionManager) Register(ctx context.Context, account domain.AccountID, clientID domain.ClientID, receptor controller.ConnectorClient) error {
-	_, ok := m.AccountIndex[account]
+func (m *MockConnectionManager) Register(ctx context.Context, rhcClient domain.ConnectorClientState) (connection_repository.RegistrationResults, error) {
+	_, ok := m.AccountIndex[rhcClient.Account]
 	if !ok {
-		m.AccountIndex[account] = make(map[domain.ClientID]controller.ConnectorClient)
+		m.AccountIndex[rhcClient.Account] = make(map[domain.ClientID]controller.ConnectorClient)
 	}
-	m.AccountIndex[account][clientID] = receptor
-	m.ClientIndex[clientID] = account
-	return nil
+
+	mockClient := MockClient{}
+
+	if rhcClient.ClientID == "error-client" { // FIXME: this is kinda gross
+		mockClient.returnAnError = true
+	}
+
+	m.AccountIndex[rhcClient.Account][rhcClient.ClientID] = mockClient
+	m.ClientIndex[rhcClient.ClientID] = rhcClient.Account
+
+	return connection_repository.NewConnection, nil
 }
 
 func (m *MockConnectionManager) Unregister(ctx context.Context, clientID domain.ClientID) {
@@ -108,6 +117,10 @@ func (m *MockConnectionManager) Unregister(ctx context.Context, clientID domain.
 
 	delete(m.ClientIndex, clientID)
 	delete(m.AccountIndex[account], clientID)
+}
+
+func (m *MockConnectionManager) FindConnectionByClientID(ctx context.Context, clientID domain.ClientID) (domain.ConnectorClientState, error) {
+	return domain.ConnectorClientState{Account: m.ClientIndex[clientID], ClientID: clientID}, nil
 }
 
 func (m *MockConnectionManager) GetConnection(ctx context.Context, account domain.AccountID, clientID domain.ClientID) controller.ConnectorClient {
@@ -139,10 +152,10 @@ var _ = Describe("MessageReceiver", func() {
 		apiMux := mux.NewRouter()
 		cfg := config.GetConfig()
 		connectionManager := NewMockConnectionManager()
-		mc := MockClient{}
-		connectionManager.Register(context.TODO(), account, "345", mc)
-		errorMC := MockClient{returnAnError: true}
-		connectionManager.Register(context.TODO(), account, "error-client", errorMC)
+		connectorClient := domain.ConnectorClientState{Account: account, ClientID: "345"}
+		connectionManager.Register(context.TODO(), connectorClient)
+		errorConnectorClient := domain.ConnectorClientState{Account: account, ClientID: "error-client"}
+		connectionManager.Register(context.TODO(), errorConnectorClient)
 		jr = NewMessageReceiver(connectionManager, apiMux, URL_BASE_PATH, cfg)
 		jr.Routes()
 
