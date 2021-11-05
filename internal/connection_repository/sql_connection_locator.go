@@ -69,7 +69,7 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account doma
 	callDurationTimer := prometheus.NewTimer(scm.metrics.sqlLookupConnectionByAccountAndClientIDDuration)
 	defer callDurationTimer.ObserveDuration()
 
-	statement, err := scm.database.Prepare("SELECT client_id, dispatchers FROM connections WHERE account = $1 AND client_id = $2")
+	statement, err := scm.database.Prepare("SELECT client_id, dispatchers FROM connections WHERE account = $1 AND client_id = $2 AND state = 1")
 	if err != nil {
 		logger.LogError("SQL Prepare failed", err)
 		return nil
@@ -114,6 +114,7 @@ func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, ac
 	statement, err := scm.database.Prepare(
 		`SELECT client_id, dispatchers, COUNT(*) OVER() FROM connections
             WHERE account = $1
+              AND state = 1
             ORDER BY client_id
             OFFSET $2
             LIMIT $3`)
@@ -167,6 +168,7 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context, offset i
 
 	statement, err := scm.database.Prepare(
 		`SELECT account, client_id, dispatchers, COUNT(*) OVER() FROM connections
+            WHERE state = 1
             ORDER BY account, client_id
             OFFSET $1
             LIMIT $2`)

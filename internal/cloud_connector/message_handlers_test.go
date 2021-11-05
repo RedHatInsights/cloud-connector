@@ -38,6 +38,10 @@ func (mcr *mockConnectionRegistrar) FindConnectionByClientID(ctx context.Context
 	return mcr.clients[clientID], nil
 }
 
+func (mcr *mockConnectionRegistrar) ReenableConnection(ctx context.Context, account domain.AccountID, clientID domain.ClientID) error {
+	return nil
+}
+
 type mockAccountIdResolver struct {
 	accounts map[domain.ClientID]domain.AccountID
 }

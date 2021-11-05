@@ -21,18 +21,20 @@ const (
 )
 
 type ManagementServer struct {
-	connectionMgr connection_repository.ConnectionLocator
-	router        *mux.Router
-	config        *config.Config
-	urlPrefix     string
+	connectionMgr       connection_repository.ConnectionLocator
+	connectionRegistrar connection_repository.ConnectionRegistrar
+	router              *mux.Router
+	config              *config.Config
+	urlPrefix           string
 }
 
-func NewManagementServer(cm connection_repository.ConnectionLocator, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
+func NewManagementServer(cm connection_repository.ConnectionLocator, cr connection_repository.ConnectionRegistrar, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
 	return &ManagementServer{
-		connectionMgr: cm,
-		router:        r,
-		config:        cfg,
-		urlPrefix:     urlPrefix,
+		connectionMgr:       cm,
+		connectionRegistrar: cr,
+		router:              r,
+		config:              cfg,
+		urlPrefix:           urlPrefix,
 	}
 }
 
@@ -53,6 +55,7 @@ func (s *ManagementServer) Routes() {
 	securedSubRouter.HandleFunc("/reconnect", s.handleReconnect()).Methods(http.MethodPost)
 	securedSubRouter.HandleFunc("/status", s.handleConnectionStatus()).Methods(http.MethodPost)
 	securedSubRouter.HandleFunc("/ping", s.handleConnectionPing()).Methods(http.MethodPost)
+	securedSubRouter.HandleFunc("/reenable", s.handleReenableConnection()).Methods(http.MethodPost)
 }
 
 type connectionID struct {
@@ -382,6 +385,49 @@ func (s *ManagementServer) handleConnectionPing() http.HandlerFunc {
 			writeJSONResponse(w, errorResponse.Status, errorResponse)
 			return
 		}
+
+		writeJSONResponse(w, http.StatusOK, pingResponse)
+	}
+}
+
+func (s *ManagementServer) handleReenableConnection() http.HandlerFunc {
+
+	return func(w http.ResponseWriter, req *http.Request) {
+
+		principal, _ := middlewares.GetPrincipal(req.Context())
+		requestId := request_id.GetReqID(req.Context())
+		logger := logger.Log.WithFields(logrus.Fields{
+			"account":    principal.GetAccount(),
+			"request_id": requestId})
+
+		body := http.MaxBytesReader(w, req.Body, 1048576)
+
+		var connID connectionID
+
+		if err := decodeJSON(body, &connID); err != nil {
+			errorResponse := errorResponse{Title: "Unable to process json input",
+				Status: http.StatusBadRequest,
+				Detail: err.Error()}
+			writeJSONResponse(w, errorResponse.Status, errorResponse)
+			return
+		}
+
+		logger.Infof("Re-enabling connection - account:%s - node id:%s",
+			connID.Account, connID.NodeID)
+
+		pingResponse := connectionPingResponse{Status: DISCONNECTED_STATUS}
+		err := s.connectionRegistrar.ReenableConnection(req.Context(),
+			domain.AccountID(connID.Account),
+			domain.ClientID(connID.NodeID))
+		if err != nil {
+			errorResponse := errorResponse{Title: "Ping failed",
+				Status: http.StatusBadRequest,
+				Detail: err.Error()}
+			writeJSONResponse(w, errorResponse.Status, errorResponse)
+			return
+		}
+
+		pingResponse.Status = CONNECTED_STATUS
 
 		writeJSONResponse(w, http.StatusOK, pingResponse)
 	}

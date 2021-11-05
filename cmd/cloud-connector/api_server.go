@@ -155,6 +155,11 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 		logger.LogFatalError("Failed to create SQL Connection Locator", err)
 	}
 
+	sqlConnectionRegistrar, err := connection_repository.NewSqlConnectionRegistrar(cfg)
+	if err != nil {
+		logger.LogFatalError("Failed to create SQL Connection Registrar", err)
+	}
+
 	apiMux := mux.NewRouter()
 	apiMux.Use(request_id.ConfiguredRequestID("x-rh-insights-request-id"))
 
@@ -164,7 +169,7 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 	monitoringServer := api.NewMonitoringServer(apiMux, cfg)
 	monitoringServer.Routes()
 
-	mgmtServer := api.NewManagementServer(sqlConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
+	mgmtServer := api.NewManagementServer(sqlConnectionLocator, sqlConnectionRegistrar, apiMux, cfg.UrlBasePath, cfg)
 	mgmtServer.Routes()
 
 	jr := api.NewMessageReceiver(sqlConnectionLocator, apiMux, cfg.UrlBasePath, cfg)

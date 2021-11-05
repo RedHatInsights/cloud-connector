@@ -42,6 +42,10 @@ func (m *PaginatedMockConnectionManager) FindConnectionByClientID(ctx context.Co
 	return domain.ConnectorClientState{}, nil
 }
 
+func (m *PaginatedMockConnectionManager) ReenableConnection(context.Context, domain.AccountID, domain.ClientID) error {
+	return nil
+}
+
 func (m *PaginatedMockConnectionManager) GetConnection(ctx context.Context, account domain.AccountID, clientID domain.ClientID) controller.ConnectorClient {
 	return nil
 }
@@ -197,7 +201,7 @@ func testSetup(connectionCount int) (*ManagementServer, string) {
 		i++
 	}
 
-	managementServer := NewManagementServer(connectionManager, apiMux, URL_BASE_PATH, cfg)
+	managementServer := NewManagementServer(connectionManager, connectionManager, apiMux, URL_BASE_PATH, cfg)
 	managementServer.Routes()
 
 	identity := `{ "identity": {"account_number": "540155", "type": "User", "internal": { "org_id": "1979710" } } }`

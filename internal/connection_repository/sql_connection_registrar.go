@@ -72,8 +72,8 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": account, "client_id": client_id})
 
-	update := "UPDATE connections SET dispatchers=$1, tags = $2, updated_at = NOW(), message_id = $3, message_sent = $4 WHERE account=$5 AND client_id=$6"
-	insert := "INSERT INTO connections (account, client_id, dispatchers, canonical_facts, tags, message_id, message_sent) SELECT $7, $8, $9, $10, $11, $12, $13"
+	update := "UPDATE connections SET dispatchers=$1, tags = $2, updated_at = NOW(), message_id = $3, message_sent = $4, state=1 WHERE account=$5 AND client_id=$6"
+	insert := "INSERT INTO connections (account, client_id, dispatchers, canonical_facts, tags, message_id, message_sent, state) SELECT $7, $8, $9, $10, $11, $12, $13, 1"
 	insertOrUpdate := fmt.Sprintf("WITH upsert AS (%s RETURNING *) %s WHERE NOT EXISTS (SELECT * FROM upsert)", update, insert)
 
 	statement, err := scm.database.Prepare(insertOrUpdate)
@@ -131,7 +131,7 @@ func (scm *SqlConnectionRegistrar) Unregister(ctx context.Context, client_id dom
 
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": client_id})
 
-	statement, err := scm.database.Prepare("DELETE FROM connections WHERE client_id = $1")
+	statement, err := scm.database.Prepare("UPDATE connections SET state=0 WHERE client_id = $1")
 	if err != nil {
 		logger.Fatal(err)
 	}
@@ -200,4 +200,39 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 	}
 
 	return connectorClient, nil
+}
+
+func (scm *SqlConnectionRegistrar) ReenableConnection(ctx context.Context, account domain.AccountID, client_id domain.ClientID) error {
+	var err error
+
+	/*
+		callDurationTimer := prometheus.NewTimer(scm.metrics.sqlConnectionLookupByClientIDDuration)
+		defer callDurationTimer.ObserveDuration()
+	*/
+
+	// FIXME:  What about message_id / message_sent??
+	updateStatement := "UPDATE connections SET state=1, updated_at = NOW() WHERE account=$1 AND client_id=$2 AND state=0"
+
+	statement, err := scm.database.Prepare(updateStatement)
+	if err != nil {
+		logger.Log.Fatal(err) // FIXME:??
+		return err
+	}
+	defer statement.Close()
+
+	results, err := statement.Exec(account, client_id)
+	if err != nil {
+		logger.Log.Fatal(err)
+		return err
+	}
+
+	rowsAffected, err := results.RowsAffected()
+	if err != nil {
+		logger.Log.Fatal(err)
+		return err
+	}
+
+	fmt.Println("rowsAffected: ", rowsAffected)
+
+	return nil
 }
