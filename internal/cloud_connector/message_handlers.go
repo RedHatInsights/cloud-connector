@@ -89,16 +89,22 @@ func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID,
 		return nil
 	}
 
+	var err error
 	if connectionState == "online" {
-		return handleOnlineMessage(client, clientID, msg, cfg, topicBuilder, accountResolver, connectionRegistrar, connectedClientRecorder, sourcesRecorder)
+		err = handleOnlineMessage(client, clientID, msg, cfg, topicBuilder, accountResolver, connectionRegistrar, connectedClientRecorder, sourcesRecorder)
 	} else if connectionState == "offline" {
-		return handleOfflineMessage(client, clientID, msg, connectionRegistrar)
+		err = handleOfflineMessage(client, clientID, msg, connectionRegistrar)
 	} else {
 		logger.Debug("Invalid connection state from connection-status message.")
 		return nil
 	}
 
-	return nil
+	if err == errDuplicateOrOldMQTTMessage {
+		// Ignore duplicate or old mqtt messages
+		return nil
+	}
+
+	return err
 }
 
 func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg protocol.ControlMessage, cfg *config.Config, topicBuilder *mqtt.TopicBuilder, accountResolver controller.AccountIdResolver, connectionRegistrar connection_repository.ConnectionRegistrar, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
