@@ -3,10 +3,8 @@ package api
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -159,7 +157,7 @@ var _ = Describe("MessageReceiver", func() {
 		jr = NewMessageReceiver(connectionManager, apiMux, URL_BASE_PATH, cfg)
 		jr.Routes()
 
-		validIdentityHeader = buildIdentityHeader(account)
+		validIdentityHeader = buildIdentityHeader(account, "Associate")
 	})
 
 	AfterEach(func() {
@@ -219,7 +217,7 @@ var _ = Describe("MessageReceiver", func() {
 				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
 				Expect(err).NotTo(HaveOccurred())
 
-				validIdentityHeader = buildIdentityHeader("1234-not-here")
+				validIdentityHeader = buildIdentityHeader("1234-not-here", "Associate")
 
 				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
 
@@ -317,7 +315,7 @@ var _ = Describe("MessageReceiver", func() {
 				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
 				Expect(err).NotTo(HaveOccurred())
 
-				validIdentityHeader = buildIdentityHeader("4321")
+				validIdentityHeader = buildIdentityHeader("4321", "Associate")
 
 				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
 
@@ -458,13 +456,6 @@ var _ = Describe("MessageReceiver", func() {
 
 	})
 })
-
-func buildIdentityHeader(account domain.AccountID) string {
-	identityJson := fmt.Sprintf(
-		"{ \"identity\": {\"account_number\": \"%s\", \"type\": \"User\", \"internal\": { \"org_id\": \"1979710\" } } }",
-		account)
-	return base64.StdEncoding.EncodeToString([]byte(identityJson))
-}
 
 func verifyErrorResponse(body *bytes.Buffer, expectedDetail string) {
 	var errorResponse errorResponse

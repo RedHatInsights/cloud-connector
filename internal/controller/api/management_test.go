@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,6 +10,7 @@ import (
 	"strings"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -24,6 +24,7 @@ const (
 	CONNECTION_LIST_ENDPOINT       = URL_BASE_PATH + "/connection"
 	CONNECTION_STATUS_ENDPOINT     = URL_BASE_PATH + "/connection/status"
 	CONNECTION_DISCONNECT_ENDPOINT = URL_BASE_PATH + "/connection/disconnect"
+	CONNECTION_PING_ENDPOINT       = URL_BASE_PATH + "/connection/ping"
 
 	CONNECTED_ACCOUNT_NUMBER = "1234"
 	CONNECTED_NODE_ID        = "345"
@@ -48,14 +49,14 @@ var _ = Describe("Management", func() {
 	BeforeEach(func() {
 		apiMux := mux.NewRouter()
 		cfg := config.GetConfig()
+		cfg.ServiceToServiceCredentials["test_client_1"] = "12345"
 		connectionManager := NewMockConnectionManager()
 		connectorClient := domain.ConnectorClientState{Account: CONNECTED_ACCOUNT_NUMBER, ClientID: CONNECTED_NODE_ID}
 		connectionManager.Register(context.TODO(), connectorClient)
 		ms = NewManagementServer(connectionManager, apiMux, URL_BASE_PATH, cfg)
 		ms.Routes()
 
-		identity := `{ "identity": {"account_number": "540155", "type": "User", "internal": { "org_id": "1979710" } } }`
-		validIdentityHeader = base64.StdEncoding.EncodeToString([]byte(identity))
+		validIdentityHeader = buildIdentityHeader("540155", "Associate")
 	})
 
 	Describe("Connecting to the connection/status endpoint", func() {
@@ -485,5 +486,42 @@ var _ = Describe("Management", func() {
 		})
 
 	})
+
+	DescribeTable("Connecting to the connection/ping endpoint",
+		func(expectedStatusCode int, headers map[string]string) {
+
+			postBody := createConnectionStatusPostBody(CONNECTED_ACCOUNT_NUMBER, CONNECTED_NODE_ID)
+
+			req, err := http.NewRequest("POST", CONNECTION_PING_ENDPOINT, postBody)
+			Expect(err).NotTo(HaveOccurred())
+
+			for k, v := range headers {
+				req.Header.Add(k, v)
+			}
+
+			rr := httptest.NewRecorder()
+
+			ms.router.ServeHTTP(rr, req)
+
+			Expect(rr.Code).To(Equal(expectedStatusCode))
+		},
+
+		Entry("authenticated internal user",
+			http.StatusOK,
+			map[string]string{IDENTITY_HEADER_NAME: buildIdentityHeader("540155", "Associate")}),
+		Entry("authenticated user",
+			http.StatusUnauthorized,
+			map[string]string{IDENTITY_HEADER_NAME: buildIdentityHeader("540155", "User")}),
+		Entry("valid psk",
+			http.StatusOK,
+			map[string]string{TOKEN_HEADER_CLIENT_NAME: "test_client_1",
+				TOKEN_HEADER_ACCOUNT_NAME: "0000001",
+				TOKEN_HEADER_PSK_NAME:     "12345"}),
+		Entry("invalid psk",
+			http.StatusUnauthorized,
+			map[string]string{TOKEN_HEADER_CLIENT_NAME: "test_client_1",
+				TOKEN_HEADER_ACCOUNT_NAME: "0000001",
+				TOKEN_HEADER_PSK_NAME:     "wrong"}),
+	)
 
 })

@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -200,10 +199,7 @@ func testSetup(connectionCount int) (*ManagementServer, string) {
 	managementServer := NewManagementServer(connectionManager, apiMux, URL_BASE_PATH, cfg)
 	managementServer.Routes()
 
-	identity := `{ "identity": {"account_number": "540155", "type": "User", "internal": { "org_id": "1979710" } } }`
-	identityHeader := base64.StdEncoding.EncodeToString([]byte(identity))
-
-	return managementServer, identityHeader
+	return managementServer, buildIdentityHeader("540155", "Associate")
 }
 
 func runTest(endpoint string, managementServer *ManagementServer, identityHeader string, expectedResponse paginatedResponse) {
