@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -62,7 +61,7 @@ func NewSqlConnectionRegistrar(cfg *config.Config) (*SqlConnectionRegistrar, err
 	}, nil
 }
 
-func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domain.ConnectorClientState) (RegistrationResults, error) {
+func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domain.ConnectorClientState) error {
 
 	callDurationTimer := prometheus.NewTimer(scm.metrics.sqlConnectionRegistrationDuration)
 	defer callDurationTimer.ObserveDuration()
@@ -78,53 +77,40 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 
 	statement, err := scm.database.Prepare(insertOrUpdate)
 	if err != nil {
-		logger.Fatal(err)
+		logger.WithFields(logrus.Fields{"error": err}).Error("Prepare failed")
+		return FatalError{err}
 	}
 	defer statement.Close()
 
 	dispatchersString, err := json.Marshal(rhcClient.Dispatchers)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err, "dispatchers": rhcClient.Dispatchers}).Error("Unable to marshal dispatchers")
-		return NewConnection, err
+		return err
 	}
 
 	canonicalFactsString, err := json.Marshal(rhcClient.CanonicalFacts)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err, "canonical_facts": rhcClient.CanonicalFacts}).Error("Unable to marshal canonicalfacts")
-		return NewConnection, err
+		return err
 	}
 
 	tagsString, err := json.Marshal(rhcClient.Tags)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err, "tags": rhcClient.CanonicalFacts}).Error("Unable to marshal tags")
-		return NewConnection, err
+		return err
 	}
 
-	results, err := statement.Exec(dispatchersString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp, account, client_id, account, client_id, dispatchersString, canonicalFactsString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp)
+	_, err = statement.Exec(dispatchersString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp, account, client_id, account, client_id, dispatchersString, canonicalFactsString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp)
 	if err != nil {
-		logger.Fatal(err)
-	}
-
-	rowsAffected, err := results.RowsAffected()
-	if err != nil {
-		logger.Fatal(err)
-	}
-
-	var registrationResults RegistrationResults
-	if rowsAffected == 0 {
-		registrationResults = ExistingConnection
-	} else if rowsAffected == 1 {
-		registrationResults = NewConnection
-	} else {
-		logger.Warn("Unable to determine registration results: rowsAffected:", rowsAffected)
-		return NewConnection, errors.New("Unable to determine registration results")
+		logger.WithFields(logrus.Fields{"error": err}).Error("Insert/update failed")
+		return FatalError{err}
 	}
 
 	logger.Debug("Registered a connection")
-	return registrationResults, nil
+	return nil
 }
 
-func (scm *SqlConnectionRegistrar) Unregister(ctx context.Context, client_id domain.ClientID) {
+func (scm *SqlConnectionRegistrar) Unregister(ctx context.Context, client_id domain.ClientID) error {
 
 	callDurationTimer := prometheus.NewTimer(scm.metrics.sqlConnectionUnregistrationDuration)
 	defer callDurationTimer.ObserveDuration()
@@ -133,16 +119,19 @@ func (scm *SqlConnectionRegistrar) Unregister(ctx context.Context, client_id dom
 
 	statement, err := scm.database.Prepare("DELETE FROM connections WHERE client_id = $1")
 	if err != nil {
-		logger.Fatal(err)
+		logger.WithFields(logrus.Fields{"error": err}).Error("Prepare failed")
+		return FatalError{err}
 	}
 	defer statement.Close()
 
 	_, err = statement.Exec(client_id)
 	if err != nil {
-		logger.Fatal(err)
+		logger.WithFields(logrus.Fields{"error": err}).Error("Delete failed")
+		return FatalError{err}
 	}
 
 	logger.Debug("Unregistered a connection")
+	return nil
 }
 
 func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context, client_id domain.ClientID) (domain.ConnectorClientState, error) {

@@ -33,9 +33,13 @@ const (
 	playbookWorkerDispatcherKey = "rhc-worker-playbook"
 )
 
-func HandleControlMessage(cfg *config.Config, mqttClient MQTT.Client, topicBuilder *mqtt.TopicBuilder, connectionRegistrar connection_repository.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(MQTT.Client, domain.ClientID, string) {
+// HandleControlMessage returns a function that processes control messages.
+// The returned function should only return an error in the case where the
+// message should get processed again.  In other words, if the message
+// processing function returns an error ...do not commit the kafka message.
+func HandleControlMessage(cfg *config.Config, mqttClient MQTT.Client, topicBuilder *mqtt.TopicBuilder, connectionRegistrar connection_repository.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(MQTT.Client, domain.ClientID, string) error {
 
-	return func(client MQTT.Client, clientID domain.ClientID, payload string) {
+	return func(client MQTT.Client, clientID domain.ClientID, payload string) error {
 
 		metrics.controlMessageReceivedCounter.Inc()
 
@@ -44,25 +48,26 @@ func HandleControlMessage(cfg *config.Config, mqttClient MQTT.Client, topicBuild
 		if len(payload) == 0 {
 			// This will happen when a retained message is removed
 			logger.Trace("client sent an empty payload")
-			return
+			return nil
 		}
 
 		var controlMsg protocol.ControlMessage
 
 		if err := json.Unmarshal([]byte(payload), &controlMsg); err != nil {
 			logger.WithFields(logrus.Fields{"error": err}).Error("Failed to unmarshal control message")
-			return
+			return nil
 		}
 
 		logger.Debug("Got a control message:", controlMsg)
 
 		switch controlMsg.MessageType {
 		case "connection-status":
-			handleConnectionStatusMessage(client, clientID, controlMsg, cfg, topicBuilder, connectionRegistrar, accountResolver, connectedClientRecorder, sourcesRecorder)
+			return handleConnectionStatusMessage(client, clientID, controlMsg, cfg, topicBuilder, connectionRegistrar, accountResolver, connectedClientRecorder, sourcesRecorder)
 		case "event":
-			handleEventMessage(client, clientID, controlMsg)
+			return handleEventMessage(client, clientID, controlMsg)
 		default:
 			logger.Debug("Received an invalid message type:", controlMsg.MessageType)
+			return nil
 		}
 	}
 }
@@ -78,20 +83,28 @@ func handleConnectionStatusMessage(client MQTT.Client, clientID domain.ClientID,
 	connectionState, gotConnectionState := handshakePayload["state"]
 
 	if gotConnectionState == false {
-		// FIXME: Close down the connection
-		return errors.New("Invalid connection state")
+		logger.Debug("Client did not send the connection state as part of the online message")
+		// For now, ignore the invalid message.  In the future, maybe ask the client
+		// to resend that online message?
+		return nil
 	}
 
+	var err error
 	if connectionState == "online" {
-		return handleOnlineMessage(client, clientID, msg, cfg, topicBuilder, accountResolver, connectionRegistrar, connectedClientRecorder, sourcesRecorder)
+		err = handleOnlineMessage(client, clientID, msg, cfg, topicBuilder, accountResolver, connectionRegistrar, connectedClientRecorder, sourcesRecorder)
 	} else if connectionState == "offline" {
-		return handleOfflineMessage(client, clientID, msg, connectionRegistrar)
+		err = handleOfflineMessage(client, clientID, msg, connectionRegistrar)
 	} else {
 		logger.Debug("Invalid connection state from connection-status message.")
-		return errors.New("Invalid connection state")
+		return nil
 	}
 
-	return nil
+	if err == errDuplicateOrOldMQTTMessage {
+		// Ignore duplicate or old mqtt messages
+		return nil
+	}
+
+	return err
 }
 
 func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg protocol.ControlMessage, cfg *config.Config, topicBuilder *mqtt.TopicBuilder, accountResolver controller.AccountIdResolver, connectionRegistrar connection_repository.ConnectionRegistrar, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
@@ -113,7 +126,7 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg proto
 
 		mqtt.SendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, clientID, cfg.InvalidHandshakeReconnectDelay)
 
-		return err
+		return nil
 	}
 
 	logger = logger.WithFields(logrus.Fields{"account": account})
@@ -129,10 +142,15 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg proto
 			LatestTimestamp: msg.Sent},
 	}
 
-	_, err = connectionRegistrar.Register(context.Background(), rhcClient)
+	err = connectionRegistrar.Register(context.Background(), rhcClient)
 	if err != nil {
+		if errors.As(err, &connection_repository.FatalError{}) {
+			return err
+		}
+
 		mqtt.SendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, clientID, cfg.InvalidHandshakeReconnectDelay)
-		return err
+
+		return nil
 	}
 
 	if shouldHostBeRegisteredWithInventory(handshakePayload) == true {
@@ -145,7 +163,7 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg proto
 			// If we cannot "register" the connection with inventory, then send a disconnect message
 			mqtt.SendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, clientID, cfg.InvalidHandshakeReconnectDelay)
 
-			return err
+			return nil
 		}
 	}
 
@@ -232,7 +250,10 @@ func handleOfflineMessage(client MQTT.Client, clientID domain.ClientID, msg prot
 
 	logger.Debug("handling offline connection-status message")
 
-	connectionRegistrar.Unregister(context.Background(), clientID)
+	err := connectionRegistrar.Unregister(context.Background(), clientID)
+	if errors.As(err, &connection_repository.FatalError{}) {
+		return err
+	}
 
 	return nil
 }

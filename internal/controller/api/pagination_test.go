@@ -11,7 +11,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
-	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 
@@ -27,10 +26,10 @@ func NewPaginatedMockConnectionManager() *PaginatedMockConnectionManager {
 	return &mcm
 }
 
-func (m *PaginatedMockConnectionManager) Register(ctx context.Context, rhcClient domain.ConnectorClientState) (connection_repository.RegistrationResults, error) {
+func (m *PaginatedMockConnectionManager) Register(ctx context.Context, rhcClient domain.ConnectorClientState) error {
 	mockClient := MockClient{}
 	m.connections = append(m.connections, mockClient)
-	return connection_repository.NewConnection, nil
+	return nil
 }
 
 func (m *PaginatedMockConnectionManager) Unregister(ctx context.Context, clientID domain.ClientID) {

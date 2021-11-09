@@ -8,7 +8,6 @@ import (
 
 	"github.com/RedHatInsights/cloud-connector/internal/cloud_connector/protocol"
 	"github.com/RedHatInsights/cloud-connector/internal/config"
-	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/mqtt"
@@ -25,13 +24,13 @@ type mockConnectionRegistrar struct {
 	clients map[domain.ClientID]domain.ConnectorClientState
 }
 
-func (mcr *mockConnectionRegistrar) Register(ctx context.Context, rhcClient domain.ConnectorClientState) (connection_repository.RegistrationResults, error) {
+func (mcr *mockConnectionRegistrar) Register(ctx context.Context, rhcClient domain.ConnectorClientState) error {
 	mcr.clients[rhcClient.ClientID] = rhcClient
-	return connection_repository.NewConnection, nil
+	return nil
 }
 
-func (mcr *mockConnectionRegistrar) Unregister(ctx context.Context, clientID domain.ClientID) {
-	return
+func (mcr *mockConnectionRegistrar) Unregister(ctx context.Context, clientID domain.ClientID) error {
+	return nil
 }
 
 func (mcr *mockConnectionRegistrar) FindConnectionByClientID(ctx context.Context, clientID domain.ClientID) (domain.ConnectorClientState, error) {
@@ -96,7 +95,7 @@ func TestHandleOnlineMessagesUpdateExistingConnection(t *testing.T) {
 		},
 	}
 
-	if _, err := connectionRegistrar.Register(context.TODO(), connectionState); err != nil {
+	if err := connectionRegistrar.Register(context.TODO(), connectionState); err != nil {
 		t.Fatal(err)
 	}
 
@@ -163,7 +162,7 @@ func TestHandleDuplicateAndOldOnlineMessages(t *testing.T) {
 				},
 			}
 
-			if _, err := connectionRegistrar.Register(context.TODO(), connectionState); err != nil {
+			if err := connectionRegistrar.Register(context.TODO(), connectionState); err != nil {
 				t.Fatal(err)
 			}
 
