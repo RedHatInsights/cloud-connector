@@ -16,7 +16,7 @@ func EnforceTurnpikeAuthentication(next http.Handler) http.Handler {
 		xrhID := identity.Get(r.Context())
 
 		if xrhID.Identity.Type != "Associate" {
-			logger.Log.Debug(authErrorLogHeader + "Invalid identity type")
+			logger.Log.Debug(authErrorLogHeader + "Invalid identity type: " + xrhID.Identity.Type)
 			http.Error(w, authErrorMessage, http.StatusUnauthorized)
 			return
 		}
