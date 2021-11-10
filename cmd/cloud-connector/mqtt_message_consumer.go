@@ -66,10 +66,10 @@ func startMqttMessageConsumer(mgmtAddr string) {
 	kafkaProducer := queue.StartProducer(kafkaProducerCfg)
 
 	controlMsgHandler := mqtt.ControlMessageHandler(context.TODO(), kafkaProducer, mqttTopicVerifier)
-	controlMsgHandler = mqtt.ThrottlingMessageHandlerDispatcher(10, controlMsgHandler)
+	controlMsgHandler = mqtt.ThrottlingMessageHandlerDispatcher(cfg.MqttMessageDispatcherConcurrencyLimit, controlMsgHandler)
 
 	dataMsgHandler := mqtt.DataMessageHandler()
-	dataMsgHandler = mqtt.ThrottlingMessageHandlerDispatcher(10, dataMsgHandler)
+	dataMsgHandler = mqtt.ThrottlingMessageHandlerDispatcher(cfg.MqttMessageDispatcherConcurrencyLimit, dataMsgHandler)
 
 	defaultMsgHandler := mqtt.DefaultMessageHandler(mqttTopicVerifier, controlMsgHandler, dataMsgHandler)
 
