@@ -81,7 +81,9 @@ func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topic
 			return
 		}
 
-		logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID, "mqtt_message_id": mqttMessageID})
+		logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID,
+			"mqtt_message_id": mqttMessageID,
+			"duplicate":       message.Duplicate()})
 
 		if len(message.Payload()) == 0 {
 			// This will happen when a retained message is removed
