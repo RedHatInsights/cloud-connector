@@ -6,13 +6,14 @@ import (
 )
 
 type mqttMetrics struct {
-	controlMessageReceivedCounter  prometheus.Counter
-	dataMessageReceivedCounter     prometheus.Counter
-	sentMessageDirectiveCounter    *prometheus.CounterVec
-	messagePublishedSuccessCounter prometheus.Counter
-	messagePublishedFailureCounter prometheus.Counter
-	kafkaWriterGoRoutineGauge      prometheus.Gauge
-	kafkaWriterPublishDuration     prometheus.Histogram
+	controlMessageReceivedCounter    prometheus.Counter
+	dataMessageReceivedCounter       prometheus.Counter
+	sentMessageDirectiveCounter      *prometheus.CounterVec
+	messagePublishedSuccessCounter   prometheus.Counter
+	messagePublishedFailureCounter   prometheus.Counter
+	kafkaWriterGoRoutineGauge        prometheus.Gauge
+	kafkaWriterPublishDuration       prometheus.Histogram
+	mqttMessagesWaitingToBeProcessed prometheus.Gauge
 }
 
 func newMqttMetrics() *mqttMetrics {
@@ -51,6 +52,11 @@ func newMqttMetrics() *mqttMetrics {
 	metrics.kafkaWriterPublishDuration = promauto.NewHistogram(prometheus.HistogramOpts{
 		Name: "cloud_connector_mqtt_message_consumer_kafka_writer_publish_duration",
 		Help: "The amount of time the mqtt consumer spends waiting on a kafka write",
+	})
+
+	metrics.mqttMessagesWaitingToBeProcessed = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "cloud_connector_mqtt_messages_waiting_to_be_processed_count",
+		Help: "Number of inflight mqtt message (and go routines) waiting to be processed",
 	})
 
 	return metrics
