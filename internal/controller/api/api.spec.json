@@ -81,6 +81,14 @@
             "PSKAuthKey": []
           }
         ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -115,6 +123,12 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/AccountID"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
           }
         ],
         "responses": {
@@ -289,6 +303,24 @@
           "pattern": "[0-9]+"
         },
         "required": true
+      },
+      "Limit": {
+        "in": "query",
+        "name": "limit",
+        "description": "limit",
+        "schema": {
+          "type": "integer"
+        },
+        "required": false
+      },
+      "Offset": {
+        "in": "query",
+        "name": "offset",
+        "description": "offset",
+        "schema": {
+          "type": "integer"
+        },
+        "required": false
       }
     },
     "securitySchemes": {
