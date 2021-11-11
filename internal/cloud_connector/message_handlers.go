@@ -115,7 +115,7 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg proto
 
 	ctx := context.Background()
 
-	err := handleDuplicateOnlineMessage(logger, ctx, connectionRegistrar, clientID, msg)
+	err := checkForDuplicateOnlineMessage(logger, ctx, connectionRegistrar, clientID, msg)
 	if err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg proto
 	return nil
 }
 
-func handleDuplicateOnlineMessage(logger *logrus.Entry, ctx context.Context, connectionRegistrar connection_repository.ConnectionRegistrar, clientID domain.ClientID, incomingMsg protocol.ControlMessage) error {
+func checkForDuplicateOnlineMessage(logger *logrus.Entry, ctx context.Context, connectionRegistrar connection_repository.ConnectionRegistrar, clientID domain.ClientID, incomingMsg protocol.ControlMessage) error {
 
 	connectionState, err := connectionRegistrar.FindConnectionByClientID(ctx, clientID)
 	if err != nil {
