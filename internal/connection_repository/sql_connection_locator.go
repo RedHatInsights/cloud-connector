@@ -77,7 +77,7 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account doma
 	defer statement.Close()
 
 	var name string
-	var dispatchersString string
+	var dispatchersString sql.NullString
 	err = statement.QueryRow(account, client_id).Scan(&name, &dispatchersString)
 
 	if err != nil {
@@ -88,9 +88,11 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account doma
 	}
 
 	var dispatchers domain.Dispatchers
-	err = json.Unmarshal([]byte(dispatchersString), &dispatchers)
-	if err != nil {
-		logger.LogErrorWithAccountAndClientId("Unable to unmarshal dispatchers from database", err, account, client_id)
+	if dispatchersString.Valid {
+		err = json.Unmarshal([]byte(dispatchersString.String), &dispatchers)
+		if err != nil {
+			logger.LogErrorWithAccountAndClientId("Unable to unmarshal dispatchers from database", err, account, client_id)
+		}
 	}
 
 	conn, err = scm.proxyFactory.CreateProxy(ctx, domain.AccountID(account), domain.ClientID(client_id), dispatchers)
@@ -186,7 +188,7 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context, offset i
 	for rows.Next() {
 		var account domain.AccountID
 		var clientId domain.ClientID
-		var dispatchersString string
+		var dispatchersString sql.NullString
 
 		if err := rows.Scan(&account, &clientId, &dispatchersString, &totalConnections); err != nil {
 			logger.LogError("SQL scan failed.  Skipping row.", err)
@@ -194,9 +196,11 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context, offset i
 		}
 
 		var dispatchers domain.Dispatchers
-		err = json.Unmarshal([]byte(dispatchersString), &dispatchers)
-		if err != nil {
-			logger.LogErrorWithAccountAndClientId("Unable to unmarshal dispatchers from database", err, account, clientId)
+		if dispatchersString.Valid {
+			err = json.Unmarshal([]byte(dispatchersString.String), &dispatchers)
+			if err != nil {
+				logger.LogErrorWithAccountAndClientId("Unable to unmarshal dispatchers from database", err, account, clientId)
+			}
 		}
 
 		proxy, err := scm.proxyFactory.CreateProxy(ctx, domain.AccountID(account), domain.ClientID(clientId), dispatchers)

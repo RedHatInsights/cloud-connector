@@ -149,9 +149,9 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 	defer statement.Close()
 
 	var account domain.AccountID
-	var dispatchersString string
-	var canonicalFactsString string
-	var tagsString string
+	var dispatchersString sql.NullString
+	var canonicalFactsString sql.NullString
+	var tagsString sql.NullString
 
 	err = statement.QueryRow(client_id).Scan(&account,
 		&connectorClient.ClientID,
@@ -170,22 +170,28 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 
 	connectorClient.Account = account
 
-	err = json.Unmarshal([]byte(dispatchersString), &connectorClient.Dispatchers)
-	if err != nil {
-		logger.LogErrorWithAccountAndClientId("Unable to unmarshal dispatchers from database", err, account, client_id)
-		return connectorClient, err
+	if dispatchersString.Valid {
+		err = json.Unmarshal([]byte(dispatchersString.String), &connectorClient.Dispatchers)
+		if err != nil {
+			logger.LogErrorWithAccountAndClientId("Unable to unmarshal dispatchers from database", err, account, client_id)
+			return connectorClient, err
+		}
 	}
 
-	err = json.Unmarshal([]byte(canonicalFactsString), &connectorClient.CanonicalFacts)
-	if err != nil {
-		logger.LogErrorWithAccountAndClientId("Unable to unmarshal canonical facts from database", err, account, client_id)
-		return connectorClient, err
+	if canonicalFactsString.Valid {
+		err = json.Unmarshal([]byte(canonicalFactsString.String), &connectorClient.CanonicalFacts)
+		if err != nil {
+			logger.LogErrorWithAccountAndClientId("Unable to unmarshal canonical facts from database", err, account, client_id)
+			return connectorClient, err
+		}
 	}
 
-	err = json.Unmarshal([]byte(tagsString), &connectorClient.Tags)
-	if err != nil {
-		logger.LogErrorWithAccountAndClientId("Unable to unmarshal tags from database", err, account, client_id)
-		return connectorClient, err
+	if tagsString.Valid {
+		err = json.Unmarshal([]byte(tagsString.String), &connectorClient.Tags)
+		if err != nil {
+			logger.LogErrorWithAccountAndClientId("Unable to unmarshal tags from database", err, account, client_id)
+			return connectorClient, err
+		}
 	}
 
 	return connectorClient, nil
