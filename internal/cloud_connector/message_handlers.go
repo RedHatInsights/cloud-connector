@@ -113,11 +113,11 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg proto
 
 	logger.Debug("handling online connection-status message")
 
-	connectionState, err := connectionRegistrar.FindConnectionByClientID(context.Background(), clientID)
+	ctx := context.Background()
 
-	if isDuplicateOrOldMessage(connectionState, msg) {
-		logger.Debug("ignoring message - duplicate or old message")
-		return errDuplicateOrOldMQTTMessage
+	err := handleDuplicateOnlineMessage(logger, ctx, connectionRegistrar, clientID, msg)
+	if err != nil {
+		return err
 	}
 
 	identity, account, err := accountResolver.MapClientIdToAccountId(context.Background(), clientID)
@@ -168,6 +168,30 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg proto
 	}
 
 	processDispatchers(sourcesRecorder, identity, account, clientID, handshakePayload)
+
+	return nil
+}
+
+func handleDuplicateOnlineMessage(logger *logrus.Entry, ctx context.Context, connectionRegistrar connection_repository.ConnectionRegistrar, clientID domain.ClientID, incomingMsg protocol.ControlMessage) error {
+
+	connectionState, err := connectionRegistrar.FindConnectionByClientID(ctx, clientID)
+	if err != nil {
+		if errors.As(err, &connection_repository.FatalError{}) {
+			return err
+		}
+
+		logger.WithFields(logrus.Fields{"error": err}).Error("Error during duplicate message check")
+
+		// If there is a non-fatal error during the client lookup,
+		// ignore it and continue processing the incoming message.
+		// The idea here is that (hopefully) we will overwrite "bad"
+		// data with good data from the new message.
+	}
+
+	if isDuplicateOrOldMessage(connectionState, incomingMsg) {
+		logger.Debug("ignoring message - duplicate or old message")
+		return errDuplicateOrOldMQTTMessage
+	}
 
 	return nil
 }

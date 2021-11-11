@@ -138,13 +138,15 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 	var connectorClient domain.ConnectorClientState
 	var err error
 
+	logger := logger.Log.WithFields(logrus.Fields{"client_id": client_id})
+
 	callDurationTimer := prometheus.NewTimer(scm.metrics.sqlConnectionLookupByClientIDDuration)
 	defer callDurationTimer.ObserveDuration()
 
 	statement, err := scm.database.Prepare("SELECT account, client_id, dispatchers, canonical_facts, tags, message_id, message_sent FROM connections WHERE client_id = $1")
 	if err != nil {
-		logger.LogFatalError("SQL Prepare failed", err)
-		return connectorClient, err
+		logger.WithFields(logrus.Fields{"error": err}).Error("SQL prepare failed")
+		return connectorClient, FatalError{err}
 	}
 	defer statement.Close()
 
@@ -163,17 +165,20 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 
 	if err != nil {
 		if err != sql.ErrNoRows {
-			logger.LogFatalError("SQL query failed:", err)
+			logger.WithFields(logrus.Fields{"error": err}).Error("SQL query failed")
+			err = FatalError{err}
 		}
 		return connectorClient, err
 	}
 
 	connectorClient.Account = account
 
+	logger := logger.Log.WithFields(logrus.Fields{"account": account})
+
 	if dispatchersString.Valid {
 		err = json.Unmarshal([]byte(dispatchersString.String), &connectorClient.Dispatchers)
 		if err != nil {
-			logger.LogErrorWithAccountAndClientId("Unable to unmarshal dispatchers from database", err, account, client_id)
+			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to unmarshal dispatchers from database")
 			return connectorClient, err
 		}
 	}
@@ -181,7 +186,7 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 	if canonicalFactsString.Valid {
 		err = json.Unmarshal([]byte(canonicalFactsString.String), &connectorClient.CanonicalFacts)
 		if err != nil {
-			logger.LogErrorWithAccountAndClientId("Unable to unmarshal canonical facts from database", err, account, client_id)
+			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to unmarshal canonical facts from database")
 			return connectorClient, err
 		}
 	}
@@ -189,7 +194,7 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 	if tagsString.Valid {
 		err = json.Unmarshal([]byte(tagsString.String), &connectorClient.Tags)
 		if err != nil {
-			logger.LogErrorWithAccountAndClientId("Unable to unmarshal tags from database", err, account, client_id)
+			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to unmarshal tags from database")
 			return connectorClient, err
 		}
 	}
