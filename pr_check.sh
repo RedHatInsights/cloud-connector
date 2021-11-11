@@ -12,11 +12,12 @@ IQE_MARKER_EXPRESSION=""
 IQE_FILTER_EXPRESSION="cloud_connector"
 IQE_CJI_TIMEOUT="10m"
 
-
 # Install bonfire repo/initialize
 CICD_URL=https://raw.githubusercontent.com/RedHatInsights/bonfire/master/cicd
 curl -s $CICD_URL/bootstrap.sh > .cicd_bootstrap.sh && source .cicd_bootstrap.sh
 
 source $CICD_ROOT/build.sh
 source $CICD_ROOT/deploy_ephemeral_env.sh
+
+COMPONENT_NAME="cloud-connector"
 source $CICD_ROOT/cji_smoke_test.sh
