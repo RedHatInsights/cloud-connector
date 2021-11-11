@@ -42,26 +42,30 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 	for rows.Next() {
 		var account domain.AccountID
 		var clientID domain.ClientID
-		var canonicalFactsString string
-		var tagsString string
+		var canonicalFactsString sql.NullString
+		var tagsString sql.NullString
 
 		if err := rows.Scan(&account, &clientID, &canonicalFactsString, &tagsString); err != nil {
 			logger.LogError("SQL scan failed.  Skipping row.", err)
 			continue
 		}
 
-		var canonicalFacts interface{}
-		err = json.Unmarshal([]byte(canonicalFactsString), &canonicalFacts)
-		if err != nil {
-			logger.LogErrorWithAccountAndClientId("Unable to parse canonical facts.  Skipping connection.", err, account, clientID)
-			continue
+		var canonicalFacts domain.CanonicalFacts
+		if canonicalFactsString.Valid {
+			err = json.Unmarshal([]byte(canonicalFactsString.String), &canonicalFacts)
+			if err != nil {
+				logger.LogErrorWithAccountAndClientId("Unable to parse canonical facts.  Skipping connection.", err, account, clientID)
+				continue
+			}
 		}
 
 		var tags domain.Tags
-		err = json.Unmarshal([]byte(tagsString), &tags)
-		if err != nil {
-			logger.LogErrorWithAccountAndClientId("Unable to parse tags.  Skipping connection.", err, account, clientID)
-			continue
+		if tagsString.Valid {
+			err = json.Unmarshal([]byte(tagsString.String), &tags)
+			if err != nil {
+				logger.LogErrorWithAccountAndClientId("Unable to parse tags.  Skipping connection.", err, account, clientID)
+				continue
+			}
 		}
 
 		rhcClient := domain.ConnectorClientState{
