@@ -125,12 +125,12 @@ func ThrottlingMessageHandlerDispatcher(maxInFlight int, f MQTT.MessageHandler) 
 	//  to not be lost when a restart occurs.
 	concurrencyGuard := make(chan struct{}, maxInFlight)
 	return func(c MQTT.Client, m MQTT.Message) {
-		go func() {
+		go func(c MQTT.Client, m MQTT.Message) {
 			metrics.mqttMessagesWaitingToBeProcessed.Inc()
 			concurrencyGuard <- struct{}{}
 			metrics.mqttMessagesWaitingToBeProcessed.Dec()
 			f(c, m)
 			<-concurrencyGuard
-		}()
+		}(c, m)
 	}
 }
