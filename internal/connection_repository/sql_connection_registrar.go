@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -164,10 +165,14 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 		&connectorClient.MessageMetadata.LatestTimestamp)
 
 	if err != nil {
-		if err != sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
+			logger.Debug("No connection found!")
+			return connectorClient, NotFoundError
+		} else if errors.Is(err, sql.ErrNoRows) == false {
 			logger.WithFields(logrus.Fields{"error": err}).Error("SQL query failed")
 			err = FatalError{err}
 		}
+
 		return connectorClient, err
 	}
 

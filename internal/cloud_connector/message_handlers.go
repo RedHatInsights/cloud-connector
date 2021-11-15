@@ -176,6 +176,11 @@ func checkForDuplicateOnlineMessage(logger *logrus.Entry, ctx context.Context, c
 
 	connectionState, err := connectionRegistrar.FindConnectionByClientID(ctx, clientID)
 	if err != nil {
+
+		if errors.Is(err, connection_repository.NotFoundError) {
+			return nil
+		}
+
 		if errors.As(err, &connection_repository.FatalError{}) {
 			return err
 		}

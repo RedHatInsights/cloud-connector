@@ -2,6 +2,7 @@ package connection_repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -12,6 +13,8 @@ type FatalError struct {
 }
 
 func (fe FatalError) Error() string { return "FATAL: " + fe.Err.Error() }
+
+var NotFoundError = errors.New("Not found")
 
 type ConnectionRegistrar interface {
 	Register(context.Context, domain.ConnectorClientState) error
