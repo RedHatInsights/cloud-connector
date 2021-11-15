@@ -119,7 +119,7 @@ func DefaultMessageHandler(topicVerifier *TopicVerifier, controlMessageHandler, 
 	}
 }
 
-func ThrottlingMessageHandlerDispatcher(maxInFlight int, f MQTT.MessageHandler) MQTT.MessageHandler {
+func ThrottlingMessageHandler(maxInFlight int, f MQTT.MessageHandler) MQTT.MessageHandler {
 	// WARNING:  Messages buffered here can be lost if the process is restarted.  We probably need
 	//  to come up with a better message buffering mechanism that allows control messages (at least)
 	//  to not be lost when a restart occurs.
