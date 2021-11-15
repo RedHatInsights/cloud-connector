@@ -179,7 +179,6 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 		err = json.Unmarshal([]byte(dispatchersString.String), &connectorClient.Dispatchers)
 		if err != nil {
 			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to unmarshal dispatchers from database")
-			return connectorClient, err
 		}
 	}
 
@@ -187,7 +186,6 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 		err = json.Unmarshal([]byte(canonicalFactsString.String), &connectorClient.CanonicalFacts)
 		if err != nil {
 			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to unmarshal canonical facts from database")
-			return connectorClient, err
 		}
 	}
 
@@ -195,7 +193,6 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 		err = json.Unmarshal([]byte(tagsString.String), &connectorClient.Tags)
 		if err != nil {
 			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to unmarshal tags from database")
-			return connectorClient, err
 		}
 	}
 
