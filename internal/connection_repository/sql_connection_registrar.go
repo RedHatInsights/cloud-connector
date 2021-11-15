@@ -173,7 +173,7 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 
 	connectorClient.Account = account
 
-	logger := logger.Log.WithFields(logrus.Fields{"account": account})
+	logger = logger.WithFields(logrus.Fields{"account": account})
 
 	if dispatchersString.Valid {
 		err = json.Unmarshal([]byte(dispatchersString.String), &connectorClient.Dispatchers)
