@@ -123,14 +123,28 @@ func ThrottlingMessageHandler(maxInFlight int, f MQTT.MessageHandler) MQTT.Messa
 	// WARNING:  Messages buffered here can be lost if the process is restarted.  We probably need
 	//  to come up with a better message buffering mechanism that allows control messages (at least)
 	//  to not be lost when a restart occurs.
-	concurrencyGuard := make(chan struct{}, maxInFlight)
-	return func(c MQTT.Client, m MQTT.Message) {
-		go func(c MQTT.Client, m MQTT.Message) {
-			metrics.mqttMessagesWaitingToBeProcessed.Inc()
-			concurrencyGuard <- struct{}{}
+
+	fmt.Println("**** maxInFlight: ", maxInFlight)
+	type messageWrapper struct {
+		client  MQTT.Client
+		message MQTT.Message
+	}
+
+	messagePipe := make(chan messageWrapper, maxInFlight)
+
+	go func() {
+		for msgWrapper := range messagePipe {
 			metrics.mqttMessagesWaitingToBeProcessed.Dec()
-			f(c, m)
-			<-concurrencyGuard
-		}(c, m)
+			fmt.Println("**** GOT A MESSAGE ... calling f(c,m)")
+			f(msgWrapper.client, msgWrapper.message)
+			fmt.Println("**** FIXME!!!  i dont know how to shutdown!!")
+		}
+	}()
+
+	return func(c MQTT.Client, m MQTT.Message) {
+		metrics.mqttMessagesWaitingToBeProcessed.Inc()
+		fmt.Println("**** BLOCKED PUTTING MESSAGE ON QUEUE...")
+		messagePipe <- messageWrapper{c, m}
+		fmt.Println("**** UNBLOCKED")
 	}
 }
