@@ -166,7 +166,6 @@ func ThrottlingMessageHandler(maxInFlight int, f MQTT.MessageHandler) MQTT.Messa
 	//  to come up with a better message buffering mechanism that allows control messages (at least)
 	//  to not be lost when a restart occurs.
 
-	fmt.Println("**** maxInFlight: ", maxInFlight)
 	type messageWrapper struct {
 		client  MQTT.Client
 		message MQTT.Message
@@ -174,19 +173,16 @@ func ThrottlingMessageHandler(maxInFlight int, f MQTT.MessageHandler) MQTT.Messa
 
 	messagePipe := make(chan messageWrapper, maxInFlight)
 
+	// FIXME: pass a shutdown channel to this go routine for a clean shutdown
 	go func() {
 		for msgWrapper := range messagePipe {
 			metrics.mqttMessagesWaitingToBeProcessed.Dec()
-			fmt.Println("**** GOT A MESSAGE ... calling f(c,m)")
 			f(msgWrapper.client, msgWrapper.message)
-			fmt.Println("**** FIXME!!!  i dont know how to shutdown!!")
 		}
 	}()
 
 	return func(c MQTT.Client, m MQTT.Message) {
 		metrics.mqttMessagesWaitingToBeProcessed.Inc()
-		fmt.Println("**** BLOCKED PUTTING MESSAGE ON QUEUE...")
 		messagePipe <- messageWrapper{c, m}
-		fmt.Println("**** UNBLOCKED")
 	}
 }
