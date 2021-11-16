@@ -181,6 +181,10 @@ objects:
           value: ${RHC_MESSAGE_KAFKA_BATCH_SIZE}
         - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BATCH_BYTES
           value: ${RHC_MESSAGE_KAFKA_BATCH_BYTES}
+
+        - name: CLOUD_CONNECTOR_MQTT_MESSAGE_DISPATCHER_CONCURRENCY_LIMIT
+          value: ${MQTT_MESSAGE_CONCURRENCY_LIMIT}
+
         initContainers:
         - args:
           - ./migrate_db
@@ -569,3 +573,6 @@ parameters:
   value: "stdout"
 - name: CONNECTION_COUNT_PER_ACCOUNT_REPORT_ACCOUNT_EXCLUSION_LIST
   value: "477931,6089719,540155"
+
+- name: MQTT_MESSAGE_CONCURRENCY_LIMIT
+  value: "1"
