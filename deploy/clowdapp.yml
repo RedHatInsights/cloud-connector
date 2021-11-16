@@ -188,6 +188,10 @@ objects:
           value: ${RHC_MESSAGE_KAFKA_BATCH_SIZE}
         - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BATCH_BYTES
           value: ${RHC_MESSAGE_KAFKA_BATCH_BYTES}
+
+        - name: CLOUD_CONNECTOR_MQTT_MESSAGE_DISPATCHER_CONCURRENCY_LIMIT
+          value: ${MQTT_MESSAGE_CONCURRENCY_LIMIT}
+
         initContainers:
         - args:
           - ./migrate_db
@@ -622,3 +626,6 @@ parameters:
 
 - name: PROMETHEUS_PUSHGATEWAY
   value: prometheus-push.insights-push-stage.svc.cluster.local:9091
+
+- name: MQTT_MESSAGE_CONCURRENCY_LIMIT
+  value: "1"

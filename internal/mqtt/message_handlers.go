@@ -124,6 +124,8 @@ func ThrottlingMessageHandler(maxInFlight int, f MQTT.MessageHandler) MQTT.Messa
 	//  to come up with a better message buffering mechanism that allows control messages (at least)
 	//  to not be lost when a restart occurs.
 
+	logger.Log.Debug("maxInFlight: ", maxInFlight)
+
 	type messageWrapper struct {
 		client  MQTT.Client
 		message MQTT.Message
