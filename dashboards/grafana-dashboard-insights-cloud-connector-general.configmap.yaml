@@ -1562,7 +1562,7 @@ data:
       },
       "timezone": "",
       "title": "Cloud-Connector",
-      "uid": "playground",
+      "uid": "c91dcda039618ded",
       "version": 2
     }
 kind: ConfigMap
