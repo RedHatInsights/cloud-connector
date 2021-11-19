@@ -7,7 +7,6 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/cloud_connector/protocol"
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
-	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
@@ -20,6 +19,7 @@ var (
 )
 
 type ConnectorClientMQTTProxy struct {
+	Logger       *logrus.Entry
 	Config       *config.Config
 	AccountID    domain.AccountID
 	ClientID     domain.ClientID
@@ -28,62 +28,56 @@ type ConnectorClientMQTTProxy struct {
 	Dispatchers  domain.Dispatchers
 }
 
-func (rhp *ConnectorClientMQTTProxy) SendMessage(ctx context.Context, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
+func (cc *ConnectorClientMQTTProxy) SendMessage(ctx context.Context, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
 
 	metrics.sentMessageDirectiveCounter.With(prometheus.Labels{"directive": directive}).Inc()
 
 	messageID, message, err := protocol.BuildDataMessage(directive, metadata, payload)
 
-	logger := logger.Log.WithFields(logrus.Fields{"message_id": messageID, "account": rhp.AccountID, "client_id": rhp.ClientID})
+	logger := cc.Logger.WithFields(logrus.Fields{"message_id": messageID})
 
 	logger.Debug("Sending data message to connected client")
 
-	topic := rhp.TopicBuilder.BuildOutgoingDataTopic(rhp.ClientID)
+	topic := cc.TopicBuilder.BuildOutgoingDataTopic(cc.ClientID)
 
-	err = sendMessage(rhp.Client, logger, rhp.ClientID, messageID, topic, rhp.Config.MqttDataPublishQoS, message)
+	err = sendMessage(cc.Client, logger, cc.ClientID, messageID, topic, cc.Config.MqttDataPublishQoS, message)
 
 	return messageID, err
 }
 
-func (rhp *ConnectorClientMQTTProxy) Ping(ctx context.Context) error {
+func (cc *ConnectorClientMQTTProxy) Ping(ctx context.Context) error {
 
 	commandMessageContent := protocol.CommandMessageContent{Command: "ping"}
 
-	logger := logger.Log.WithFields(logrus.Fields{"account": rhp.AccountID})
+	topic := cc.TopicBuilder.BuildOutgoingControlTopic(cc.ClientID)
 
-	topic := rhp.TopicBuilder.BuildOutgoingControlTopic(rhp.ClientID)
+	qos := cc.Config.MqttControlPublishQoS
 
-	qos := rhp.Config.MqttControlPublishQoS
-
-	_, err := sendControlMessage(rhp.Client, logger, topic, qos, rhp.ClientID, "command", &commandMessageContent)
+	_, err := sendControlMessage(cc.Client, cc.Logger, topic, qos, cc.ClientID, "command", &commandMessageContent)
 
 	return err
 }
 
-func (rhp *ConnectorClientMQTTProxy) Reconnect(ctx context.Context, message string, delay int) error {
+func (cc *ConnectorClientMQTTProxy) Reconnect(ctx context.Context, message string, delay int) error {
 
-	logger := logger.Log.WithFields(logrus.Fields{"account": rhp.AccountID})
-
-	err := SendReconnectMessageToClient(rhp.Client, logger, rhp.TopicBuilder, rhp.Config.MqttControlPublishQoS, rhp.ClientID, delay)
+	err := SendReconnectMessageToClient(cc.Client, cc.Logger, cc.TopicBuilder, cc.Config.MqttControlPublishQoS, cc.ClientID, delay)
 
 	return err
 }
 
-func (rhp *ConnectorClientMQTTProxy) GetDispatchers(ctx context.Context) (domain.Dispatchers, error) {
-	return rhp.Dispatchers, nil
+func (cc *ConnectorClientMQTTProxy) GetDispatchers(ctx context.Context) (domain.Dispatchers, error) {
+	return cc.Dispatchers, nil
 }
 
-func (rhp *ConnectorClientMQTTProxy) Disconnect(ctx context.Context, message string) error {
+func (cc *ConnectorClientMQTTProxy) Disconnect(ctx context.Context, message string) error {
 
 	commandMessageContent := protocol.CommandMessageContent{Command: "disconnect"}
 
-	logger := logger.Log.WithFields(logrus.Fields{"account": rhp.AccountID})
+	topic := cc.TopicBuilder.BuildOutgoingControlTopic(cc.ClientID)
 
-	topic := rhp.TopicBuilder.BuildOutgoingControlTopic(rhp.ClientID)
+	qos := cc.Config.MqttControlPublishQoS
 
-	qos := rhp.Config.MqttControlPublishQoS
-
-	_, err := sendControlMessage(rhp.Client, logger, topic, qos, rhp.ClientID, "command", &commandMessageContent)
+	_, err := sendControlMessage(cc.Client, cc.Logger, topic, qos, cc.ClientID, "command", &commandMessageContent)
 
 	return err
 }

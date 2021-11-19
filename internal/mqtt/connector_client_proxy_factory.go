@@ -6,7 +6,10 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
+	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+
 	MQTT "github.com/eclipse/paho.mqtt.golang"
+	"github.com/sirupsen/logrus"
 )
 
 type ConnectorClientMQTTProxyFactory struct {
@@ -20,14 +23,17 @@ func NewConnectorClientMQTTProxyFactory(cfg *config.Config, mqttClient MQTT.Clie
 	return &proxyFactory, nil
 }
 
-func (rhp *ConnectorClientMQTTProxyFactory) CreateProxy(ctx context.Context, account domain.AccountID, client_id domain.ClientID, dispatchers domain.Dispatchers) (controller.ConnectorClient, error) {
+func (ccpf *ConnectorClientMQTTProxyFactory) CreateProxy(ctx context.Context, account domain.AccountID, client_id domain.ClientID, dispatchers domain.Dispatchers) (controller.ConnectorClient, error) {
+
+	logger := logger.Log.WithFields(logrus.Fields{"account": account, "client_id": client_id})
 
 	proxy := ConnectorClientMQTTProxy{
-		Config:       rhp.config,
+		Logger:       logger,
+		Config:       ccpf.config,
 		AccountID:    account,
 		ClientID:     client_id,
-		Client:       rhp.mqttClient,
-		TopicBuilder: rhp.topicBuilder,
+		Client:       ccpf.mqttClient,
+		TopicBuilder: ccpf.topicBuilder,
 		Dispatchers:  dispatchers,
 	}
 
