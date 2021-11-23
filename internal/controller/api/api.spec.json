@@ -27,7 +27,7 @@
         "tags": [
           "api"
         ],
-        "summary": "Submit a job request to be routed to a customers environment",
+        "summary": "Submit a message to be routed to a customers environment.  This method will take the permitted tenants into consideration when looking up the connection details.  The value of the x-rh-cloud-connector-org-id header is compared against the permitted tenants to locate the connection.",
         "security": [
           {
             "ApiKeyAuth": []
@@ -35,6 +35,7 @@
           {
             "PSKAuthClientID": [],
             "PSKAuthAccount": [],
+            "PSKAuthOrgID": [],
             "PSKAuthKey": []
           }
         ],
@@ -54,6 +55,49 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No connection to the target connected client"
+          }
+        }
+      }
+    },
+    "/connection_status": {
+      "post": {
+        "tags": [
+          "api"
+        ],
+        "summary": "Retrieve the status of the connection.  This method will take the permitted tenants into consideration when looking up the connection details.  The value of the x-rh-cloud-connector-org-id header is compared against the permitted tenants to locate the connection.",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          },
+          {
+            "PSKAuthClientID": [],
+            "PSKAuthAccount": [],
+            "PSKAuthOrgID": [],
+            "PSKAuthKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionStatusResponse"
                 }
               }
             }
@@ -151,7 +195,7 @@
           "api",
           "connection"
         ],
-        "summary": "Submit a job request to be routed to a customers environment",
+        "summary": "Retrieve the status of the connection.",
         "security": [
           {
             "ApiKeyAuth": []
@@ -347,6 +391,12 @@
         "in": "header",
         "name": "x-rh-cloud-connector-account",
         "description": "Account the request is being made on behalf of"
+      },
+      "PSKAuthOrgID": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-rh-cloud-connector-org-id",
+        "description": "Org ID the request is being made on behalf of"
       }
     },
     "schemas": {

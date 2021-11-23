@@ -120,7 +120,7 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg proto
 		return err
 	}
 
-    identity, account, orgID, err := accountResolver.MapClientIdToAccountId(context.Background(), clientID)
+	identity, account, orgID, err := accountResolver.MapClientIdToAccountId(context.Background(), clientID)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to resolve client id to account number")
 

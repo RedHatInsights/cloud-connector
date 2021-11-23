@@ -8,57 +8,20 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
-	"github.com/RedHatInsights/cloud-connector/internal/platform/db"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type SqlConnectionLocator struct {
 	database     *sql.DB
 	proxyFactory controller.ConnectorClientProxyFactory
-	metrics      *sqlConnectionLookupMetrics
 }
 
-type sqlConnectionLookupMetrics struct {
-	sqlLookupConnectionByAccountAndClientIDDuration prometheus.Histogram
-	sqlLookupConnectionsByAccountDuration           prometheus.Histogram
-	sqlLookupAllConnectionsDuration                 prometheus.Histogram
-}
-
-func initializeSqlConnectionLookupMetrics() *sqlConnectionLookupMetrics {
-	metrics := new(sqlConnectionLookupMetrics)
-
-	metrics.sqlLookupConnectionByAccountAndClientIDDuration = promauto.NewHistogram(prometheus.HistogramOpts{
-		Name: "cloud_connector_sql_lookup_connection_by_account_and_client_id_duration",
-		Help: "The amount of time the it took to lookup a connection using account and client id ",
-	})
-
-	metrics.sqlLookupConnectionsByAccountDuration = promauto.NewHistogram(prometheus.HistogramOpts{
-		Name: "cloud_connector_sql_lookup_connections_by_account",
-		Help: "The amount of time the it took to lookup a connection using account",
-	})
-
-	metrics.sqlLookupAllConnectionsDuration = promauto.NewHistogram(prometheus.HistogramOpts{
-		Name: "cloud_connector_sql_lookup_all_connections",
-		Help: "The amount of time the it took to lookup all connections",
-	})
-
-	return metrics
-}
-
-func NewSqlConnectionLocator(cfg *config.Config, proxyFactory controller.ConnectorClientProxyFactory) (*SqlConnectionLocator, error) {
-
-	database, err := db.InitializeDatabaseConnection(cfg)
-	if err != nil {
-		return nil, err
-	}
-
+func NewSqlConnectionLocator(cfg *config.Config, database *sql.DB, proxyFactory controller.ConnectorClientProxyFactory) (*SqlConnectionLocator, error) {
 	return &SqlConnectionLocator{
 		database:     database,
 		proxyFactory: proxyFactory,
-		metrics:      initializeSqlConnectionLookupMetrics(),
 	}, nil
 }
 
@@ -66,7 +29,7 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account doma
 	var conn controller.ConnectorClient
 	var err error
 
-	callDurationTimer := prometheus.NewTimer(scm.metrics.sqlLookupConnectionByAccountAndClientIDDuration)
+	callDurationTimer := prometheus.NewTimer(metrics.sqlLookupConnectionByAccountAndClientIDDuration)
 	defer callDurationTimer.ObserveDuration()
 
 	statement, err := scm.database.Prepare("SELECT client_id, dispatchers FROM connections WHERE account = $1 AND client_id = $2")
@@ -108,7 +71,7 @@ func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, ac
 
 	var totalConnections int
 
-	callDurationTimer := prometheus.NewTimer(scm.metrics.sqlLookupConnectionsByAccountDuration)
+	callDurationTimer := prometheus.NewTimer(metrics.sqlLookupConnectionsByAccountDuration)
 	defer callDurationTimer.ObserveDuration()
 
 	connectionsPerAccount := make(map[domain.ClientID]controller.ConnectorClient)
@@ -162,7 +125,7 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context, offset i
 
 	var totalConnections int
 
-	callDurationTimer := prometheus.NewTimer(scm.metrics.sqlLookupAllConnectionsDuration)
+	callDurationTimer := prometheus.NewTimer(metrics.sqlLookupAllConnectionsDuration)
 	defer callDurationTimer.ObserveDuration()
 
 	connectionMap := make(map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient)
