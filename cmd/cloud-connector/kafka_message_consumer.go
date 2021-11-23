@@ -15,6 +15,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/controller/api"
 	"github.com/RedHatInsights/cloud-connector/internal/mqtt"
+	"github.com/RedHatInsights/cloud-connector/internal/platform/db"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/queue"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils"
@@ -35,6 +36,11 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	cfg := config.GetConfig()
 	logger.Log.Info("Cloud-Connector configuration:\n", cfg)
 
+	database, err := db.InitializeDatabaseConnection(cfg)
+	if err != nil {
+		logger.LogFatalError("Unable to connect to database: ", err)
+	}
+
 	tlsConfigFuncs, err := buildBrokerTlsConfigFuncList(cfg)
 	if err != nil {
 		logger.LogFatalError("TLS configuration error for MQTT Broker connection", err)
@@ -45,7 +51,7 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 		logger.LogFatalError("Unable to configure TLS for MQTT Broker connection", err)
 	}
 
-	connectionRegistrar, err := connection_repository.NewSqlConnectionRegistrar(cfg)
+	connectionRegistrar, err := connection_repository.NewSqlConnectionRegistrar(cfg, database)
 	if err != nil {
 		logger.LogFatalError("Failed to create SQL Connection Registrar", err)
 	}

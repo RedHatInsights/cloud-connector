@@ -28,8 +28,13 @@ test:
 	# TEST_ARGS="-run TestReadMessage -v" make test
 	go test $(TEST_ARGS) ./...
 
+test-sql: migrate
+	go test $(TEST_ARGS) ./... -tags=sql
+
 migrate: $(MIGRATE_DB_BINARY)
 	./$(MIGRATE_DB_BINARY) upgrade
+
+$(MIGRATE_DB_BINARY): build
 
 coverage:
 	go test -v -coverprofile=$(COVERAGE_OUTPUT) ./...

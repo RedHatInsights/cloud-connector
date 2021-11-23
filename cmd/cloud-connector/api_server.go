@@ -15,6 +15,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/controller/api"
 	"github.com/RedHatInsights/cloud-connector/internal/mqtt"
+	"github.com/RedHatInsights/cloud-connector/internal/platform/db"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/jwt_utils"
@@ -103,6 +104,11 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 	cfg := config.GetConfig()
 	logger.Log.Info("Cloud-Connector configuration:\n", cfg)
 
+	database, err := db.InitializeDatabaseConnection(cfg)
+	if err != nil {
+		logger.LogFatalError("Unable to connect to database: ", err)
+	}
+
 	tlsConfigFuncs, err := buildBrokerTlsConfigFuncList(cfg)
 	if err != nil {
 		logger.LogFatalError("TLS configuration error for MQTT Broker connection", err)
@@ -148,7 +154,7 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 		logger.LogFatalError("Unable to create proxy factory", err)
 	}
 
-	sqlConnectionLocator, err := connection_repository.NewSqlConnectionLocator(cfg, proxyFactory)
+	sqlConnectionLocator, err := connection_repository.NewSqlConnectionLocator(cfg, database, proxyFactory)
 	if err != nil {
 		logger.LogFatalError("Failed to create SQL Connection Locator", err)
 	}
@@ -165,7 +171,12 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 	mgmtServer := api.NewManagementServer(sqlConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
 	mgmtServer.Routes()
 
-	jr := api.NewMessageReceiver(sqlConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
+	permittedTenantConnectionLocator, err := connection_repository.NewPermittedTenantConnectionLocator(cfg, database, proxyFactory)
+	if err != nil {
+		logger.LogFatalError("Failed to create Permitted Account Connection Locator", err)
+	}
+
+	jr := api.NewMessageReceiver(permittedTenantConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
 	jr.Routes()
 
 	apiSrv := utils.StartHTTPServer(mgmtAddr, "management", apiMux)

@@ -48,6 +48,7 @@ func (jr *MessageReceiver) Routes() {
 		amw.Authenticate)
 
 	securedSubRouter.HandleFunc("/message", jr.handleJob()).Methods(http.MethodPost)
+	securedSubRouter.HandleFunc("/connection_status", jr.handleConnectionStatus()).Methods(http.MethodPost)
 }
 
 type messageRequest struct {
@@ -143,6 +144,51 @@ func (jr *MessageReceiver) handleJob() http.HandlerFunc {
 
 		writeJSONResponse(w, http.StatusCreated, msgResponse)
 	}
+}
+
+func (jr *MessageReceiver) handleConnectionStatus() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		getConnectionStatus(w, req, jr.connectionMgr)
+	}
+}
+
+func getConnectionStatus(w http.ResponseWriter, req *http.Request, connectionLocator connection_repository.ConnectionLocator) {
+	principal, _ := middlewares.GetPrincipal(req.Context())
+	requestId := request_id.GetReqID(req.Context())
+	logger := logger.Log.WithFields(logrus.Fields{
+		"account":    principal.GetAccount(),
+		"org_id":     principal.GetOrgID(),
+		"request_id": requestId})
+
+	body := http.MaxBytesReader(w, req.Body, 1048576)
+
+	var connID connectionID
+
+	if err := decodeJSON(body, &connID); err != nil {
+		errorResponse := errorResponse{Title: "Unable to process json input",
+			Status: http.StatusBadRequest,
+			Detail: err.Error()}
+		writeJSONResponse(w, errorResponse.Status, errorResponse)
+		return
+	}
+
+	logger.Infof("Checking connection status for account:%s - node id:%s",
+		connID.Account, connID.NodeID)
+
+	connectionStatus := connectionStatusResponse{Status: DISCONNECTED_STATUS}
+
+	orgID := principal.GetOrgID()
+
+	client := connectionLocator.GetConnection(req.Context(), domain.AccountID(connID.Account), domain.OrgID(orgID), domain.ClientID(connID.NodeID))
+	if client != nil {
+		connectionStatus.Status = CONNECTED_STATUS
+		connectionStatus.Dispatchers, _ = client.GetDispatchers(req.Context())
+	}
+
+	logger.Infof("Connection status for account:%s - node id:%s => %s\n",
+		connID.Account, connID.NodeID, connectionStatus.Status)
+
+	writeJSONResponse(w, http.StatusOK, connectionStatus)
 }
 
 func writeConnectionFailureResponse(logger *logrus.Entry, w http.ResponseWriter) {

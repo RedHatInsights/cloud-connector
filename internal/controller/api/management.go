@@ -195,45 +195,8 @@ func (s *ManagementServer) handleReconnect() http.HandlerFunc {
 }
 
 func (s *ManagementServer) handleConnectionStatus() http.HandlerFunc {
-
 	return func(w http.ResponseWriter, req *http.Request) {
-
-		principal, _ := middlewares.GetPrincipal(req.Context())
-		requestId := request_id.GetReqID(req.Context())
-		logger := logger.Log.WithFields(logrus.Fields{
-			"account":    principal.GetAccount(),
-			"org_id":     principal.GetOrgID(),
-			"request_id": requestId})
-
-		body := http.MaxBytesReader(w, req.Body, 1048576)
-
-		var connID connectionID
-
-		if err := decodeJSON(body, &connID); err != nil {
-			errorResponse := errorResponse{Title: DECODE_ERROR,
-				Status: http.StatusBadRequest,
-				Detail: err.Error()}
-			writeJSONResponse(w, errorResponse.Status, errorResponse)
-			return
-		}
-
-		logger.Infof("Checking connection status for account:%s - node id:%s",
-			connID.Account, connID.NodeID)
-
-		connectionStatus := connectionStatusResponse{Status: DISCONNECTED_STATUS}
-
-		orgID := principal.GetOrgID()
-
-		client := s.connectionMgr.GetConnection(req.Context(), domain.AccountID(connID.Account), domain.OrgID(orgID), domain.ClientID(connID.NodeID))
-		if client != nil {
-			connectionStatus.Status = CONNECTED_STATUS
-			connectionStatus.Dispatchers, _ = client.GetDispatchers(req.Context())
-		}
-
-		logger.Infof("Connection status for account:%s - node id:%s => %s\n",
-			connID.Account, connID.NodeID, connectionStatus.Status)
-
-		writeJSONResponse(w, http.StatusOK, connectionStatus)
+		getConnectionStatus(w, req, s.connectionMgr)
 	}
 }
 
