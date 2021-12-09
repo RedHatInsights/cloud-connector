@@ -1,0 +1,45 @@
+@startuml
+left to right direction
+
+cloud mqtt_broker as "MQTT Broker"
+
+component mqtt_consumer as "MQTT Consumer"
+
+together {
+  component kafka_consumer1 as "Kafka Consumer"
+  component kafka_consumer2 as "Kafka Consumer"
+  component kafka_consumer3 as "Kafka Consumer"
+}
+
+together {
+  component api_server1 as "API Server"
+  component api_server2 as "API Server"
+  component api_server3 as "API Server"
+}
+
+
+database database as "Database"
+
+queue queue as "Kafka"
+
+@enduml
+
+
+mqtt_broker <-> mqtt_consumer
+mqtt_consumer -> queue
+queue --> kafka_consumer1
+queue --> kafka_consumer2
+queue --> kafka_consumer3
+
+kafka_consumer1 --> database
+kafka_consumer2 --> database
+kafka_consumer3 --> database
+
+api_server1 --> database
+api_server2 --> database
+api_server3 --> database
+
+api_server1 -> mqtt_broker
+api_server2 -> mqtt_broker
+api_server3 -> mqtt_broker
+
