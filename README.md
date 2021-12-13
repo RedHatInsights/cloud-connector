@@ -9,7 +9,7 @@ the customer's environment.
 Cloud-Connector consists of 3 main components:
 
 - MQTT message consumer - responsible for subscribing to the MQTT topics and putting the MQTT messages onto the kafka message queue
-- Kafak message consumer - responsible for consuming the MQTT messages off of the kafka queue and recording the connection state in the database
+- Kafka message consumer - responsible for consuming the MQTT messages off of the kafka queue and recording the connection state in the database
 - API server - responsible for passing messages from internal clients to the connected client via the MQTT broker
 
 ![Architecture diagram](/design/architecture.png)
