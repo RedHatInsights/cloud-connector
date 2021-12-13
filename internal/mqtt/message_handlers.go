@@ -146,3 +146,15 @@ func ThrottlingMessageHandler(maxInFlight int, f MQTT.MessageHandler) MQTT.Messa
 		messagePipe <- messageWrapper{c, m}
 	}
 }
+
+func GoRoutinePerMessage_MessageHandler(f MQTT.MessageHandler) MQTT.MessageHandler {
+	logger.Log.Debug("**** Spawning a go routine per mqtt message!")
+
+	return func(c MQTT.Client, m MQTT.Message) {
+		go func(client MQTT.Client, message MQTT.Message) {
+			metrics.mqttMessagesWaitingToBeProcessed.Inc()
+			defer metrics.mqttMessagesWaitingToBeProcessed.Dec()
+			f(client, message)
+		}(c, m)
+	}
+}
