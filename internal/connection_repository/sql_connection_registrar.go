@@ -155,13 +155,14 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 	var dispatchersString sql.NullString
 	var canonicalFactsString sql.NullString
 	var tagsString sql.NullString
+	var latestMessageID sql.NullString
 
 	err = statement.QueryRow(client_id).Scan(&account,
 		&connectorClient.ClientID,
 		&dispatchersString,
 		&canonicalFactsString,
 		&tagsString,
-		&connectorClient.MessageMetadata.LatestMessageID,
+		&latestMessageID,
 		&connectorClient.MessageMetadata.LatestTimestamp)
 
 	if err != nil {
@@ -199,6 +200,10 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 		if err != nil {
 			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to unmarshal tags from database")
 		}
+	}
+
+	if latestMessageID.Valid {
+		connectorClient.MessageMetadata.LatestMessageID = latestMessageID.String
 	}
 
 	return connectorClient, nil
