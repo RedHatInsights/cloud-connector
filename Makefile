@@ -1,6 +1,7 @@
 CONNECTOR_SERVICE_BINARY=cloud-connector
 CONNECTED_CLIENT_BINARY=test_client
 MIGRATE_DB_BINARY=migrate_db
+DB_SCHEMA_DUMPER_BINARY=db_schema_dumper
 
 DOCKER_COMPOSE_CFG=dev.yml
 
@@ -13,6 +14,7 @@ build:
 	go build -o $(CONNECTOR_SERVICE_BINARY) cmd/$(CONNECTOR_SERVICE_BINARY)/*.go
 	go build -o $(CONNECTED_CLIENT_BINARY) cmd/$(CONNECTED_CLIENT_BINARY)/*.go
 	go build -o $(MIGRATE_DB_BINARY) cmd/$(MIGRATE_DB_BINARY)/main.go
+	go build -o $(DB_SCHEMA_DUMPER_BINARY) cmd/$(DB_SCHEMA_DUMPER_BINARY)/main.go
 
 run-pendo-transmitter:
 	./$(CONNECTOR_SERVICE_BINARY) connection_count_per_account_reporter -r pendo
