@@ -1,6 +1,0 @@
-ALTER TABLE connections
-    ALTER COLUMN tags DROP NOT NULL;
-
-ALTER TABLE connections
-    ALTER COLUMN tags DROP DEFAULT;
-
