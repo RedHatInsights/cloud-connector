@@ -24,6 +24,7 @@ COPY --from=builder /go/src/app/cloud-connector /cloud-connector
 COPY --from=builder /go/src/app/migrate_db /migrate_db
 COPY --from=builder /go/src/app/db/migrations /db/migrations/
 COPY --from=builder /go/src/app/db_schema_dumper /db_schema_dumper
+COPY --from=builder /go/src/app/stage_db_fixer /stage_db_fixer
 
 USER 1001
 
