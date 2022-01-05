@@ -35,8 +35,6 @@ func buildMessageHandlerMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tl
 
 func startMqttMessageConsumer(mgmtAddr string) {
 
-	logger.InitLogger()
-
 	logger.Log.Info("Starting Cloud-Connector service")
 
 	cfg := config.GetConfig()

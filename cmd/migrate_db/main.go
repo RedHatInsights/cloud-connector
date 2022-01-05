@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/spf13/cobra"
 
@@ -53,8 +54,6 @@ func (lw loggerWrapper) Verbose() bool {
 
 func performDbMigration(direction string) error {
 
-	logger.InitLogger()
-
 	cfg := config.GetConfig()
 	logger.Log.Info("Starting Cloud-Connector DB migration")
 	logger.Log.Info("Cloud-Connector configuration:\n", cfg)
@@ -97,18 +96,17 @@ func performDbMigration(direction string) error {
 	return nil
 }
 
-func init() {
+func main() {
+
+	logger.InitLogger()
+	defer logger.FlushLogger()
+
 	rootCmd.AddCommand(upCmd)
 	rootCmd.AddCommand(downCmd)
 
-}
-
-// Execute adds all child commands to the root command and sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	cobra.CheckErr(rootCmd.Execute())
-}
-
-func main() {
-	Execute()
+	err := rootCmd.Execute()
+	if err != nil {
+		logger.FlushLogger()
+		os.Exit(1)
+	}
 }

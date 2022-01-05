@@ -98,8 +98,6 @@ func buildDefaultMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Confi
 
 func startCloudConnectorApiServer(mgmtAddr string) {
 
-	logger.InitLogger()
-
 	logger.Log.Info("Starting Cloud-Connector service")
 
 	cfg := config.GetConfig()

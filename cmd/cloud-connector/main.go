@@ -8,6 +8,7 @@ import (
 	cr "github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	pt "github.com/RedHatInsights/cloud-connector/internal/pendo_transmitter"
+	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -87,8 +88,12 @@ func stdoutConnectionCountProcessor(ctx context.Context, account domain.AccountI
 }
 
 func main() {
+	logger.InitLogger()
+	defer logger.FlushLogger()
+
 	cmd := NewRootCommand()
 	if err := cmd.Execute(); err != nil {
+		logger.FlushLogger()
 		os.Exit(1)
 	}
 }
