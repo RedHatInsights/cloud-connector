@@ -34,14 +34,14 @@ func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topic
 			return
 		}
 
-		logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID,
+		log := logger.Log.WithFields(logrus.Fields{"client_id": clientID,
 			"mqtt_message_id": mqttMessageID,
 			"duplicate":       message.Duplicate()})
 
 		if len(message.Payload()) == 0 {
 			// This will happen when a retained message is removed
 			// This can also happen when rhcd is "priming the pump" as required by the akamai broker
-			logger.Trace("client sent an empty payload")
+			log.Trace("client sent an empty payload")
 			return
 		}
 
@@ -62,10 +62,10 @@ func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topic
 
 		kafkwWriteDurationTimer.ObserveDuration()
 
-		logger.Debug("MQTT message written to kafka")
+		log.Debug("MQTT message written to kafka")
 
 		if err != nil {
-			logger.WithFields(logrus.Fields{"error": err}).Error("Error writing MQTT message to kafka")
+			log.WithFields(logrus.Fields{"error": err}).Error("Error writing MQTT message to kafka")
 
 			if errors.Is(err, context.Canceled) == true {
 				// The context was canceled.  This likely happened due to the process shutting down,
@@ -73,9 +73,14 @@ func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topic
 				return
 			}
 
+			// This is gross, but we need to try to push the log messages to cloudwatch
+			// before the panic is triggered below.
+			logger.FlushLogger()
+
 			// If writing to kafka fails, then just fall over and do not read anymore
-			// messages from the mqtt broker
-			logger.Fatal("Failed writing to kafka")
+			// messages from the mqtt broker.  We need to panic here so that the mqtt broker
+			// is not sent an ACK for the message.
+			log.Fatal("Failed writing to kafka")
 		}
 	}
 }

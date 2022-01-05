@@ -26,8 +26,6 @@ func calculateStaleCutoffTime(staleTimeOffset time.Duration) time.Time {
 
 func startInventoryStaleTimestampUpdater() {
 
-	logger.InitLogger()
-
 	logger.Log.Info("Starting ", serviceName)
 
 	cfg := config.GetConfig()

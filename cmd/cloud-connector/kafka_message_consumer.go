@@ -30,8 +30,6 @@ import (
 
 func startKafkaMessageConsumer(mgmtAddr string) {
 
-	logger.InitLogger()
-
 	logger.Log.Info("Starting Cloud-Connector Kafka Message consumer")
 
 	cfg := config.GetConfig()
