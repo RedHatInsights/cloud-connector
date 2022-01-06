@@ -31,3 +31,16 @@ services:
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
       - KAFKA_ZOOKEEPER_CONNECT=zookeeper:32181
       - KAFKA_MAX_REQUEST_SIZE=1048576
+  mqtt-broker:
+    image: eclipse-mosquitto
+    user: root
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "/usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf"
+    volumes:
+      - "./dev/mosquitto:/mosquitto:Z"
+    ports:
+      - "8883:8883"
+    networks:
+      - default
