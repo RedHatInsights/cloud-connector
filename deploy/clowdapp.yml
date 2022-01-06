@@ -12,7 +12,7 @@ objects:
   spec:
     envName: ${ENV_NAME}
     testing:
-      iqePlugin: rhc
+      iqePlugin: cloud-connector
     inMemoryDb: false
     database:
        name: cloud-connector

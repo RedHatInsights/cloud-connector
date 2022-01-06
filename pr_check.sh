@@ -7,9 +7,9 @@ APP_NAME="cloud-connector"  # name of app-sre "application" folder this componen
 COMPONENT_NAME="cloud-connector-api"  # name of app-sre "resourceTemplate" in deploy.yaml for this component
 IMAGE="quay.io/cloudservices/cloud-connector"
 
-IQE_PLUGINS="rhc"
+IQE_PLUGINS="cloud-connector"
 IQE_MARKER_EXPRESSION=""
-IQE_FILTER_EXPRESSION="cloud_connector"
+IQE_FILTER_EXPRESSION=""
 IQE_CJI_TIMEOUT="10m"
 
 # Install bonfire repo/initialize
