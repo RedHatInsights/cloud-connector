@@ -155,6 +155,16 @@ func (s *ManagementServer) handleReconnect() http.HandlerFunc {
 			return
 		}
 
+		if reconnectReq.Delay < 0 {
+			errMsg := "Delay field cannot be negative"
+			logger.Info(errMsg)
+			errorResponse := errorResponse{Title: errMsg,
+				Status: http.StatusBadRequest,
+				Detail: errMsg}
+			writeJSONResponse(w, errorResponse.Status, errorResponse)
+			return
+		}
+
 		client := s.connectionMgr.GetConnection(req.Context(), reconnectReq.Account, reconnectReq.NodeID)
 		if client == nil {
 			errMsg := fmt.Sprintf("No connection found for node (%s:%s)", reconnectReq.Account, reconnectReq.NodeID)
