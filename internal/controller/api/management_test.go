@@ -23,6 +23,7 @@ import (
 const (
 	CONNECTION_LIST_ENDPOINT       = URL_BASE_PATH + "/connection"
 	CONNECTION_STATUS_ENDPOINT     = URL_BASE_PATH + "/connection/status"
+	CONNECTION_RECONNECT_ENDPOINT  = URL_BASE_PATH + "/connection/reconnect"
 	CONNECTION_DISCONNECT_ENDPOINT = URL_BASE_PATH + "/connection/disconnect"
 	CONNECTION_PING_ENDPOINT       = URL_BASE_PATH + "/connection/ping"
 
@@ -36,6 +37,11 @@ func init() {
 
 func createConnectionStatusPostBody(account_number string, node_id string) io.Reader {
 	jsonString := fmt.Sprintf("{\"account\": \"%s\", \"node_id\": \"%s\"}", account_number, node_id)
+	return strings.NewReader(jsonString)
+}
+
+func createConnectionReconnectPostBody(account_number string, node_id string, delay string, message string) io.Reader {
+	jsonString := fmt.Sprintf("{\"account\": \"%s\", \"node_id\": \"%s\", \"delay\": %s, \"message\": \"%s\"}", account_number, node_id, delay, message)
 	return strings.NewReader(jsonString)
 }
 
@@ -485,6 +491,37 @@ var _ = Describe("Management", func() {
 
 		})
 
+	})
+
+	Describe("Connecting to the reconnect endpoint", func() {
+		Context("With a negative delay", func() {
+			It("Should fail to reconnect", func() {
+
+				postBody := createConnectionReconnectPostBody(CONNECTED_ACCOUNT_NUMBER, CONNECTED_NODE_ID, "-1", "something bad happened")
+
+				req, err := http.NewRequest("POST", CONNECTION_RECONNECT_ENDPOINT, postBody)
+				Expect(err).NotTo(HaveOccurred())
+
+				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
+
+				rr := httptest.NewRecorder()
+
+				ms.router.ServeHTTP(rr, req)
+
+				Expect(rr.Code).To(Equal(http.StatusBadRequest))
+
+				var actualResponse errorResponse
+				var expectedResponse = errorResponse{
+					Title:  "Delay field cannot be negative",
+					Status: 400,
+					Detail: "Delay field cannot be negative",
+				}
+
+				json.Unmarshal(rr.Body.Bytes(), &actualResponse)
+
+				Expect(actualResponse).Should(Equal(expectedResponse))
+			})
+		})
 	})
 
 	DescribeTable("Connecting to the connection/ping endpoint",
