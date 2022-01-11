@@ -513,7 +513,7 @@ var _ = Describe("Management", func() {
 				var actualResponse errorResponse
 				var expectedResponse = errorResponse{
 					Title:  "Delay field cannot be negative",
-					Status: 400,
+					Status: http.StatusBadRequest,
 					Detail: "Delay field cannot be negative",
 				}
 
