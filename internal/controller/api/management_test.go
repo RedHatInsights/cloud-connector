@@ -497,7 +497,7 @@ var _ = Describe("Management", func() {
 		Context("With a negative delay", func() {
 			It("Should fail to reconnect", func() {
 
-				postBody := createConnectionReconnectPostBody(CONNECTED_ACCOUNT_NUMBER, CONNECTED_NODE_ID, "-1", "something bad happened")
+				postBody := createConnectionReconnectPostBody(CONNECTED_ACCOUNT_NUMBER, CONNECTED_NODE_ID, "-1", "requesting to reconnect")
 
 				req, err := http.NewRequest("POST", CONNECTION_RECONNECT_ENDPOINT, postBody)
 				Expect(err).NotTo(HaveOccurred())
