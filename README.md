@@ -1,5 +1,12 @@
 # Cloud Connector
 
+# FRED WAS HERE
+# BARNEY WAS HERE
+# WILMA
+# BARNEY
+# BAMBAM
+
+
 The Cloud Connector service is designed to receive messages from internal
 clients and route the messages to the target machine which runs in
 the customer's environment.
