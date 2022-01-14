@@ -40,8 +40,8 @@ func createConnectionStatusPostBody(account_number string, node_id string) io.Re
 	return strings.NewReader(jsonString)
 }
 
-func createConnectionReconnectPostBody(account_number string, node_id string, delay string, message string) io.Reader {
-	jsonString := fmt.Sprintf("{\"account\": \"%s\", \"node_id\": \"%s\", \"delay\": %s, \"message\": \"%s\"}", account_number, node_id, delay, message)
+func createConnectionReconnectPostBody(account_number string, node_id string, delay int, message string) io.Reader {
+	jsonString := fmt.Sprintf("{\"account\": \"%s\", \"node_id\": \"%s\", \"delay\": %d, \"message\": \"%s\"}", account_number, node_id, delay, message)
 	return strings.NewReader(jsonString)
 }
 
@@ -497,7 +497,7 @@ var _ = Describe("Management", func() {
 		Context("With a negative delay", func() {
 			It("Should fail to reconnect", func() {
 
-				postBody := createConnectionReconnectPostBody(CONNECTED_ACCOUNT_NUMBER, CONNECTED_NODE_ID, "-1", "requesting to reconnect")
+				postBody := createConnectionReconnectPostBody(CONNECTED_ACCOUNT_NUMBER, CONNECTED_NODE_ID, -1, "requesting to reconnect")
 
 				req, err := http.NewRequest("POST", CONNECTION_RECONNECT_ENDPOINT, postBody)
 				Expect(err).NotTo(HaveOccurred())
