@@ -512,9 +512,9 @@ var _ = Describe("Management", func() {
 
 				var actualResponse errorResponse
 				var expectedResponse = errorResponse{
-					Title:  "Delay field cannot be negative",
+					Title:  NEGATIVE_DELAY_ERROR,
 					Status: http.StatusBadRequest,
-					Detail: "Delay field cannot be negative",
+					Detail: NEGATIVE_DELAY_ERROR,
 				}
 
 				json.Unmarshal(rr.Body.Bytes(), &actualResponse)

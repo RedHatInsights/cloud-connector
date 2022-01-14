@@ -17,8 +17,11 @@ import (
 )
 
 const (
-	CONNECTED_STATUS    = "connected"
-	DISCONNECTED_STATUS = "disconnected"
+	CONNECTED_STATUS     = "connected"
+	DISCONNECTED_STATUS  = "disconnected"
+	DECODE_ERROR         = "Unable to process json input"
+	NEGATIVE_DELAY_ERROR = "Delay field cannot be negative"
+	PING_ERROR           = "Ping failed"
 )
 
 type ManagementServer struct {
@@ -99,7 +102,7 @@ func (s *ManagementServer) handleDisconnect() http.HandlerFunc {
 		var disconnectReq disconnectRequest
 
 		if err := decodeJSON(body, &disconnectReq); err != nil {
-			errorResponse := errorResponse{Title: "Unable to process json input",
+			errorResponse := errorResponse{Title: DECODE_ERROR,
 				Status: http.StatusBadRequest,
 				Detail: err.Error()}
 			writeJSONResponse(w, errorResponse.Status, errorResponse)
@@ -148,7 +151,7 @@ func (s *ManagementServer) handleReconnect() http.HandlerFunc {
 		var reconnectReq reconnectRequest
 
 		if err := decodeJSON(body, &reconnectReq); err != nil {
-			errorResponse := errorResponse{Title: "Unable to process json input",
+			errorResponse := errorResponse{Title: DECODE_ERROR,
 				Status: http.StatusBadRequest,
 				Detail: err.Error()}
 			writeJSONResponse(w, errorResponse.Status, errorResponse)
@@ -156,7 +159,7 @@ func (s *ManagementServer) handleReconnect() http.HandlerFunc {
 		}
 
 		if reconnectReq.Delay < 0 {
-			errMsg := "Delay field cannot be negative"
+			errMsg := NEGATIVE_DELAY_ERROR
 			logger.Info(errMsg)
 			errorResponse := errorResponse{Title: errMsg,
 				Status: http.StatusBadRequest,
@@ -200,7 +203,7 @@ func (s *ManagementServer) handleConnectionStatus() http.HandlerFunc {
 		var connID connectionID
 
 		if err := decodeJSON(body, &connID); err != nil {
-			errorResponse := errorResponse{Title: "Unable to process json input",
+			errorResponse := errorResponse{Title: DECODE_ERROR,
 				Status: http.StatusBadRequest,
 				Detail: err.Error()}
 			writeJSONResponse(w, errorResponse.Status, errorResponse)
@@ -372,7 +375,7 @@ func (s *ManagementServer) handleConnectionPing() http.HandlerFunc {
 		var connID connectionID
 
 		if err := decodeJSON(body, &connID); err != nil {
-			errorResponse := errorResponse{Title: "Unable to process json input",
+			errorResponse := errorResponse{Title: DECODE_ERROR,
 				Status: http.StatusBadRequest,
 				Detail: err.Error()}
 			writeJSONResponse(w, errorResponse.Status, errorResponse)
@@ -394,7 +397,7 @@ func (s *ManagementServer) handleConnectionPing() http.HandlerFunc {
 		err := client.Ping(req.Context())
 
 		if err != nil {
-			errorResponse := errorResponse{Title: "Ping failed",
+			errorResponse := errorResponse{Title: PING_ERROR,
 				Status: http.StatusBadRequest,
 				Detail: err.Error()}
 			writeJSONResponse(w, errorResponse.Status, errorResponse)
