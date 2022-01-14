@@ -512,7 +512,8 @@
             "type": "string"
           },
           "delay": {
-            "type": "number"
+            "type": "integer",
+            "minimum": 0
           },
           "message": {
             "type": "string"
