@@ -16,6 +16,7 @@ const (
 	authErrorLogHeader = "Authentication error: "
 	identityHeader     = "x-rh-identity"
 	PSKClientIdHeader  = "x-rh-cloud-connector-client-id"
+	PSKOrgIdHeader     = "x-rh-cloud-connector-org-id"
 	PSKAccountHeader   = "x-rh-cloud-connector-account"
 	PSKHeader          = "x-rh-cloud-connector-psk"
 )
@@ -23,6 +24,7 @@ const (
 // Principal interface can be implemented and expanded by various principal objects (type depends on middleware being used)
 type Principal interface {
 	GetAccount() string
+	GetOrgID() string
 }
 
 type key int
@@ -30,7 +32,7 @@ type key int
 var principalKey key
 
 type serviceToServicePrincipal struct {
-	account, clientID string
+	account, clientID, orgID string
 }
 
 func (sp serviceToServicePrincipal) GetAccount() string {
@@ -41,12 +43,20 @@ func (sp serviceToServicePrincipal) GetClientID() string {
 	return sp.clientID
 }
 
+func (sp serviceToServicePrincipal) GetOrgID() string {
+	return sp.orgID
+}
+
 type identityPrincipal struct {
-	account string
+	account, orgID string
 }
 
 func (ip identityPrincipal) GetAccount() string {
 	return ip.account
+}
+
+func (ip identityPrincipal) GetOrgID() string {
+	return ip.orgID
 }
 
 // GetPrincipal takes the request context and determines which middleware (identity header vs service to service) was used
@@ -55,7 +65,7 @@ func GetPrincipal(ctx context.Context) (Principal, bool) {
 	p, ok := ctx.Value(principalKey).(serviceToServicePrincipal)
 	if !ok {
 		id, ok := ctx.Value(identity.Key).(identity.XRHID)
-		p := identityPrincipal{account: id.Identity.AccountNumber}
+		p := identityPrincipal{account: id.Identity.AccountNumber, orgID: id.Identity.Internal.OrgID}
 		return p, ok
 	}
 	return p, ok
@@ -63,11 +73,12 @@ func GetPrincipal(ctx context.Context) (Principal, bool) {
 
 type serviceCredentials struct {
 	clientID string
+	orgID    string
 	account  string
 	psk      string
 }
 
-func newServiceCredentials(clientID, account, psk string) (*serviceCredentials, error) {
+func newServiceCredentials(clientID, orgID, account, psk string) (*serviceCredentials, error) {
 	switch {
 	case clientID == "":
 		return nil, errors.New(authErrorLogHeader + "Missing " + PSKClientIdHeader + " header")
@@ -78,6 +89,7 @@ func newServiceCredentials(clientID, account, psk string) (*serviceCredentials, 
 	}
 	return &serviceCredentials{
 		clientID: clientID,
+		orgID:    orgID,
 		account:  account,
 		psk:      psk,
 	}, nil
@@ -112,6 +124,7 @@ func (amw *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 		} else { // token auth
 			sr, err := newServiceCredentials(
 				r.Header.Get(PSKClientIdHeader),
+				r.Header.Get(PSKOrgIdHeader),
 				r.Header.Get(PSKAccountHeader),
 				r.Header.Get(PSKHeader),
 			)
@@ -128,7 +141,7 @@ func (amw *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 				return
 			}
 
-			principal := serviceToServicePrincipal{account: sr.account, clientID: sr.clientID}
+			principal := serviceToServicePrincipal{account: sr.account, clientID: sr.clientID, orgID: sr.orgID}
 
 			ctx := context.WithValue(r.Context(), principalKey, principal)
 			next.ServeHTTP(w, r.WithContext(ctx))
