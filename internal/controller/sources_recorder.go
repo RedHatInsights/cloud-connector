@@ -20,7 +20,7 @@ import (
 )
 
 type SourcesRecorder interface {
-	RegisterWithSources(identity domain.Identity, account domain.AccountID, client domain.ClientID, sourceRef, sourceName, sourceType, applicationType string) error
+	RegisterWithSources(identity domain.Identity, account domain.AccountID, orgID domain.OrgID, client domain.ClientID, sourceRef, sourceName, sourceType, applicationType string) error
 }
 
 func NewSourcesRecorder(impl string, cfg *config.Config) (SourcesRecorder, error) {
@@ -60,9 +60,9 @@ type sourcesBulkOperation struct {
 	Endpoints    []endpointEntry    `json:"endpoints"`
 }
 
-func (sri *SourcesRecorderImpl) RegisterWithSources(identity domain.Identity, account domain.AccountID, clientID domain.ClientID, sourceRef, sourceName, sourceType, applicationType string) error {
+func (sri *SourcesRecorderImpl) RegisterWithSources(identity domain.Identity, account domain.AccountID, orgID domain.OrgID, clientID domain.ClientID, sourceRef, sourceName, sourceType, applicationType string) error {
 
-	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID, "account": account})
+	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID, "account": account, "org_id": orgID})
 
 	sourceEntryExists, err := sri.checkForExistingSourcesEntry(logger, identity, sourceRef)
 
@@ -224,7 +224,7 @@ func makeHttpRequest(ctx context.Context, identity domain.Identity, requestID, m
 type FakeSourcesRecorder struct {
 }
 
-func (f *FakeSourcesRecorder) RegisterWithSources(identity domain.Identity, account domain.AccountID, clientID domain.ClientID, sourceRef, sourceName, sourceType, applicationType string) error {
+func (f *FakeSourcesRecorder) RegisterWithSources(identity domain.Identity, account domain.AccountID, orgID domain.OrgID, clientID domain.ClientID, sourceRef, sourceName, sourceType, applicationType string) error {
 	logger.Log.Debug("FAKE ... registering with sources:", account, clientID, sourceRef, sourceName)
 	return nil
 }

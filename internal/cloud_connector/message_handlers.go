@@ -120,7 +120,7 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg proto
 		return err
 	}
 
-	identity, account, _, err := accountResolver.MapClientIdToAccountId(context.Background(), clientID)
+    identity, account, orgID, err := accountResolver.MapClientIdToAccountId(context.Background(), clientID)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to resolve client id to account number")
 
@@ -129,12 +129,13 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg proto
 		return nil
 	}
 
-	logger = logger.WithFields(logrus.Fields{"account": account})
+	logger = logger.WithFields(logrus.Fields{"account": account, "org_id": orgID})
 
 	handshakePayload := msg.Content.(map[string]interface{})
 
 	rhcClient := domain.ConnectorClientState{ClientID: clientID,
 		Account:        account,
+		OrgID:          orgID,
 		Dispatchers:    handshakePayload[dispatchersKey],
 		CanonicalFacts: handshakePayload[canonicalFactsKey],
 		Tags:           handshakePayload[tagsKey],
@@ -167,7 +168,7 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg proto
 		}
 	}
 
-	processDispatchers(sourcesRecorder, identity, account, clientID, handshakePayload)
+	processDispatchers(sourcesRecorder, identity, account, orgID, clientID, handshakePayload)
 
 	return nil
 }
@@ -235,9 +236,9 @@ func doesHostHavePlaybookWorker(handshakePayload map[string]interface{}) bool {
 	return foundPlaybookDispatcher
 }
 
-func processDispatchers(sourcesRecorder controller.SourcesRecorder, identity domain.Identity, account domain.AccountID, clientId domain.ClientID, handshakePayload map[string]interface{}) {
+func processDispatchers(sourcesRecorder controller.SourcesRecorder, identity domain.Identity, account domain.AccountID, orgID domain.OrgID, clientId domain.ClientID, handshakePayload map[string]interface{}) {
 
-	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientId, "account": account})
+	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientId, "account": account, "org_id": orgID})
 
 	dispatchers, gotDispatchers := handshakePayload[dispatchersKey]
 
@@ -268,7 +269,7 @@ func processDispatchers(sourcesRecorder controller.SourcesRecorder, identity dom
 		return
 	}
 
-	err := sourcesRecorder.RegisterWithSources(identity, account, clientId, sourceRef.(string), sourceName.(string), sourceType.(string), applicationType.(string))
+	err := sourcesRecorder.RegisterWithSources(identity, account, orgID, clientId, sourceRef.(string), sourceName.(string), sourceType.(string), applicationType.(string))
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to register catalog with sources")
 	}

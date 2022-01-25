@@ -68,12 +68,13 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 	defer callDurationTimer.ObserveDuration()
 
 	account := rhcClient.Account
+	org_id := rhcClient.OrgID
 	client_id := rhcClient.ClientID
 
-	logger := logger.Log.WithFields(logrus.Fields{"account": account, "client_id": client_id})
+	logger := logger.Log.WithFields(logrus.Fields{"account": account, "org_id": org_id, "client_id": client_id})
 
 	update := "UPDATE connections SET dispatchers=$1, tags = $2, updated_at = NOW(), message_id = $3, message_sent = $4 WHERE account=$5 AND client_id=$6"
-	insert := "INSERT INTO connections (account, client_id, dispatchers, canonical_facts, tags, message_id, message_sent) SELECT $7, $8, $9, $10, $11, $12, $13"
+	insert := "INSERT INTO connections (account, org_id, client_id, dispatchers, canonical_facts, tags, message_id, message_sent) SELECT $7, $8, $9, $10, $11, $12, $13, $14"
 	insertOrUpdate := fmt.Sprintf("WITH upsert AS (%s RETURNING *) %s WHERE NOT EXISTS (SELECT * FROM upsert)", update, insert)
 
 	statement, err := scm.database.Prepare(insertOrUpdate)
@@ -101,7 +102,7 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 		return err
 	}
 
-	_, err = statement.Exec(dispatchersString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp, account, client_id, account, client_id, dispatchersString, canonicalFactsString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp)
+	_, err = statement.Exec(dispatchersString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp, account, client_id, account, org_id, client_id, dispatchersString, canonicalFactsString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Insert/update failed")
 		return FatalError{err}
@@ -144,7 +145,7 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 	callDurationTimer := prometheus.NewTimer(scm.metrics.sqlConnectionLookupByClientIDDuration)
 	defer callDurationTimer.ObserveDuration()
 
-	statement, err := scm.database.Prepare("SELECT account, client_id, dispatchers, canonical_facts, tags, message_id, message_sent FROM connections WHERE client_id = $1")
+	statement, err := scm.database.Prepare("SELECT account, org_id, client_id, dispatchers, canonical_facts, tags, message_id, message_sent FROM connections WHERE client_id = $1")
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("SQL prepare failed")
 		return connectorClient, FatalError{err}
@@ -152,12 +153,14 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 	defer statement.Close()
 
 	var account domain.AccountID
+	var orgID sql.NullString
 	var dispatchersString sql.NullString
 	var canonicalFactsString sql.NullString
 	var tagsString sql.NullString
 	var latestMessageID sql.NullString
 
 	err = statement.QueryRow(client_id).Scan(&account,
+		&orgID,
 		&connectorClient.ClientID,
 		&dispatchersString,
 		&canonicalFactsString,
@@ -179,7 +182,11 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 
 	connectorClient.Account = account
 
-	logger = logger.WithFields(logrus.Fields{"account": account})
+	if orgID.Valid {
+		connectorClient.OrgID = domain.OrgID(orgID.String)
+	}
+
+	logger = logger.WithFields(logrus.Fields{"account": account, "org_id": connectorClient.OrgID})
 
 	if dispatchersString.Valid {
 		err = json.Unmarshal([]byte(dispatchersString.String), &connectorClient.Dispatchers)
