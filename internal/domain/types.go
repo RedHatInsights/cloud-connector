@@ -36,8 +36,8 @@ type MessageMetadata struct {
 
 type ConnectorClientState struct {
 	Account         AccountID
-	ClientID        ClientID
 	OrgID           OrgID
+	ClientID        ClientID
 	CanonicalFacts  CanonicalFacts
 	Dispatchers     Dispatchers
 	Tags            Tags

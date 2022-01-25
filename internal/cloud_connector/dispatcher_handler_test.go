@@ -14,6 +14,7 @@ func init() {
 type mockSourcesRecorder struct {
 	identity        domain.Identity
 	account         domain.AccountID
+	orgId           domain.OrgID
 	clientId        domain.ClientID
 	sourceRef       string
 	sourceName      string
@@ -21,9 +22,10 @@ type mockSourcesRecorder struct {
 	applicationType string
 }
 
-func (msr *mockSourcesRecorder) RegisterWithSources(identity domain.Identity, account domain.AccountID, clientId domain.ClientID, sourceRef, sourceName, sourceType, applicationType string) error {
+func (msr *mockSourcesRecorder) RegisterWithSources(identity domain.Identity, account domain.AccountID, orgId domain.OrgID, clientId domain.ClientID, sourceRef, sourceName, sourceType, applicationType string) error {
 	msr.identity = identity
 	msr.account = account
+	msr.orgId = orgId
 	msr.clientId = clientId
 	msr.sourceRef = sourceRef
 	msr.sourceName = sourceName
@@ -36,6 +38,7 @@ func TestProcessDispatchers(t *testing.T) {
 
 	var expectedIdentity domain.Identity
 	var expectedAccount domain.AccountID = "12345"
+	var expectedOrgID domain.OrgID = "54321"
 	var expectedClientId domain.ClientID = "98765"
 	var expectedApplicationType string = "ima_app_type"
 	var expectedSourceType string = "ima_source_type"
@@ -57,7 +60,7 @@ func TestProcessDispatchers(t *testing.T) {
 	contentMap := make(map[string]interface{})
 	contentMap[dispatchersKey] = dispatchersMap
 
-	processDispatchers(sourcesRecorder, expectedIdentity, expectedAccount, expectedClientId, contentMap)
+	processDispatchers(sourcesRecorder, expectedIdentity, expectedAccount, expectedOrgID, expectedClientId, contentMap)
 
 	// Verify that the SourcesRecorder is called and the parameters were as expected
 
@@ -67,6 +70,10 @@ func TestProcessDispatchers(t *testing.T) {
 
 	if sourcesRecorder.account != expectedAccount {
 		t.Fatal("account does not match!")
+	}
+
+	if sourcesRecorder.orgId != expectedOrgID {
+		t.Fatal("org id does not match!")
 	}
 
 	if sourcesRecorder.clientId != expectedClientId {
