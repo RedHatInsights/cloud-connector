@@ -65,7 +65,7 @@ func TestBopResolver(t *testing.T) {
 		defer ts.Close()
 		conf.AuthGatewayUrl = ts.URL
 		resolver, _ := NewAccountIdResolver("bop", conf)
-		id, acc, err := resolver.MapClientIdToAccountId(nil, domain.ClientID(c.inputClientID))
+		id, acc, _, err := resolver.MapClientIdToAccountId(nil, domain.ClientID(c.inputClientID))
 		if c.expectError && err == nil {
 			t.Fatalf("Expected an error response but got nil")
 		}
