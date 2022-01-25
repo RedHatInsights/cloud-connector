@@ -41,8 +41,8 @@ type mockAccountIdResolver struct {
 	accounts map[domain.ClientID]domain.AccountID
 }
 
-func (mar *mockAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, error) {
-	return domain.Identity("1111"), domain.AccountID("000111"), nil
+func (mar *mockAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, domain.OrgID, error) {
+	return domain.Identity("1111"), domain.AccountID("000111"), domain.OrgID("000001"), nil
 }
 
 func TestHandleOnlineMessagesNoExistingConnection(t *testing.T) {
