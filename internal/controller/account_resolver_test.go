@@ -18,6 +18,7 @@ func init() {
 type resolverResponse struct {
 	Identity  domain.Identity
 	AccountID domain.AccountID
+	OrgID     domain.OrgID
 }
 
 func TestBopResolver(t *testing.T) {
@@ -34,7 +35,7 @@ func TestBopResolver(t *testing.T) {
 			mockResponseCode:  200,
 			inputClientID:     "testID",
 			expectedOutHeader: "/CN=testID",
-			expectedOutput:    resolverResponse{"eyJlbnRpdGxlbWVudHMiOnsiaW5zaWdodHMiOnsiaXNfZW50aXRsZWQiOnRydWUsImlzX3RyaWFsIjpmYWxzZX0sImNvc3RfbWFuYWdlbWVudCI6eyJpc19lbnRpdGxlZCI6dHJ1ZSwiaXNfdHJpYWwiOmZhbHNlfSwibWlncmF0aW9ucyI6eyJpc19lbnRpdGxlZCI6dHJ1ZSwiaXNfdHJpYWwiOmZhbHNlfSwiaW50ZXJuYWwiOnsiaXNfZW50aXRsZWQiOnRydWUsImlzX3RyaWFsIjpmYWxzZX0sImFuc2libGUiOnsiaXNfZW50aXRsZWQiOnRydWUsImlzX3RyaWFsIjpmYWxzZX0sInVzZXJfcHJlZmVyZW5jZXMiOnsiaXNfZW50aXRsZWQiOnRydWUsImlzX3RyaWFsIjpmYWxzZX0sIm9wZW5zaGlmdCI6eyJpc19lbnRpdGxlZCI6dHJ1ZSwiaXNfdHJpYWwiOmZhbHNlfSwic2V0dGluZ3MiOnsiaXNfZW50aXRsZWQiOnRydWUsImlzX3RyaWFsIjpmYWxzZX0sInN1YnNjcmlwdGlvbnMiOnsiaXNfZW50aXRsZWQiOnRydWUsImlzX3RyaWFsIjpmYWxzZX0sInNtYXJ0X21hbmFnZW1lbnQiOnsiaXNfZW50aXRsZWQiOnRydWUsImlzX3RyaWFsIjpmYWxzZX19LCJpZGVudGl0eSI6eyJpbnRlcm5hbCI6eyJjcm9zc19hY2Nlc3MiOmZhbHNlLCJhdXRoX3RpbWUiOjEwMDAsIm9yZ19pZCI6IjExNzg5NzcyIn0sImFjY291bnRfbnVtYmVyIjoiNjA4OTcxOSIsImF1dGhfdHlwZSI6ImNlcnQtYXV0aCIsInN5c3RlbSI6eyJjbiI6IjE2ZDUwNDFmLWYyZTUtNDVkNy05MmE4LTU2NTBiMTUwMzk1OCIsImNlcnRfdHlwZSI6InN5c3RlbSJ9LCJ0eXBlIjoiU3lzdGVtIn19", "6089719"},
+			expectedOutput:    resolverResponse{"eyJlbnRpdGxlbWVudHMiOnsiaW5zaWdodHMiOnsiaXNfZW50aXRsZWQiOnRydWUsImlzX3RyaWFsIjpmYWxzZX0sImNvc3RfbWFuYWdlbWVudCI6eyJpc19lbnRpdGxlZCI6dHJ1ZSwiaXNfdHJpYWwiOmZhbHNlfSwibWlncmF0aW9ucyI6eyJpc19lbnRpdGxlZCI6dHJ1ZSwiaXNfdHJpYWwiOmZhbHNlfSwiaW50ZXJuYWwiOnsiaXNfZW50aXRsZWQiOnRydWUsImlzX3RyaWFsIjpmYWxzZX0sImFuc2libGUiOnsiaXNfZW50aXRsZWQiOnRydWUsImlzX3RyaWFsIjpmYWxzZX0sInVzZXJfcHJlZmVyZW5jZXMiOnsiaXNfZW50aXRsZWQiOnRydWUsImlzX3RyaWFsIjpmYWxzZX0sIm9wZW5zaGlmdCI6eyJpc19lbnRpdGxlZCI6dHJ1ZSwiaXNfdHJpYWwiOmZhbHNlfSwic2V0dGluZ3MiOnsiaXNfZW50aXRsZWQiOnRydWUsImlzX3RyaWFsIjpmYWxzZX0sInN1YnNjcmlwdGlvbnMiOnsiaXNfZW50aXRsZWQiOnRydWUsImlzX3RyaWFsIjpmYWxzZX0sInNtYXJ0X21hbmFnZW1lbnQiOnsiaXNfZW50aXRsZWQiOnRydWUsImlzX3RyaWFsIjpmYWxzZX19LCJpZGVudGl0eSI6eyJpbnRlcm5hbCI6eyJjcm9zc19hY2Nlc3MiOmZhbHNlLCJhdXRoX3RpbWUiOjEwMDAsIm9yZ19pZCI6IjExNzg5NzcyIn0sImFjY291bnRfbnVtYmVyIjoiNjA4OTcxOSIsImF1dGhfdHlwZSI6ImNlcnQtYXV0aCIsInN5c3RlbSI6eyJjbiI6IjE2ZDUwNDFmLWYyZTUtNDVkNy05MmE4LTU2NTBiMTUwMzk1OCIsImNlcnRfdHlwZSI6InN5c3RlbSJ9LCJ0eXBlIjoiU3lzdGVtIn19", "6089719", "11789772"},
 			expectError:       false,
 		},
 		{
@@ -42,7 +43,7 @@ func TestBopResolver(t *testing.T) {
 			mockResponseCode:  500,
 			inputClientID:     "testID",
 			expectedOutHeader: "/CN=testID",
-			expectedOutput:    resolverResponse{"", ""},
+			expectedOutput:    resolverResponse{"", "", ""},
 			expectError:       true,
 		},
 		{
@@ -50,7 +51,7 @@ func TestBopResolver(t *testing.T) {
 			mockResponseCode:  401,
 			inputClientID:     "testID",
 			expectedOutHeader: "/CN=testID",
-			expectedOutput:    resolverResponse{"", ""},
+			expectedOutput:    resolverResponse{"", "", ""},
 			expectError:       true,
 		},
 	}
@@ -65,7 +66,7 @@ func TestBopResolver(t *testing.T) {
 		defer ts.Close()
 		conf.AuthGatewayUrl = ts.URL
 		resolver, _ := NewAccountIdResolver("bop", conf)
-		id, acc, _, err := resolver.MapClientIdToAccountId(nil, domain.ClientID(c.inputClientID))
+		id, acc, org, err := resolver.MapClientIdToAccountId(nil, domain.ClientID(c.inputClientID))
 		if c.expectError && err == nil {
 			t.Fatalf("Expected an error response but got nil")
 		}
@@ -75,7 +76,7 @@ func TestBopResolver(t *testing.T) {
 		if outHeader != c.expectedOutHeader {
 			t.Fatalf("Expected header sent to server  %s, got  %s", c.expectedOutHeader, outHeader)
 		}
-		resp := resolverResponse{id, acc}
+		resp := resolverResponse{id, acc, org}
 		if resp != c.expectedOutput {
 			t.Fatalf("Expected  %v, got  %v", c.expectedOutput, resp)
 		}
