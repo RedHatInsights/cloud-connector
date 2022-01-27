@@ -107,8 +107,12 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 
 type ConfigurableAccountIdResolver struct {
 	Config                 *config.Config
-	clientIdToAccountIdMap map[domain.ClientID]domain.AccountID
-	defaultAccountId       domain.AccountID
+	clientIdToAccountIdMap map[domain.ClientID]struct {
+		accountId domain.AccountID
+		orgId     domain.OrgID
+	}
+	defaultAccountId domain.AccountID
+	defaultOrgId     domain.OrgID
 }
 
 func (bar *ConfigurableAccountIdResolver) init() error {
@@ -119,6 +123,7 @@ func (bar *ConfigurableAccountIdResolver) init() error {
 	}
 
 	bar.defaultAccountId = domain.AccountID(bar.Config.ClientIdToAccountIdDefaultAccountId)
+	bar.defaultOrgId = domain.OrgID(bar.Config.ClientIdToAccountIdDefaultOrgId)
 
 	return nil
 }
@@ -149,7 +154,7 @@ func (bar *ConfigurableAccountIdResolver) loadAccountIdMapFromFile() error {
 	return nil
 }
 
-func (bar *ConfigurableAccountIdResolver) createIdentityHeader(account domain.AccountID) domain.Identity {
+func (bar *ConfigurableAccountIdResolver) createIdentityHeader(account domain.AccountID, org_id domain.OrgID) domain.Identity {
 	identityJson := fmt.Sprintf(`
         {"identity":
             {
@@ -163,16 +168,16 @@ func (bar *ConfigurableAccountIdResolver) createIdentityHeader(account domain.Ac
             }
         }`,
 		string(account),
-		string(account))
+		string(org_id))
 	identityJsonBase64 := base64.StdEncoding.EncodeToString([]byte(identityJson))
 	return domain.Identity(identityJsonBase64)
 }
 
 func (bar *ConfigurableAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, domain.OrgID, error) {
 
-	if accountId, ok := bar.clientIdToAccountIdMap[clientID]; ok == true {
-		return bar.createIdentityHeader(accountId), accountId, "", nil // TODO: Need to get the org id from the account id
+	if account, ok := bar.clientIdToAccountIdMap[clientID]; ok == true {
+		return bar.createIdentityHeader(account.accountId, account.orgId), account.accountId, account.orgId, nil
 	}
 
-	return bar.createIdentityHeader(bar.defaultAccountId), bar.defaultAccountId, "", nil // TODO: Need to get the org id from the account id
+	return bar.createIdentityHeader(bar.defaultAccountId, bar.defaultOrgId), bar.defaultAccountId, bar.defaultOrgId, nil
 }
