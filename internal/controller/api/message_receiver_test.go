@@ -120,7 +120,7 @@ func (m *MockConnectionManager) FindConnectionByClientID(ctx context.Context, cl
 	return domain.ConnectorClientState{Account: m.ClientIndex[clientID], ClientID: clientID}, nil
 }
 
-func (m *MockConnectionManager) GetConnection(ctx context.Context, account domain.AccountID, clientID domain.ClientID) controller.ConnectorClient {
+func (m *MockConnectionManager) GetConnection(ctx context.Context, account domain.AccountID, orgID domain.OrgID, clientID domain.ClientID) controller.ConnectorClient {
 	return m.AccountIndex[account][clientID]
 }
 

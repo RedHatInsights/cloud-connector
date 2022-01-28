@@ -70,6 +70,7 @@ func (jr *MessageReceiver) handleJob() http.HandlerFunc {
 		requestId := request_id.GetReqID(req.Context())
 		logger := logger.Log.WithFields(logrus.Fields{
 			"account":    principal.GetAccount(),
+			"org_id":     principal.GetOrgID(),
 			"request_id": requestId})
 
 		var msgRequest messageRequest
@@ -104,8 +105,10 @@ func (jr *MessageReceiver) handleJob() http.HandlerFunc {
 			return
 		}
 
+		orgID := principal.GetOrgID()
+
 		var client controller.ConnectorClient
-		client = jr.connectionMgr.GetConnection(req.Context(), domain.AccountID(msgRequest.Account), domain.ClientID(msgRequest.Recipient))
+		client = jr.connectionMgr.GetConnection(req.Context(), domain.AccountID(msgRequest.Account), domain.OrgID(orgID), domain.ClientID(msgRequest.Recipient))
 		if client == nil {
 			writeConnectionFailureResponse(logger, w)
 			return

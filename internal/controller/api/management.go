@@ -95,6 +95,7 @@ func (s *ManagementServer) handleDisconnect() http.HandlerFunc {
 		requestId := request_id.GetReqID(req.Context())
 		logger := logger.Log.WithFields(logrus.Fields{
 			"account":    principal.GetAccount(),
+			"org_id":     principal.GetOrgID(),
 			"request_id": requestId})
 
 		body := http.MaxBytesReader(w, req.Body, 1048576)
@@ -109,7 +110,9 @@ func (s *ManagementServer) handleDisconnect() http.HandlerFunc {
 			return
 		}
 
-		client := s.connectionMgr.GetConnection(req.Context(), domain.AccountID(disconnectReq.Account), domain.ClientID(disconnectReq.NodeID))
+		orgID := principal.GetOrgID()
+
+		client := s.connectionMgr.GetConnection(req.Context(), domain.AccountID(disconnectReq.Account), domain.OrgID(orgID), domain.ClientID(disconnectReq.NodeID))
 		if client == nil {
 			errMsg := fmt.Sprintf("No connection found for node (%s:%s)", disconnectReq.Account, disconnectReq.NodeID)
 			logger.Info(errMsg)
@@ -144,6 +147,7 @@ func (s *ManagementServer) handleReconnect() http.HandlerFunc {
 		requestId := request_id.GetReqID(req.Context())
 		logger := logger.Log.WithFields(logrus.Fields{
 			"account":    principal.GetAccount(),
+			"org_id":     principal.GetOrgID(),
 			"request_id": requestId})
 
 		body := http.MaxBytesReader(w, req.Body, 1048576)
@@ -168,7 +172,9 @@ func (s *ManagementServer) handleReconnect() http.HandlerFunc {
 			return
 		}
 
-		client := s.connectionMgr.GetConnection(req.Context(), reconnectReq.Account, reconnectReq.NodeID)
+		orgID := principal.GetOrgID()
+
+		client := s.connectionMgr.GetConnection(req.Context(), reconnectReq.Account, domain.OrgID(orgID), reconnectReq.NodeID)
 		if client == nil {
 			errMsg := fmt.Sprintf("No connection found for node (%s:%s)", reconnectReq.Account, reconnectReq.NodeID)
 			logger.Info(errMsg)
@@ -196,6 +202,7 @@ func (s *ManagementServer) handleConnectionStatus() http.HandlerFunc {
 		requestId := request_id.GetReqID(req.Context())
 		logger := logger.Log.WithFields(logrus.Fields{
 			"account":    principal.GetAccount(),
+			"org_id":     principal.GetOrgID(),
 			"request_id": requestId})
 
 		body := http.MaxBytesReader(w, req.Body, 1048576)
@@ -215,7 +222,9 @@ func (s *ManagementServer) handleConnectionStatus() http.HandlerFunc {
 
 		connectionStatus := connectionStatusResponse{Status: DISCONNECTED_STATUS}
 
-		client := s.connectionMgr.GetConnection(req.Context(), domain.AccountID(connID.Account), domain.ClientID(connID.NodeID))
+		orgID := principal.GetOrgID()
+
+		client := s.connectionMgr.GetConnection(req.Context(), domain.AccountID(connID.Account), domain.OrgID(orgID), domain.ClientID(connID.NodeID))
 		if client != nil {
 			connectionStatus.Status = CONNECTED_STATUS
 			connectionStatus.Dispatchers, _ = client.GetDispatchers(req.Context())
@@ -262,6 +271,7 @@ func (s *ManagementServer) handleConnectionListing() http.HandlerFunc {
 
 		logger := logger.Log.WithFields(logrus.Fields{
 			"account":    principal.GetAccount(),
+			"org_id":     principal.GetOrgID(),
 			"request_id": requestId})
 
 		logger.Debugf("Getting connection list")
@@ -328,6 +338,7 @@ func (s *ManagementServer) handleConnectionListingByAccount() http.HandlerFunc {
 
 		logger := logger.Log.WithFields(logrus.Fields{
 			"account":    principal.GetAccount(),
+			"org_id":     principal.GetOrgID(),
 			"request_id": requestId})
 
 		requestParams, err := getConnectionListingByAccountParams(req)
@@ -368,6 +379,7 @@ func (s *ManagementServer) handleConnectionPing() http.HandlerFunc {
 		requestId := request_id.GetReqID(req.Context())
 		logger := logger.Log.WithFields(logrus.Fields{
 			"account":    principal.GetAccount(),
+			"org_id":     principal.GetOrgID(),
 			"request_id": requestId})
 
 		body := http.MaxBytesReader(w, req.Body, 1048576)
@@ -385,8 +397,10 @@ func (s *ManagementServer) handleConnectionPing() http.HandlerFunc {
 		logger.Infof("Submitting ping for account:%s - node id:%s",
 			connID.Account, connID.NodeID)
 
+		orgID := principal.GetOrgID()
+
 		pingResponse := connectionPingResponse{Status: DISCONNECTED_STATUS}
-		client := s.connectionMgr.GetConnection(req.Context(), domain.AccountID(connID.Account), domain.ClientID(connID.NodeID))
+		client := s.connectionMgr.GetConnection(req.Context(), domain.AccountID(connID.Account), domain.OrgID(orgID), domain.ClientID(connID.NodeID))
 		if client == nil {
 			writeJSONResponse(w, http.StatusOK, pingResponse)
 			return

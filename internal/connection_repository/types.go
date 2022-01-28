@@ -23,7 +23,7 @@ type ConnectionRegistrar interface {
 }
 
 type ConnectionLocator interface {
-	GetConnection(context.Context, domain.AccountID, domain.ClientID) controller.ConnectorClient
+	GetConnection(context.Context, domain.AccountID, domain.OrgID, domain.ClientID) controller.ConnectorClient
 	GetConnectionsByAccount(context.Context, domain.AccountID, int, int) (map[domain.ClientID]controller.ConnectorClient, int, error)
 	GetAllConnections(context.Context, int, int) (map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient, int, error)
 }
