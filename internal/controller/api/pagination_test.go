@@ -40,7 +40,7 @@ func (m *PaginatedMockConnectionManager) FindConnectionByClientID(ctx context.Co
 	return domain.ConnectorClientState{}, nil
 }
 
-func (m *PaginatedMockConnectionManager) GetConnection(ctx context.Context, account domain.AccountID, clientID domain.ClientID) controller.ConnectorClient {
+func (m *PaginatedMockConnectionManager) GetConnection(ctx context.Context, account domain.AccountID, orgID domain.OrgID, clientID domain.ClientID) controller.ConnectorClient {
 	return nil
 }
 

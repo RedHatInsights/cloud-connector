@@ -62,7 +62,7 @@ func NewSqlConnectionLocator(cfg *config.Config, proxyFactory controller.Connect
 	}, nil
 }
 
-func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account domain.AccountID, client_id domain.ClientID) controller.ConnectorClient {
+func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account domain.AccountID, orgID domain.OrgID, client_id domain.ClientID) controller.ConnectorClient {
 	var conn controller.ConnectorClient
 	var err error
 
