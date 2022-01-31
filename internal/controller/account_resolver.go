@@ -108,8 +108,8 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 type ConfigurableAccountIdResolver struct {
 	Config                 *config.Config
 	clientIdToAccountIdMap map[domain.ClientID]struct {
-		accountId domain.AccountID
-		orgId     domain.OrgID
+		accountId domain.AccountID `json:"accountId"`
+		orgId     domain.OrgID     `json:"orgId"`
 	}
 	defaultAccountId domain.AccountID
 	defaultOrgId     domain.OrgID
