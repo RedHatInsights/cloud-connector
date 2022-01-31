@@ -108,8 +108,8 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 type ConfigurableAccountIdResolver struct {
 	Config                 *config.Config
 	clientIdToAccountIdMap map[domain.ClientID]struct {
-		accountId domain.AccountID `json:"accountId"`
-		orgId     domain.OrgID     `json:"orgId"`
+		AccountId domain.AccountID `json:"accountId"`
+		OrgId     domain.OrgID     `json:"orgId"`
 	}
 	defaultAccountId domain.AccountID
 	defaultOrgId     domain.OrgID
@@ -176,7 +176,7 @@ func (bar *ConfigurableAccountIdResolver) createIdentityHeader(account domain.Ac
 func (bar *ConfigurableAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, domain.OrgID, error) {
 
 	if account, ok := bar.clientIdToAccountIdMap[clientID]; ok == true {
-		return bar.createIdentityHeader(account.accountId, account.orgId), account.accountId, account.orgId, nil
+		return bar.createIdentityHeader(account.AccountId, account.OrgId), account.AccountId, account.OrgId, nil
 	}
 
 	return bar.createIdentityHeader(bar.defaultAccountId, bar.defaultOrgId), bar.defaultAccountId, bar.defaultOrgId, nil
