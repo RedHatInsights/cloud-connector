@@ -442,7 +442,7 @@ objects:
     labels:
       app: cloud-connector
   data:
-    client_id_to_account_id_map.json: eyI4YTgyMzkxOC1mODAxLTQ3NGMtOWY3OS03Y2M3ZTlkNzlhN2YiOiAiMDEwMTAxIiwgImNsaWVudC0xIjogIjAxMDEwMiJ9
+    client_id_to_account_id_map.json: eyI4YTgyMzkxOC1mODAxLTQ3NGMtOWY3OS03Y2M3ZTlkNzlhN2YiOiB7ImFjY291bnRJZCI6ICIwMTAxMDEiLCAib3JnSWQiOiAiMTAwMDEifSwgImNsaWVudC0xIjogeyAiYWNjb3VudElkIjogIjAxMDEwMiIsICJvcmdJZCI6ICIxMDAwMiJ9fQ==
   type: Opaque
 
 

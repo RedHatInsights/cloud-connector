@@ -21,7 +21,7 @@ import (
 )
 
 type AccountIdResolver interface {
-	MapClientIdToAccountId(context.Context, domain.ClientID) (domain.Identity, domain.AccountID, error)
+	MapClientIdToAccountId(context.Context, domain.ClientID) (domain.Identity, domain.AccountID, domain.OrgID, error)
 }
 
 type AuthGwResp struct {
@@ -45,7 +45,7 @@ type BOPAccountIdResolver struct {
 	Config *config.Config
 }
 
-func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, error) {
+func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, domain.OrgID, error) {
 
 	callDurationTimer := prometheus.NewTimer(metrics.authGatewayAccountLookupDuration)
 	defer callDurationTimer.ObserveDuration()
@@ -60,7 +60,7 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 
 	req, err := http.NewRequest("GET", bar.Config.AuthGatewayUrl, nil)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("x-rh-certauth-cn", fmt.Sprintf("/CN=%s", clientID))
@@ -69,7 +69,7 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 	logger.Debug("Returned from call to Auth Gateway")
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Call to Auth Gateway failed")
-		return "", "", err
+		return "", "", "", err
 	}
 	defer r.Body.Close()
 
@@ -79,36 +79,40 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 	if r.StatusCode != 200 {
 		logger.Debugf("Call to Auth Gateway returned http status code %d", r.StatusCode)
 		b, _ := ioutil.ReadAll(r.Body)
-		return "", "", fmt.Errorf("Unable to find account %s", string(b))
+		return "", "", "", fmt.Errorf("Unable to find account %s", string(b))
 	}
 	var resp AuthGwResp
 	err = json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse Auth Gateway response")
-		return "", "", err
+		return "", "", "", err
 	}
 	idRaw, err := base64.StdEncoding.DecodeString(resp.Identity)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to decode identity from Auth Gateway")
-		return "", "", err
+		return "", "", "", err
 	}
 
 	var jsonData identity.XRHID
 	err = json.Unmarshal(idRaw, &jsonData)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse identity from Auth Gateway")
-		return "", "", err
+		return "", "", "", err
 	}
 
 	logger.WithFields(logrus.Fields{"account": jsonData.Identity.AccountNumber}).Debug("Located account number for client")
 
-	return domain.Identity(resp.Identity), domain.AccountID(jsonData.Identity.AccountNumber), nil
+	return domain.Identity(resp.Identity), domain.AccountID(jsonData.Identity.AccountNumber), domain.OrgID(jsonData.Identity.Internal.OrgID), nil
 }
 
 type ConfigurableAccountIdResolver struct {
 	Config                 *config.Config
-	clientIdToAccountIdMap map[domain.ClientID]domain.AccountID
-	defaultAccountId       domain.AccountID
+	clientIdToAccountIdMap map[domain.ClientID]struct {
+		AccountId domain.AccountID `json:"accountId"`
+		OrgId     domain.OrgID     `json:"orgId"`
+	}
+	defaultAccountId domain.AccountID
+	defaultOrgId     domain.OrgID
 }
 
 func (bar *ConfigurableAccountIdResolver) init() error {
@@ -119,6 +123,7 @@ func (bar *ConfigurableAccountIdResolver) init() error {
 	}
 
 	bar.defaultAccountId = domain.AccountID(bar.Config.ClientIdToAccountIdDefaultAccountId)
+	bar.defaultOrgId = domain.OrgID(bar.Config.ClientIdToAccountIdDefaultOrgId)
 
 	return nil
 }
@@ -149,7 +154,7 @@ func (bar *ConfigurableAccountIdResolver) loadAccountIdMapFromFile() error {
 	return nil
 }
 
-func (bar *ConfigurableAccountIdResolver) createIdentityHeader(account domain.AccountID) domain.Identity {
+func (bar *ConfigurableAccountIdResolver) createIdentityHeader(account domain.AccountID, org_id domain.OrgID) domain.Identity {
 	identityJson := fmt.Sprintf(`
         {"identity":
             {
@@ -163,16 +168,16 @@ func (bar *ConfigurableAccountIdResolver) createIdentityHeader(account domain.Ac
             }
         }`,
 		string(account),
-		string(account))
+		string(org_id))
 	identityJsonBase64 := base64.StdEncoding.EncodeToString([]byte(identityJson))
 	return domain.Identity(identityJsonBase64)
 }
 
-func (bar *ConfigurableAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, error) {
+func (bar *ConfigurableAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, domain.OrgID, error) {
 
-	if accountId, ok := bar.clientIdToAccountIdMap[clientID]; ok == true {
-		return bar.createIdentityHeader(accountId), accountId, nil
+	if account, ok := bar.clientIdToAccountIdMap[clientID]; ok == true {
+		return bar.createIdentityHeader(account.AccountId, account.OrgId), account.AccountId, account.OrgId, nil
 	}
 
-	return bar.createIdentityHeader(bar.defaultAccountId), bar.defaultAccountId, nil
+	return bar.createIdentityHeader(bar.defaultAccountId, bar.defaultOrgId), bar.defaultAccountId, bar.defaultOrgId, nil
 }

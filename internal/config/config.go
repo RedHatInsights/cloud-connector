@@ -41,6 +41,7 @@ const (
 	CLIENT_ID_TO_ACCOUNT_ID_IMPL                 = "Client_Id_To_Account_Id_Impl"
 	CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE          = "Client_Id_To_Account_Id_Config_File"
 	CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID   = "Client_Id_To_Account_Id_Default_Account_Id"
+	CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ORG_ID       = "Client_Id_To_Account_Id_Default_Org_Id"
 	CONNECTION_DATABASE_IMPL                     = "Connection_Database_Impl"
 	CONNECTION_DATABASE_HOST                     = "Connection_Database_Host"
 	CONNECTION_DATABASE_PORT                     = "Connection_Database_Port"
@@ -110,6 +111,7 @@ type Config struct {
 	ClientIdToAccountIdImpl                 string
 	ClientIdToAccountIdConfigFile           string
 	ClientIdToAccountIdDefaultAccountId     string
+	ClientIdToAccountIdDefaultOrgId         string
 	ConnectionDatabaseImpl                  string
 	ConnectionDatabaseHost                  string
 	ConnectionDatabasePort                  int
@@ -176,6 +178,7 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_IMPL, c.ClientIdToAccountIdImpl)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE, c.ClientIdToAccountIdConfigFile)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID, c.ClientIdToAccountIdDefaultAccountId)
+	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ORG_ID, c.ClientIdToAccountIdDefaultOrgId)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_IMPL, c.ConnectionDatabaseImpl)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_HOST, c.ConnectionDatabaseHost)
 	fmt.Fprintf(&b, "%s: %d\n", CONNECTION_DATABASE_PORT, c.ConnectionDatabasePort)
@@ -235,6 +238,7 @@ func GetConfig() *Config {
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_IMPL, "config_file_based")
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE, "client_id_to_account_id_map.json")
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID, "111000")
+	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ORG_ID, "10000")
 	options.SetDefault(CONNECTION_DATABASE_IMPL, "postgres")
 	options.SetDefault(CONNECTION_DATABASE_HOST, "localhost")
 	options.SetDefault(CONNECTION_DATABASE_PORT, 5432)
@@ -303,6 +307,7 @@ func GetConfig() *Config {
 		ClientIdToAccountIdImpl:                 options.GetString(CLIENT_ID_TO_ACCOUNT_ID_IMPL),
 		ClientIdToAccountIdConfigFile:           options.GetString(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE),
 		ClientIdToAccountIdDefaultAccountId:     options.GetString(CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID),
+		ClientIdToAccountIdDefaultOrgId:         options.GetString(CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ORG_ID),
 		ConnectionDatabaseImpl:                  options.GetString(CONNECTION_DATABASE_IMPL),
 		ConnectionDatabaseHost:                  options.GetString(CONNECTION_DATABASE_HOST),
 		ConnectionDatabasePort:                  options.GetInt(CONNECTION_DATABASE_PORT),

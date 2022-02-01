@@ -68,7 +68,7 @@ func startInventoryStaleTimestampUpdater() {
 
 			log.Debug("Processing stale connection")
 
-			identity, _, err := accountResolver.MapClientIdToAccountId(ctx, rhcClient.ClientID)
+			identity, _, _, err := accountResolver.MapClientIdToAccountId(ctx, rhcClient.ClientID)
 			if err != nil {
 				// FIXME: Send disconnect here??  Need to determine the type of failure!
 				logger.LogErrorWithAccountAndClientId("Unable to retrieve identity for connection", err, rhcClient.Account, rhcClient.ClientID)

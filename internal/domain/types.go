@@ -18,6 +18,12 @@ func (aid AccountID) String() string {
 	return string(aid)
 }
 
+type OrgID string
+
+func (oid OrgID) String() string {
+	return string(oid)
+}
+
 //type Dispatchers map[string]map[string]string
 type Dispatchers interface{}
 type CanonicalFacts interface{}
@@ -31,6 +37,7 @@ type MessageMetadata struct {
 type ConnectorClientState struct {
 	Account         AccountID
 	ClientID        ClientID
+	OrgID           OrgID
 	CanonicalFacts  CanonicalFacts
 	Dispatchers     Dispatchers
 	Tags            Tags
