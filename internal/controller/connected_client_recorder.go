@@ -81,12 +81,14 @@ type InventoryBasedConnectedClientRecorder struct {
 func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx context.Context, identity domain.Identity, rhcClient domain.ConnectorClientState) error {
 
 	account := rhcClient.Account
+	orgID := rhcClient.OrgID
 	clientID := rhcClient.ClientID
 
 	requestID, _ := uuid.NewUUID()
 
 	logger := logger.Log.WithFields(logrus.Fields{"request_id": requestID.String(),
 		"account":   account,
+		"org_id":    orgID,
 		"client_id": clientID})
 
 	staleTimestamp := time.Now().Add(ibccr.StaleTimestampOffset)
@@ -96,6 +98,7 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 	hostData := cleanupCanonicalFacts(logger, originalHostData)
 
 	hostData["account"] = string(account)
+	hostData["org_id"] = string(orgID)
 	hostData["stale_timestamp"] = staleTimestamp.UTC().Format("2006-01-02T15:04:05Z07:00")
 	hostData["reporter"] = ibccr.ReporterName
 
@@ -207,7 +210,7 @@ type FakeConnectedClientRecorder struct {
 }
 
 func (fccr *FakeConnectedClientRecorder) RecordConnectedClient(ctx context.Context, identity domain.Identity, rhcClient domain.ConnectorClientState) error {
-	logger := logger.Log.WithFields(logrus.Fields{"account": rhcClient.Account, "client_id": rhcClient.ClientID})
+	logger := logger.Log.WithFields(logrus.Fields{"account": rhcClient.Account, "client_id": rhcClient.ClientID, "org_id": rhcClient.OrgID})
 
 	logger.Debug("FAKE: connected client recorder: ", rhcClient.CanonicalFacts)
 
