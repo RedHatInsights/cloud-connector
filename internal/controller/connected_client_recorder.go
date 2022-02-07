@@ -98,7 +98,6 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 	hostData := cleanupCanonicalFacts(logger, originalHostData)
 
 	hostData["account"] = string(account)
-	hostData["org_id"] = string(orgID)
 	hostData["stale_timestamp"] = staleTimestamp.UTC().Format("2006-01-02T15:04:05Z07:00")
 	hostData["reporter"] = ibccr.ReporterName
 
