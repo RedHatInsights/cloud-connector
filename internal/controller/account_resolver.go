@@ -100,8 +100,7 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 		return "", "", "", err
 	}
 
-	logger.WithFields(logrus.Fields{"account": jsonData.Identity.AccountNumber}).Debug("Located account number for client")
-	logger.WithFields(logrus.Fields{"org_id": jsonData.Identity.Internal.OrgID}).Debug("Located OrgID for client")
+	logger.WithFields(logrus.Fields{"account": jsonData.Identity.AccountNumber, "org_id": jsonData.Identity.Internal.OrgID}).Debug("Located account number and org ID for client")
 
 	return domain.Identity(resp.Identity), domain.AccountID(jsonData.Identity.AccountNumber), domain.OrgID(jsonData.Identity.Internal.OrgID), nil
 }
