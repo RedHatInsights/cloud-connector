@@ -134,11 +134,17 @@ func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, ac
 
 	for rows.Next() {
 		var client_id domain.ClientID
-		var org_id domain.OrgID
+		var orgIdString string
 		var dispatchersString string
-		if err := rows.Scan(&client_id, &org_id, &dispatchersString, &totalConnections); err != nil {
+		if err := rows.Scan(&client_id, &orgIdString, &dispatchersString, &totalConnections); err != nil {
 			logger.LogError("SQL scan failed.  Skipping row.", err)
 			continue
+		}
+
+		var org_id domain.OrgID
+		err = json.Unmarshal([]byte(orgIdString), &org_id)
+		if err != nil {
+			logger.LogErrorWithAccountAndClientId("Unable to marshal org ID from database", err, account, org_id, client_id)
 		}
 
 		var dispatchers domain.Dispatchers
@@ -188,13 +194,21 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context, offset i
 
 	for rows.Next() {
 		var account domain.AccountID
-		var orgId domain.OrgID
+		var orgIdString sql.NullString
 		var clientId domain.ClientID
 		var dispatchersString sql.NullString
 
-		if err := rows.Scan(&account, &orgId, &clientId, &dispatchersString, &totalConnections); err != nil {
+		if err := rows.Scan(&account, &orgIdString, &clientId, &dispatchersString, &totalConnections); err != nil {
 			logger.LogError("SQL scan failed.  Skipping row.", err)
 			continue
+		}
+
+		var orgId domain.OrgID
+		if orgIdString.Valid {
+			err = json.Unmarshal([]byte(orgIdString.String), &orgId)
+			if err != nil {
+				logger.LogErrorWithAccountAndClientId("Unable to unmarshal org ID from database", err, account, orgId, clientId)
+			}
 		}
 
 		var dispatchers domain.Dispatchers
