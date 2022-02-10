@@ -41,7 +41,7 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 
 	for rows.Next() {
 		var account domain.AccountID
-		var orgID domain.OrgID
+		var orgID sql.NullString
 		var clientID domain.ClientID
 		var canonicalFactsString sql.NullString
 		var tagsString sql.NullString
@@ -55,7 +55,7 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 		if canonicalFactsString.Valid {
 			err = json.Unmarshal([]byte(canonicalFactsString.String), &canonicalFacts)
 			if err != nil {
-				logger.LogErrorWithAccountAndClientId("Unable to parse canonical facts.  Skipping connection.", err, account, orgID, clientID)
+				logger.LogErrorWithAccountAndClientId("Unable to parse canonical facts.  Skipping connection.", err, account, domain.OrgID(orgID.String), clientID)
 				continue
 			}
 		}
@@ -64,7 +64,7 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 		if tagsString.Valid {
 			err = json.Unmarshal([]byte(tagsString.String), &tags)
 			if err != nil {
-				logger.LogErrorWithAccountAndClientId("Unable to parse tags.  Skipping connection.", err, account, orgID, clientID)
+				logger.LogErrorWithAccountAndClientId("Unable to parse tags.  Skipping connection.", err, account, domain.OrgID(orgID.String), clientID)
 				continue
 			}
 		}

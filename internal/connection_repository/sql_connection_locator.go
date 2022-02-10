@@ -134,18 +134,14 @@ func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, ac
 
 	for rows.Next() {
 		var client_id domain.ClientID
-		var orgIdString string
+		var orgIdString sql.NullString
 		var dispatchersString string
 		if err := rows.Scan(&client_id, &orgIdString, &dispatchersString, &totalConnections); err != nil {
 			logger.LogError("SQL scan failed.  Skipping row.", err)
 			continue
 		}
 
-		var org_id domain.OrgID
-		err = json.Unmarshal([]byte(orgIdString), &org_id)
-		if err != nil {
-			logger.LogErrorWithAccountAndClientId("Unable to marshal org ID from database", err, account, org_id, client_id)
-		}
+		org_id := domain.OrgID(orgIdString.String)
 
 		var dispatchers domain.Dispatchers
 		err = json.Unmarshal([]byte(dispatchersString), &dispatchers)
@@ -203,13 +199,7 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context, offset i
 			continue
 		}
 
-		var orgId domain.OrgID
-		if orgIdString.Valid {
-			err = json.Unmarshal([]byte(orgIdString.String), &orgId)
-			if err != nil {
-				logger.LogErrorWithAccountAndClientId("Unable to unmarshal org ID from database", err, account, orgId, clientId)
-			}
-		}
+		orgId := domain.OrgID(orgIdString.String)
 
 		var dispatchers domain.Dispatchers
 		if dispatchersString.Valid {
