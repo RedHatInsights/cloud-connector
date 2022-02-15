@@ -64,20 +64,20 @@ func startInventoryStaleTimestampUpdater() {
 	connection_repository.ProcessStaleConnections(context.TODO(), databaseConn, sqlTimeout, tooOldIfBeforeThisTime, chunkSize,
 		func(ctx context.Context, rhcClient domain.ConnectorClientState) error {
 
-			log := logger.Log.WithFields(logrus.Fields{"client_id": rhcClient.ClientID, "account": rhcClient.Account})
+			log := logger.Log.WithFields(logrus.Fields{"client_id": rhcClient.ClientID, "account": rhcClient.Account, "org_id": rhcClient.OrgID})
 
 			log.Debug("Processing stale connection")
 
 			identity, _, _, err := accountResolver.MapClientIdToAccountId(ctx, rhcClient.ClientID)
 			if err != nil {
 				// FIXME: Send disconnect here??  Need to determine the type of failure!
-				logger.LogErrorWithAccountAndClientId("Unable to retrieve identity for connection", err, rhcClient.Account, rhcClient.ClientID)
+				logger.LogErrorWithAccountAndClientId("Unable to retrieve identity for connection", err, rhcClient.Account, rhcClient.OrgID, rhcClient.ClientID)
 				return err
 			}
 
 			err = connectedClientRecorder.RecordConnectedClient(ctx, identity, rhcClient)
 			if err != nil {
-				logger.LogErrorWithAccountAndClientId("Unable to sent host info to inventory", err, rhcClient.Account, rhcClient.ClientID)
+				logger.LogErrorWithAccountAndClientId("Unable to sent host info to inventory", err, rhcClient.Account, rhcClient.OrgID, rhcClient.ClientID)
 				return err
 			}
 

@@ -20,7 +20,7 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 	defer cancel()
 
 	statement, err := databaseConn.Prepare(
-		`SELECT account, client_id, canonical_facts, tags FROM connections
+		`SELECT account, org_id, client_id, canonical_facts, tags FROM connections
            WHERE canonical_facts != '{}' AND
              dispatchers ? 'rhc-worker-playbook' AND
              stale_timestamp < $1
@@ -41,11 +41,12 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 
 	for rows.Next() {
 		var account domain.AccountID
+		var orgID sql.NullString
 		var clientID domain.ClientID
 		var canonicalFactsString sql.NullString
 		var tagsString sql.NullString
 
-		if err := rows.Scan(&account, &clientID, &canonicalFactsString, &tagsString); err != nil {
+		if err := rows.Scan(&account, &orgID, &clientID, &canonicalFactsString, &tagsString); err != nil {
 			logger.LogError("SQL scan failed.  Skipping row.", err)
 			continue
 		}
@@ -54,7 +55,7 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 		if canonicalFactsString.Valid {
 			err = json.Unmarshal([]byte(canonicalFactsString.String), &canonicalFacts)
 			if err != nil {
-				logger.LogErrorWithAccountAndClientId("Unable to parse canonical facts.  Skipping connection.", err, account, clientID)
+				logger.LogErrorWithAccountAndClientId("Unable to parse canonical facts.  Skipping connection.", err, account, domain.OrgID(orgID.String), clientID)
 				continue
 			}
 		}
@@ -63,7 +64,7 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 		if tagsString.Valid {
 			err = json.Unmarshal([]byte(tagsString.String), &tags)
 			if err != nil {
-				logger.LogErrorWithAccountAndClientId("Unable to parse tags.  Skipping connection.", err, account, clientID)
+				logger.LogErrorWithAccountAndClientId("Unable to parse tags.  Skipping connection.", err, account, domain.OrgID(orgID.String), clientID)
 				continue
 			}
 		}

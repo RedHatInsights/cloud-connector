@@ -54,13 +54,13 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account doma
 	if dispatchersString.Valid {
 		err = json.Unmarshal([]byte(dispatchersString.String), &dispatchers)
 		if err != nil {
-			logger.LogErrorWithAccountAndClientId("Unable to unmarshal dispatchers from database", err, account, client_id)
+			logger.LogErrorWithAccountAndClientId("Unable to unmarshal dispatchers from database", err, account, orgID, client_id)
 		}
 	}
 
 	conn, err = scm.proxyFactory.CreateProxy(ctx, domain.AccountID(account), domain.ClientID(client_id), dispatchers)
 	if err != nil {
-		logger.LogErrorWithAccountAndClientId("Unable to create the proxy", err, account, client_id)
+		logger.LogErrorWithAccountAndClientId("Unable to create the proxy", err, account, orgID, client_id)
 		return nil
 	}
 
@@ -77,7 +77,7 @@ func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, ac
 	connectionsPerAccount := make(map[domain.ClientID]controller.ConnectorClient)
 
 	statement, err := scm.database.Prepare(
-		`SELECT client_id, dispatchers, COUNT(*) OVER() FROM connections
+		`SELECT client_id, org_id, dispatchers, COUNT(*) OVER() FROM connections
             WHERE account = $1
             ORDER BY client_id
             OFFSET $2
@@ -97,21 +97,24 @@ func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, ac
 
 	for rows.Next() {
 		var client_id domain.ClientID
+		var orgIdString sql.NullString
 		var dispatchersString string
-		if err := rows.Scan(&client_id, &dispatchersString, &totalConnections); err != nil {
+		if err := rows.Scan(&client_id, &orgIdString, &dispatchersString, &totalConnections); err != nil {
 			logger.LogError("SQL scan failed.  Skipping row.", err)
 			continue
 		}
 
+		org_id := domain.OrgID(orgIdString.String)
+
 		var dispatchers domain.Dispatchers
 		err = json.Unmarshal([]byte(dispatchersString), &dispatchers)
 		if err != nil {
-			logger.LogErrorWithAccountAndClientId("Unable to unmarshal dispatchers from database", err, account, client_id)
+			logger.LogErrorWithAccountAndClientId("Unable to unmarshal dispatchers from database", err, account, org_id, client_id)
 		}
 
 		proxy, err := scm.proxyFactory.CreateProxy(ctx, domain.AccountID(account), domain.ClientID(client_id), dispatchers)
 		if err != nil {
-			logger.LogErrorWithAccountAndClientId("Unable to create the proxy.  Skipping row.", err, account, client_id)
+			logger.LogErrorWithAccountAndClientId("Unable to create the proxy.  Skipping row.", err, account, org_id, client_id)
 			continue
 		}
 
@@ -131,7 +134,7 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context, offset i
 	connectionMap := make(map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient)
 
 	statement, err := scm.database.Prepare(
-		`SELECT account, client_id, dispatchers, COUNT(*) OVER() FROM connections
+		`SELECT account, org_id, client_id, dispatchers, COUNT(*) OVER() FROM connections
             ORDER BY account, client_id
             OFFSET $1
             LIMIT $2`)
@@ -150,25 +153,28 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context, offset i
 
 	for rows.Next() {
 		var account domain.AccountID
+		var orgIdString sql.NullString
 		var clientId domain.ClientID
 		var dispatchersString sql.NullString
 
-		if err := rows.Scan(&account, &clientId, &dispatchersString, &totalConnections); err != nil {
+		if err := rows.Scan(&account, &orgIdString, &clientId, &dispatchersString, &totalConnections); err != nil {
 			logger.LogError("SQL scan failed.  Skipping row.", err)
 			continue
 		}
+
+		orgId := domain.OrgID(orgIdString.String)
 
 		var dispatchers domain.Dispatchers
 		if dispatchersString.Valid {
 			err = json.Unmarshal([]byte(dispatchersString.String), &dispatchers)
 			if err != nil {
-				logger.LogErrorWithAccountAndClientId("Unable to unmarshal dispatchers from database", err, account, clientId)
+				logger.LogErrorWithAccountAndClientId("Unable to unmarshal dispatchers from database", err, account, orgId, clientId)
 			}
 		}
 
 		proxy, err := scm.proxyFactory.CreateProxy(ctx, domain.AccountID(account), domain.ClientID(clientId), dispatchers)
 		if err != nil {
-			logger.LogErrorWithAccountAndClientId("Unable to create the proxy.  Skipping row.", err, account, clientId)
+			logger.LogErrorWithAccountAndClientId("Unable to create the proxy.  Skipping row.", err, account, orgId, clientId)
 			continue
 		}
 
