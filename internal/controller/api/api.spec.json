@@ -67,6 +67,7 @@
     },
     "/connection_status": {
       "post": {
+        "operationId": "v1.connection.status.multiorg",
         "tags": [
           "api"
         ],
@@ -191,6 +192,7 @@
     },
     "/connection/status": {
       "post": {
+        "operationId": "v1.connection.status",
         "tags": [
           "api",
           "connection"
