@@ -18,11 +18,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	playbookWorkerDispatcherKey = "rhc-worker-playbook"
+	packageManagerDispatcherKey = "package-manager"
+	inventoryTagNamespace       = "rhc_client"
+)
+
 type ConnectedClientRecorder interface {
 	RecordConnectedClient(context.Context, domain.Identity, domain.ConnectorClientState) error
 }
-
-const inventoryTagNamespace = "rhc_client"
 
 func NewConnectedClientRecorder(impl string, cfg *config.Config) (ConnectedClientRecorder, error) {
 
@@ -38,7 +42,7 @@ func NewConnectedClientRecorder(impl string, cfg *config.Config) (ConnectedClien
 		kafkaProducer := queue.StartProducer(kafkaProducerCfg)
 
 		connectedClientRecorder := InventoryBasedConnectedClientRecorder{
-			KafkaWriter:          kafkaProducer,
+			MessageProducer:      BuildInventoryMessageProducer(kafkaProducer),
 			StaleTimestampOffset: cfg.InventoryStaleTimestampOffset,
 			ReporterName:         cfg.InventoryReporterName,
 		}
@@ -51,9 +55,9 @@ func NewConnectedClientRecorder(impl string, cfg *config.Config) (ConnectedClien
 	}
 }
 
-func NewInventoryBasedConnectedClientRecorder(kafkaWriter *kafka.Writer, staleTimestampOffset time.Duration, reporterName string) (ConnectedClientRecorder, error) {
+func NewInventoryBasedConnectedClientRecorder(kafkaWriter InventoryMessageProducer, staleTimestampOffset time.Duration, reporterName string) (ConnectedClientRecorder, error) {
 	connectedClientRecorder := InventoryBasedConnectedClientRecorder{
-		KafkaWriter:          kafkaWriter,
+		MessageProducer:      kafkaWriter,
 		StaleTimestampOffset: staleTimestampOffset,
 		ReporterName:         reporterName,
 	}
@@ -73,23 +77,48 @@ type platformMetadata struct {
 }
 
 type InventoryBasedConnectedClientRecorder struct {
-	KafkaWriter          *kafka.Writer
+	MessageProducer      InventoryMessageProducer
 	StaleTimestampOffset time.Duration
 	ReporterName         string
 }
 
+type InventoryMessageProducer func(ctx context.Context, log *logrus.Entry, msg []byte) error
+
+func BuildInventoryMessageProducer(kafkaWriter *kafka.Writer) InventoryMessageProducer {
+	return func(ctx context.Context, log *logrus.Entry, msg []byte) error {
+
+		err := kafkaWriter.WriteMessages(ctx,
+			kafka.Message{
+				Value: msg,
+			})
+
+		log.Debug("Inventory kafka message written")
+
+		if err != nil {
+			log.WithFields(logrus.Fields{"error": err}).Error("Error writing response message to kafka")
+
+			if errors.Is(err, context.Canceled) != true {
+				metrics.inventoryKafkaWriterFailureCounter.Inc()
+			}
+		} else {
+			metrics.inventoryKafkaWriterSuccessCounter.Inc()
+		}
+
+		return nil
+	}
+}
+
 func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx context.Context, identity domain.Identity, rhcClient domain.ConnectorClientState) error {
 
-	account := rhcClient.Account
-	orgID := rhcClient.OrgID
-	clientID := rhcClient.ClientID
+	logger := logger.Log.WithFields(logrus.Fields{
+		"account":   rhcClient.Account,
+		"org_id":    rhcClient.OrgID,
+		"client_id": rhcClient.ClientID})
 
-	requestID, _ := uuid.NewUUID()
-
-	logger := logger.Log.WithFields(logrus.Fields{"request_id": requestID.String(),
-		"account":   account,
-		"org_id":    orgID,
-		"client_id": clientID})
+	if shouldHostBeRegisteredWithInventory(rhcClient) == false {
+		logger.Debug("Skipping inventory registration")
+		return nil
+	}
 
 	staleTimestamp := time.Now().Add(ibccr.StaleTimestampOffset)
 
@@ -97,23 +126,25 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 
 	hostData := cleanupCanonicalFacts(logger, originalHostData)
 
-	hostData["account"] = string(account)
+	hostData["account"] = string(rhcClient.Account)
 	hostData["stale_timestamp"] = staleTimestamp.UTC().Format("2006-01-02T15:04:05Z07:00")
 	hostData["reporter"] = ibccr.ReporterName
 
-	var systemProfile = map[string]string{"rhc_client_id": string(clientID)}
+	var systemProfile = map[string]string{"rhc_client_id": string(rhcClient.ClientID)}
 	hostData["system_profile"] = systemProfile
 
 	certAuth, _ := identity_utils.AuthenticatedWithCertificate(identity)
 	if certAuth == true {
 		logger.Debug("Adding the owner_id to the inventory message")
-		systemProfile["owner_id"] = string(clientID)
+		systemProfile["owner_id"] = string(rhcClient.ClientID)
 	}
 
 	tags := convertRHCTagsToInventoryTags(rhcClient.Tags)
 	if tags != nil {
 		hostData["tags"] = convertRHCTagsToInventoryTags(rhcClient.Tags)
 	}
+
+	requestID, _ := uuid.NewUUID()
 
 	metadata := platformMetadata{RequestID: requestID.String(), B64Identity: string(identity)}
 
@@ -129,29 +160,36 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 		return err
 	}
 
-	go func() {
-		metrics.inventoryKafkaWriterGoRoutineGauge.Inc()
-		defer metrics.inventoryKafkaWriterGoRoutineGauge.Dec()
+	logger = logger.WithFields(logrus.Fields{"request_id": requestID.String()})
 
-		err = ibccr.KafkaWriter.WriteMessages(ctx,
-			kafka.Message{
-				Value: jsonInventoryMessage,
-			})
-
-		logger.Debug("Inventory kafka message written")
-
-		if err != nil {
-			logger.WithFields(logrus.Fields{"error": err}).Error("Error writing response message to kafka")
-
-			if errors.Is(err, context.Canceled) != true {
-				metrics.inventoryKafkaWriterFailureCounter.Inc()
-			}
-		} else {
-			metrics.inventoryKafkaWriterSuccessCounter.Inc()
-		}
-	}()
+	ibccr.MessageProducer(ctx, logger, jsonInventoryMessage)
 
 	return nil
+}
+
+func shouldHostBeRegisteredWithInventory(connectorClient domain.ConnectorClientState) bool {
+	return doesHostHaveCanonicalFacts(connectorClient) && (doesHostHaveDispatcher(connectorClient, playbookWorkerDispatcherKey) || doesHostHaveDispatcher(connectorClient, packageManagerDispatcherKey))
+}
+
+func doesHostHaveCanonicalFacts(connectorClient domain.ConnectorClientState) bool {
+	if connectorClient.CanonicalFacts == nil {
+		return false
+	}
+
+	canonicalFactMap := connectorClient.CanonicalFacts.(map[string]interface{})
+
+	return len(canonicalFactMap) > 0
+}
+
+func doesHostHaveDispatcher(connectorClient domain.ConnectorClientState, dispatcherName string) bool {
+
+	if connectorClient.Dispatchers == nil {
+		return false
+	}
+
+	dispatchersMap := connectorClient.Dispatchers.(map[string]interface{})
+	_, foundDispatcher := dispatchersMap[dispatcherName]
+	return foundDispatcher
 }
 
 func cleanupCanonicalFacts(logger *logrus.Entry, canonicalFacts map[string]interface{}) map[string]interface{} {

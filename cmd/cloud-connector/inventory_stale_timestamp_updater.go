@@ -50,7 +50,7 @@ func startInventoryStaleTimestampUpdater() {
 
 	kafkaProducer := queue.StartProducer(kafkaProducerCfg)
 
-	connectedClientRecorder, err := controller.NewInventoryBasedConnectedClientRecorder(kafkaProducer, cfg.InventoryStaleTimestampOffset, cfg.InventoryReporterName)
+	connectedClientRecorder, err := controller.NewInventoryBasedConnectedClientRecorder(controller.BuildInventoryMessageProducer(kafkaProducer), cfg.InventoryStaleTimestampOffset, cfg.InventoryReporterName)
 	if err != nil {
 		logger.LogFatalError("Failed to create Connected Client Recorder", err)
 	}

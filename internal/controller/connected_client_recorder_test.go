@@ -1,8 +1,12 @@
 package controller
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
 	"testing"
 
+	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
 	"github.com/google/go-cmp/cmp"
@@ -12,6 +16,14 @@ import (
 func init() {
 	logger.InitLogger()
 }
+
+var validCanonicalFacts = map[string]interface{}{
+	"ip_addresses":    []string{"192.168.1.120"},
+	"rhel_machine_id": "6ca6a085-8d86-11eb-8bd1-f875a43f7183",
+}
+
+const validIdentityWithBasicAuth = domain.Identity("eyJpZGVudGl0eSI6IHsiYWNjb3VudF9udW1iZXIiOiAiMDAwMSIsICJpbnRlcm5hbCI6IHsib3JnX2lkIjogIjAwMDAwMSJ9LCAidHlwZSI6ICJiYXNpYyJ9fQ==")
+const validIdentityWithCertAuth = domain.Identity("eyJpZGVudGl0eSI6IHsiYWNjb3VudF9udW1iZXIiOiAiMDAwMSIsICJpbnRlcm5hbCI6IHsib3JnX2lkIjogIjAwMDAwMSJ9LCAidHlwZSI6ICJiYXNpYyIsICJhdXRoX3R5cGUiOiAiY2VydC1hdXRoIn19")
 
 func TestCopyAndCleanupCanonicalFacts(t *testing.T) {
 
@@ -84,4 +96,147 @@ func TestConvertRHCTagsToInventoryTagsValidRhcTags(t *testing.T) {
 	if diff := cmp.Diff(expectedInventoryTags, actualInventoryTags); diff != "" {
 		t.Fatalf("actual inventory tags != expected inventory tags: \n%s ", diff)
 	}
+}
+
+type mockKafkaWriter struct {
+	message   []byte
+	callCount int
+}
+
+func (m *mockKafkaWriter) WriteMessages(ctx context.Context, msg []byte) error {
+	m.message = msg
+	m.callCount++
+	return nil
+}
+
+func buildMockInventoryMessageProducer(kafkaWriter *mockKafkaWriter) InventoryMessageProducer {
+	return func(ctx context.Context, log *logrus.Entry, msg []byte) error {
+		return kafkaWriter.WriteMessages(ctx, msg)
+	}
+}
+
+func TestDoNotRegisterHostWithInventoryWithValidCanonicalFactsNoDispatchers(t *testing.T) {
+	kafkaWriter := mockKafkaWriter{}
+	messageProducer := buildMockInventoryMessageProducer(&kafkaWriter)
+	connectedClientRecorder := &InventoryBasedConnectedClientRecorder{MessageProducer: messageProducer}
+	id := validIdentityWithBasicAuth
+
+	connectedClient := domain.ConnectorClientState{
+		Account:        "1234567",
+		OrgID:          "9876",
+		ClientID:       "8974",
+		CanonicalFacts: validCanonicalFacts,
+	}
+
+	connectedClientRecorder.RecordConnectedClient(context.TODO(), id, connectedClient)
+
+	if kafkaWriter.callCount > 0 {
+		t.Fatalf("kafka writer should not have been called")
+	}
+}
+
+func TestRegisterHostWithInventory(t *testing.T) {
+
+	testCases := []struct {
+		dispatcher         string
+		dispatcherFeatures map[string]string
+	}{
+		{playbookWorkerDispatcherKey, map[string]string{"version": "0.1"}},
+		{packageManagerDispatcherKey, map[string]string{"version": "0.0.1"}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("dispatcher = '%s'", tc.dispatcher), func(t *testing.T) {
+			kafkaWriter := mockKafkaWriter{}
+			messageProducer := buildMockInventoryMessageProducer(&kafkaWriter)
+			connectedClientRecorder := &InventoryBasedConnectedClientRecorder{MessageProducer: messageProducer, ReporterName: "unit-test"}
+
+			id := validIdentityWithBasicAuth
+
+			connectedClient := domain.ConnectorClientState{
+				Account:        "1234567",
+				OrgID:          "9876",
+				ClientID:       "8974",
+				CanonicalFacts: validCanonicalFacts,
+				Dispatchers: map[string]interface{}{
+					tc.dispatcher:       tc.dispatcherFeatures,
+					"spacely_sprockets": map[string]string{"sprocket_version": "10.01"},
+				},
+			}
+
+			connectedClientRecorder.RecordConnectedClient(context.TODO(), id, connectedClient)
+
+			if kafkaWriter.callCount != 1 {
+				t.Fatalf("kafka writer should have been called once")
+			}
+		})
+	}
+}
+
+func TestRegisterHostWithInventoryWithCertAuth(t *testing.T) {
+
+	kafkaWriter := mockKafkaWriter{}
+	messageProducer := buildMockInventoryMessageProducer(&kafkaWriter)
+	connectedClientRecorder := &InventoryBasedConnectedClientRecorder{MessageProducer: messageProducer, ReporterName: "unit-test"}
+
+	id := validIdentityWithCertAuth
+
+	connectedClient := domain.ConnectorClientState{
+		Account:        "1234567",
+		OrgID:          "9876",
+		ClientID:       "8974",
+		CanonicalFacts: validCanonicalFacts,
+		Dispatchers: map[string]interface{}{
+			packageManagerDispatcherKey: map[string]string{"version": "0.0.1"},
+			"spacely_sprockets":         map[string]string{"sprocket_version": "10.01"},
+		},
+	}
+
+	connectedClientRecorder.RecordConnectedClient(context.TODO(), id, connectedClient)
+
+	if kafkaWriter.callCount != 1 {
+		t.Fatalf("kafka writer should have been called once")
+	}
+
+	err := validateInventoryMessage(kafkaWriter.message, connectedClient.ClientID)
+	if err != nil {
+		t.Fatalf("validation of inventory message failed: %s", err)
+	}
+}
+
+func validateInventoryMessage(b []byte, expectedClientID domain.ClientID) error {
+	var envelope inventoryMessageEnvelope
+
+	err := json.Unmarshal(b, &envelope)
+	if err != nil {
+		return err
+	}
+
+	// This is really gross.  Using map[string]interface{} was pretty easy when
+	// building the message to send to inventory, but now its painful to validate
+	// the message within a test.  This needs to be converted to use a real struct
+	// and "encoding/json" to do the marshalling.
+
+	var ok bool
+	var data map[string]interface{}
+	var systemProfile map[string]interface{}
+
+	if data, ok = envelope.Data.(map[string]interface{}); !ok {
+		return fmt.Errorf("could not parse inventory data field")
+	}
+
+	if systemProfile, ok = data["system_profile"].(map[string]interface{}); !ok {
+		return fmt.Errorf("could not parse system_profile data")
+	}
+
+	var ownerID string
+	if ownerID, ok = systemProfile["owner_id"].(string); !ok {
+		return fmt.Errorf("could not parse \"owner_id\" field")
+	}
+
+	if ownerID != string(expectedClientID) {
+		return fmt.Errorf("\"owner_id\" (%s) field does not match expected data (%s)", ownerID, expectedClientID)
+	}
+
+	return nil
 }
