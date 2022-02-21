@@ -154,18 +154,14 @@ func handleOnlineMessage(client MQTT.Client, clientID domain.ClientID, msg proto
 		return nil
 	}
 
-	if shouldHostBeRegisteredWithInventory(handshakePayload) == true {
+	err = connectedClientRecorder.RecordConnectedClient(context.Background(), identity, rhcClient)
+	if err != nil {
+		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to record client id within the platform")
 
-		err = connectedClientRecorder.RecordConnectedClient(context.Background(), identity, rhcClient)
+		// If we cannot "register" the connection with inventory, then send a disconnect message
+		mqtt.SendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, clientID, cfg.InvalidHandshakeReconnectDelay)
 
-		if err != nil {
-			logger.WithFields(logrus.Fields{"error": err}).Error("Failed to record client id within the platform")
-
-			// If we cannot "register" the connection with inventory, then send a disconnect message
-			mqtt.SendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, clientID, cfg.InvalidHandshakeReconnectDelay)
-
-			return nil
-		}
+		return nil
 	}
 
 	processDispatchers(sourcesRecorder, identity, account, orgID, clientID, handshakePayload)
@@ -210,30 +206,6 @@ func isDuplicateOrOldMessage(currentConnectionState domain.ConnectorClientState,
 	}
 
 	return false
-}
-
-func shouldHostBeRegisteredWithInventory(handshakePayload map[string]interface{}) bool {
-	return doesHostHaveCanonicalFacts(handshakePayload) && doesHostHavePlaybookWorker(handshakePayload)
-}
-
-func doesHostHaveCanonicalFacts(handshakePayload map[string]interface{}) bool {
-	_, gotCanonicalFacts := handshakePayload[canonicalFactsKey]
-	return gotCanonicalFacts
-}
-
-func doesHostHavePlaybookWorker(handshakePayload map[string]interface{}) bool {
-
-	dispatchers, gotDispatchers := handshakePayload[dispatchersKey]
-
-	if gotDispatchers == false {
-		return false
-	}
-
-	dispatchersMap := dispatchers.(map[string]interface{})
-
-	_, foundPlaybookDispatcher := dispatchersMap[playbookWorkerDispatcherKey]
-
-	return foundPlaybookDispatcher
 }
 
 func processDispatchers(sourcesRecorder controller.SourcesRecorder, identity domain.Identity, account domain.AccountID, orgID domain.OrgID, clientId domain.ClientID, handshakePayload map[string]interface{}) {

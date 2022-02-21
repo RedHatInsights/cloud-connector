@@ -45,6 +45,13 @@ func (mar *mockAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cl
 	return domain.Identity("1111"), domain.AccountID("000111"), domain.OrgID("000001"), nil
 }
 
+type mockConnectedClientRecorder struct {
+}
+
+func (this *mockConnectedClientRecorder) RecordConnectedClient(ctx context.Context, identity domain.Identity, rhcClient domain.ConnectorClientState) error {
+	return nil
+}
+
 func TestHandleOnlineMessagesNoExistingConnection(t *testing.T) {
 
 	var mqttClient MQTT.Client
@@ -55,7 +62,7 @@ func TestHandleOnlineMessagesNoExistingConnection(t *testing.T) {
 	var connectionRegistrar = &mockConnectionRegistrar{
 		clients: make(map[domain.ClientID]domain.ConnectorClientState),
 	}
-	var connectedClientRecorder controller.ConnectedClientRecorder
+	var connectedClientRecorder = &mockConnectedClientRecorder{}
 	var sourcesRecorder controller.SourcesRecorder
 
 	incomingMessage := buildOnlineMessage(t, "56789", time.Now())
@@ -83,7 +90,7 @@ func TestHandleOnlineMessagesUpdateExistingConnection(t *testing.T) {
 	var connectionRegistrar = &mockConnectionRegistrar{
 		clients: make(map[domain.ClientID]domain.ConnectorClientState),
 	}
-	var connectedClientRecorder controller.ConnectedClientRecorder
+	var connectedClientRecorder = &mockConnectedClientRecorder{}
 	var sourcesRecorder controller.SourcesRecorder
 
 	var connectionState = domain.ConnectorClientState{
@@ -129,7 +136,7 @@ func TestHandleDuplicateAndOldOnlineMessages(t *testing.T) {
 	var cfg config.Config
 	var topicBuilder mqtt.TopicBuilder
 	var accountResolver = &mockAccountIdResolver{}
-	var connectedClientRecorder controller.ConnectedClientRecorder
+	var connectedClientRecorder = &mockConnectedClientRecorder{}
 	var sourcesRecorder controller.SourcesRecorder
 
 	now := time.Now()

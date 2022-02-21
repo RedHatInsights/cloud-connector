@@ -20,9 +20,9 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 	defer cancel()
 
 	statement, err := databaseConn.Prepare(
-		`SELECT account, org_id, client_id, canonical_facts, tags FROM connections
+		`SELECT account, org_id, client_id, canonical_facts, tags, dispatchers FROM connections
            WHERE canonical_facts != '{}' AND
-             dispatchers ? 'rhc-worker-playbook' AND
+           ( dispatchers ? 'rhc-worker-playbook' OR dispatchers ? 'package-manager' ) AND
              stale_timestamp < $1
              order by stale_timestamp asc
              limit $2`)
@@ -40,43 +40,47 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 	defer rows.Close()
 
 	for rows.Next() {
-		var account domain.AccountID
 		var orgID sql.NullString
-		var clientID domain.ClientID
 		var canonicalFactsString sql.NullString
 		var tagsString sql.NullString
+		var dispatchersString sql.NullString
 
-		if err := rows.Scan(&account, &orgID, &clientID, &canonicalFactsString, &tagsString); err != nil {
+		var connectorClient domain.ConnectorClientState
+
+		if err := rows.Scan(&connectorClient.Account, &orgID, &connectorClient.ClientID, &canonicalFactsString, &tagsString, &dispatchersString); err != nil {
 			logger.LogError("SQL scan failed.  Skipping row.", err)
 			continue
 		}
 
-		var canonicalFacts domain.CanonicalFacts
+		if orgID.Valid {
+			connectorClient.OrgID = domain.OrgID(orgID.String)
+		}
+
+		if dispatchersString.Valid {
+			err = json.Unmarshal([]byte(dispatchersString.String), &connectorClient.Dispatchers)
+			if err != nil {
+				logger.LogErrorWithAccountAndClientId("Unable to parse dispatchers from database.  Skipping connection.", err, connectorClient.Account, connectorClient.OrgID, connectorClient.ClientID)
+				continue
+			}
+		}
+
 		if canonicalFactsString.Valid {
-			err = json.Unmarshal([]byte(canonicalFactsString.String), &canonicalFacts)
+			err = json.Unmarshal([]byte(canonicalFactsString.String), &connectorClient.CanonicalFacts)
 			if err != nil {
-				logger.LogErrorWithAccountAndClientId("Unable to parse canonical facts.  Skipping connection.", err, account, domain.OrgID(orgID.String), clientID)
+				logger.LogErrorWithAccountAndClientId("Unable to parse canonical facts from database.  Skipping connection.", err, connectorClient.Account, connectorClient.OrgID, connectorClient.ClientID)
 				continue
 			}
 		}
 
-		var tags domain.Tags
 		if tagsString.Valid {
-			err = json.Unmarshal([]byte(tagsString.String), &tags)
+			err = json.Unmarshal([]byte(tagsString.String), &connectorClient.Tags)
 			if err != nil {
-				logger.LogErrorWithAccountAndClientId("Unable to parse tags.  Skipping connection.", err, account, domain.OrgID(orgID.String), clientID)
+				logger.LogErrorWithAccountAndClientId("Unable to parse tags from database.  Skipping connection.", err, connectorClient.Account, connectorClient.OrgID, connectorClient.ClientID)
 				continue
 			}
 		}
 
-		rhcClient := domain.ConnectorClientState{
-			Account:        account,
-			ClientID:       clientID,
-			CanonicalFacts: canonicalFacts,
-			Tags:           tags,
-		}
-
-		processConnection(ctx, rhcClient)
+		processConnection(ctx, connectorClient)
 	}
 
 	return nil
