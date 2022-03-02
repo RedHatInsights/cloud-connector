@@ -1,6 +1,7 @@
 package api
 
 import (
+	"math"
 	"net/url"
 	"strconv"
 )
@@ -40,12 +41,12 @@ func buildNavigationLink(originalUrl *url.URL, offset int, limit int) string {
 }
 
 func buildNavigationLinks(u *url.URL, offset, limit, total int) *navigationLinks {
-	first_offset := 0
-	last_offset := total - 1
-	next_offset := offset + limit
-	prev_offset := offset - limit
-	if prev_offset < 0 {
-		prev_offset = 0
+	firstOffset := 0
+	lastOffset := calculateOffsetOfLastPage(total, limit)
+	nextOffset := offset + limit
+	previousOffset := offset - limit
+	if previousOffset < 0 {
+		previousOffset = 0
 	}
 
 	if total == 0 {
@@ -53,17 +54,22 @@ func buildNavigationLinks(u *url.URL, offset, limit, total int) *navigationLinks
 	}
 
 	l := navigationLinks{
-		First: buildNavigationLink(u, first_offset, limit),
-		Last:  buildNavigationLink(u, last_offset, limit),
+		First: buildNavigationLink(u, firstOffset, limit),
+		Last:  buildNavigationLink(u, lastOffset, limit),
 	}
 
-	if next_offset < total {
-		l.Next = buildNavigationLink(u, next_offset, limit)
+	if nextOffset < total {
+		l.Next = buildNavigationLink(u, nextOffset, limit)
 	}
 
 	if offset > 0 {
-		l.Prev = buildNavigationLink(u, prev_offset, limit)
+		l.Prev = buildNavigationLink(u, previousOffset, limit)
 	}
 
 	return &l
+}
+
+func calculateOffsetOfLastPage(total int, limit int) int {
+	lastPage := int(math.Floor(float64(math.Max(float64(total-1), 0)) / float64(limit)))
+	return lastPage * limit
 }
