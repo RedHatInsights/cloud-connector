@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -146,13 +147,24 @@ func (jr *MessageReceiver) handleJob() http.HandlerFunc {
 	}
 }
 
+type verifyConnectionIDMessage func(*http.Request, connectionID) error
+
 func (jr *MessageReceiver) handleConnectionStatus() http.HandlerFunc {
+
+	inputVerifier := func(req *http.Request, connID connectionID) error {
+		principal, _ := middlewares.GetPrincipal(req.Context())
+		if principal.GetAccount() != connID.Account {
+			return fmt.Errorf(accountMismatchErrorMsg)
+		}
+		return nil
+	}
+
 	return func(w http.ResponseWriter, req *http.Request) {
-		getConnectionStatus(w, req, jr.connectionMgr)
+		getConnectionStatus(w, req, jr.connectionMgr, inputVerifier)
 	}
 }
 
-func getConnectionStatus(w http.ResponseWriter, req *http.Request, connectionLocator connection_repository.ConnectionLocator) {
+func getConnectionStatus(w http.ResponseWriter, req *http.Request, connectionLocator connection_repository.ConnectionLocator, verifyInput verifyConnectionIDMessage) {
 	principal, _ := middlewares.GetPrincipal(req.Context())
 	requestId := request_id.GetReqID(req.Context())
 	logger := logger.Log.WithFields(logrus.Fields{
@@ -167,6 +179,14 @@ func getConnectionStatus(w http.ResponseWriter, req *http.Request, connectionLoc
 	if err := decodeJSON(body, &connID); err != nil {
 		errorResponse := errorResponse{Title: "Unable to process json input",
 			Status: http.StatusBadRequest,
+			Detail: err.Error()}
+		writeJSONResponse(w, errorResponse.Status, errorResponse)
+		return
+	}
+
+	if err := verifyInput(req, connID); err != nil {
+		errorResponse := errorResponse{Title: err.Error(),
+			Status: http.StatusForbidden,
 			Detail: err.Error()}
 		writeJSONResponse(w, errorResponse.Status, errorResponse)
 		return

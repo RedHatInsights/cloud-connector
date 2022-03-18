@@ -454,6 +454,57 @@ var _ = Describe("MessageReceiver", func() {
 		})
 
 	})
+
+	Describe("Check the status of a connection", func() {
+
+		Context("With a valid identity header", func() {
+			It("Should not allow checking the connection with account in header does not match request", func() {
+
+				postBody := createConnectionStatusPostBody(CONNECTED_ACCOUNT_NUMBER, CONNECTED_NODE_ID)
+
+				req, err := http.NewRequest("POST", URL_BASE_PATH+"/connection_status", postBody)
+				Expect(err).NotTo(HaveOccurred())
+
+				validIdentityHeader = buildIdentityHeader("4321", "Associate") // Use the "wrong" account number here
+
+				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
+
+				rr := httptest.NewRecorder()
+
+				jr.router.ServeHTTP(rr, req)
+
+				Expect(rr.Code).To(Equal(http.StatusForbidden))
+
+				verifyErrorResponse(rr.Body, accountMismatchErrorMsg)
+			})
+		})
+
+		Context("With a valid psk", func() {
+			It("Should not allow checking the connection with account in header does not match request", func() {
+
+				jr.config.ServiceToServiceCredentials["test_client_1"] = "12345"
+
+				postBody := createConnectionStatusPostBody(CONNECTED_ACCOUNT_NUMBER, CONNECTED_NODE_ID)
+
+				req, err := http.NewRequest("POST", URL_BASE_PATH+"/connection_status", postBody)
+				Expect(err).NotTo(HaveOccurred())
+
+				req.Header.Add(TOKEN_HEADER_CLIENT_NAME, "test_client_1")
+				req.Header.Add(TOKEN_HEADER_ACCOUNT_NAME, "0000001") // Use the "wrong" account number here
+				req.Header.Add(TOKEN_HEADER_PSK_NAME, "12345")
+
+				rr := httptest.NewRecorder()
+
+				jr.router.ServeHTTP(rr, req)
+
+				Expect(rr.Code).To(Equal(http.StatusForbidden))
+
+				verifyErrorResponse(rr.Body, accountMismatchErrorMsg)
+			})
+		})
+
+	})
+
 })
 
 func verifyErrorResponse(body *bytes.Buffer, expectedDetail string) {
