@@ -195,8 +195,15 @@ func (s *ManagementServer) handleReconnect() http.HandlerFunc {
 }
 
 func (s *ManagementServer) handleConnectionStatus() http.HandlerFunc {
+
+	inputVerifier := func(req *http.Request, connID connectionID) error {
+		// This is the management interface...so do not verify that the
+		// account from the header matches the account in the request
+		return nil
+	}
+
 	return func(w http.ResponseWriter, req *http.Request) {
-		getConnectionStatus(w, req, s.connectionMgr)
+		getConnectionStatus(w, req, s.connectionMgr, inputVerifier)
 	}
 }
 
