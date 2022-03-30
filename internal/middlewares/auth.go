@@ -65,7 +65,7 @@ func GetPrincipal(ctx context.Context) (Principal, bool) {
 	p, ok := ctx.Value(principalKey).(serviceToServicePrincipal)
 	if !ok {
 		id, ok := ctx.Value(identity.Key).(identity.XRHID)
-		p := identityPrincipal{account: id.Identity.AccountNumber, orgID: id.Identity.Internal.OrgID}
+		p := identityPrincipal{account: id.Identity.AccountNumber, orgID: id.Identity.OrgID}
 		return p, ok
 	}
 	return p, ok
