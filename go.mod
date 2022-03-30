@@ -23,7 +23,7 @@ require (
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/prometheus/client_golang v1.12.0
 	github.com/redhatinsights/app-common-go v1.6.0
-	github.com/redhatinsights/platform-go-middlewares v0.10.0
+	github.com/redhatinsights/platform-go-middlewares v0.12.0
 	github.com/segmentio/kafka-go v0.4.27
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/afero v1.8.0 // indirect
