@@ -16,13 +16,13 @@ curl -s $CICD_URL/bootstrap.sh > .cicd_bootstrap.sh && source .cicd_bootstrap.sh
 source $CICD_ROOT/build.sh
 source $CICD_ROOT/deploy_ephemeral_env.sh
 
-COMPONENT_NAME="cloud-connector"
-
 # Run Cloud Connector isolated tests
+COMPONENT_NAME="cloud-connector"
 IQE_PLUGINS="cloud-connector"
 source $CICD_ROOT/cji_smoke_test.sh
 
 # Run RHC Contract integration tests
+COMPONENT_NAME="playbook-dispatcher"
 IQE_PLUGINS="rhc-contract"
 IQE_IMAGE_TAG="rhc-contract"
 source $CICD_ROOT/cji_smoke_test.sh
