@@ -3,7 +3,7 @@
   "servers": [
     {
       "description": "Cloud-Connector API",
-      "url": "/api/cloud-connector/v1/"
+      "url": "/api/cloud-connector/"
     }
   ],
   "info": {
@@ -22,7 +22,50 @@
     }
   ],
   "paths": {
-    "/message": {
+    "/v2/message": {
+      "post": {
+        "tags": [
+          "api"
+        ],
+        "summary": "Submit a message to be routed to a customers environment.  This method will take the permitted tenants into consideration when looking up the connection details.  The value of the x-rh-cloud-connector-org-id header is compared against the permitted tenants to locate the connection.",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          },
+          {
+            "PSKAuthClientID": [],
+            "PSKAuthAccount": [],
+            "PSKAuthOrgID": [],
+            "PSKAuthKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageRequestV2"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No connection to the target connected client"
+          }
+        }
+      }
+    },
+    "/v1/message": {
       "post": {
         "tags": [
           "api"
@@ -65,7 +108,51 @@
         }
       }
     },
-    "/connection_status": {
+    "/v2/connection_status": {
+      "post": {
+        "operationId": "v2.connection.status.multiorg",
+        "tags": [
+          "api"
+        ],
+        "summary": "Retrieve the status of the connection.  This method will take the permitted tenants into consideration when looking up the connection details.  The value of the x-rh-cloud-connector-org-id header is compared against the permitted tenants to locate the connection.",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          },
+          {
+            "PSKAuthClientID": [],
+            "PSKAuthAccount": [],
+            "PSKAuthOrgID": [],
+            "PSKAuthKey": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionStatusRequestV2"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionStatusResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No connection to the target connected client"
+          }
+        }
+      }
+    },
+    "/v1/connection_status": {
       "post": {
         "operationId": "v1.connection.status.multiorg",
         "tags": [
@@ -109,7 +196,7 @@
         }
       }
     },
-    "/connection": {
+    "/v1/connection": {
       "get": {
         "tags": [
           "api",
@@ -148,7 +235,7 @@
         }
       }
     },
-    "/connection/{account}": {
+    "/v1/connection/{account}": {
       "get": {
         "tags": [
           "api",
@@ -190,7 +277,7 @@
         }
       }
     },
-    "/connection/status": {
+    "/v1/connection/status": {
       "post": {
         "operationId": "v1.connection.status",
         "tags": [
@@ -231,7 +318,7 @@
         }
       }
     },
-    "/connection/ping": {
+    "/v1/connection/ping": {
       "post": {
         "tags": [
           "api",
@@ -271,7 +358,7 @@
         }
       }
     },
-    "/connection/reconnect": {
+    "/v1/connection/reconnect": {
       "post": {
         "tags": [
           "api",
@@ -304,7 +391,7 @@
         }
       }
     },
-    "/connection/disconnect": {
+    "/v1/connection/disconnect": {
       "post": {
         "tags": [
           "api",
@@ -434,6 +521,26 @@
           }
         }
       },
+      "MessageRequestV2": {
+        "type": "object",
+        "properties": {
+          "recipient": {
+            "type": "string"
+          },
+          "payload": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "directive": {
+            "type": "string"
+          }
+        }
+      },
       "PaginatedResponseMeta": {
         "type": "object",
         "properties": {
@@ -518,6 +625,14 @@
               "type": "string",
               "example": "node-a"
             }
+          }
+        }
+      },
+      "ConnectionStatusRequestV2": {
+        "type": "object",
+        "properties": {
+          "client_id": {
+            "type": "string"
           }
         }
       },
