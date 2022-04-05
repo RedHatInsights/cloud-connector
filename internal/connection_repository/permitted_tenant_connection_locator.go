@@ -43,7 +43,7 @@ func (pacl *PermittedTenantConnectionLocator) GetConnection(ctx context.Context,
 
 	// Match a connection if the account number matches or if the org_id is within the permitted_tenants list
 	statement, err := pacl.database.Prepare(`SELECT account, org_id, client_id, dispatchers, permitted_tenants FROM connections
-	WHERE (account = $1 OR ((org_id != null OR org_id != '') AND (org_id = $2 OR permitted_tenants @> to_jsonb($2::text))) )
+        WHERE (account = $1 OR ((org_id is not null AND org_id != '') AND (org_id = $2 OR permitted_tenants @> to_jsonb($2::text))) )
         AND client_id = $3`)
 	if err != nil {
 		logger.LogError("SQL Prepare failed", err)
