@@ -225,6 +225,15 @@ func validateInventoryMessage(b []byte, expectedClientID domain.ClientID) error 
 		return fmt.Errorf("could not parse inventory data field")
 	}
 
+	var orgID string
+	if orgID, ok = data["org_id"].(string); !ok {
+		return fmt.Errorf("could not parse \"org_id\" field")
+	}
+
+	if orgID != "9876" {
+		return fmt.Errorf("\"org_id\" (%s) field does not match expected data (%s)", orgID, expectedClientID)
+	}
+
 	if systemProfile, ok = data["system_profile"].(map[string]interface{}); !ok {
 		return fmt.Errorf("could not parse system_profile data")
 	}
