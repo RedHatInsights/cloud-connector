@@ -39,11 +39,6 @@ func (pacl *PermittedTenantConnectionLocator) GetConnection(ctx context.Context,
 		"account": account,
 		"org_id":  org_id})
 
-	if account == "" || org_id == "" || client_id == "" {
-		log.Warn("Missing required parameters (account, org_id, client_id)")
-		return nil
-	}
-
 	log.Info("Searching for connection")
 
 	// Match a connection if the account number matches or if the org_id is within the permitted_tenants list
