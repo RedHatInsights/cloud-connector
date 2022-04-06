@@ -198,13 +198,13 @@ func TestRegisterHostWithInventoryWithCertAuth(t *testing.T) {
 		t.Fatalf("kafka writer should have been called once")
 	}
 
-	err := validateInventoryMessage(kafkaWriter.message, connectedClient.ClientID)
+	err := validateInventoryMessage(kafkaWriter.message, connectedClient.OrgID, connectedClient.ClientID)
 	if err != nil {
 		t.Fatalf("validation of inventory message failed: %s", err)
 	}
 }
 
-func validateInventoryMessage(b []byte, expectedClientID domain.ClientID) error {
+func validateInventoryMessage(b []byte, expectedOrgID domain.OrgID, expectedClientID domain.ClientID) error {
 	var envelope inventoryMessageEnvelope
 
 	err := json.Unmarshal(b, &envelope)
@@ -230,8 +230,8 @@ func validateInventoryMessage(b []byte, expectedClientID domain.ClientID) error 
 		return fmt.Errorf("could not parse \"org_id\" field")
 	}
 
-	if orgID != "9876" {
-		return fmt.Errorf("\"org_id\" (%s) field does not match expected data (%s)", orgID, expectedClientID)
+	if orgID != string(expectedOrgID) {
+		return fmt.Errorf("\"org_id\" (%s) field does not match expected data (%s)", orgID, expectedOrgID)
 	}
 
 	if systemProfile, ok = data["system_profile"].(map[string]interface{}); !ok {
