@@ -85,11 +85,12 @@ func TestPermittedTenantConnectionLocator(t *testing.T) {
 		clientIDToSearchFor domain.ClientID
 		verifyResults       func(*testing.T, mockConnectorClientProxyFactory)
 	}{
-		{"primary account match", "999999", "11111", "client-1", "[]", "999999", "", "client-1", verifyProxyFactoryWasCalled("999999", "client-1")},
-		{"primary org_id match", "888888", "11112", "client-2", "[\"0001\", \"0002\"]", "", "11112", "client-2", verifyProxyFactoryWasCalled("888888", "client-2")},
+		{"primary account match", "999999", "11111", "client-1", "[]", "999999", "dont_match_org_id", "client-1", verifyProxyFactoryWasCalled("999999", "client-1")},
+		{"primary org_id match", "888888", "11112", "client-2", "[\"0001\", \"0002\"]", "dont_match_account", "11112", "client-2", verifyProxyFactoryWasCalled("888888", "client-2")},
 		{"primary account match and org_id match", "2222", "3333", "client-2", "[\"0001\", \"0002\"]", "2222", "3333", "client-2", verifyProxyFactoryWasCalled("2222", "client-2")},
-		{"permitted tenant match", "888888", "11112", "client-2", "[\"0001\", \"0002\"]", "", "0002", "client-2", verifyProxyFactoryWasCalled("888888", "client-2")},
-		{"no matching account, no matching primary org_id, no matching permitted tenants", "999999", "111113", "client-3", "[]", "888888", "77777", "client-3", verifyProxyFactoryWasNotCalled()},
+		{"permitted tenant match", "888888", "11112", "client-2", "[\"0001\", \"0002\"]", "dont_match_account", "0002", "client-2", verifyProxyFactoryWasCalled("888888", "client-2")},
+		{"no matching account, no matching primary org_id, no matching permitted tenants (empty array)", "999999", "111113", "client-3", "[]", "888888", "77777", "client-3", verifyProxyFactoryWasNotCalled()},
+		{"no matching account, no matching primary org_id, no matching permitted tenants", "999999", "111113", "client-3", "[\"nomatch\",\"nope\"]", "888888", "77777", "client-3", verifyProxyFactoryWasNotCalled()},
 		{"search for blank org_id", "999999", "", "client-3", "[]", "888888", "", "client-3", verifyProxyFactoryWasNotCalled()},
 		{"account matches, but client-id does not", "999999", "111114", "client-4", "[]", "999999", "1111", "will-not-find-this-client", verifyProxyFactoryWasNotCalled()},
 		{"account matches, primary org_id matches, but client-id does not", "999999", "111114", "client-4", "[111114]", "999999", "111114", "will-not-find-this-client", verifyProxyFactoryWasNotCalled()},
