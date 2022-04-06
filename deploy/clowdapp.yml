@@ -112,6 +112,10 @@ objects:
         metrics:
           enabled: False
       minReplicas: ${{MQTT_CONSUMER_REPLICAS}}
+      # Explicitly set the deployment strategy to recreate so that there is only
+      # one mqtt consumer running at a time
+      deploymentStrategy:
+        privateStrategy: Recreate
       podSpec:
         minReadySeconds: 15
         progressDeadlineSeconds: 600
