@@ -11,6 +11,8 @@ objects:
     name: cloud-connector
   spec:
     envName: ${ENV_NAME}
+    optionalDependencies:
+      - playbook-dispatcher
     testing:
       iqePlugin: cloud-connector
     inMemoryDb: false
