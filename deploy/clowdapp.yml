@@ -12,6 +12,7 @@ objects:
   spec:
     envName: ${ENV_NAME}
     optionalDependencies:
+      - ingress
       - playbook-dispatcher
     testing:
       iqePlugin: cloud-connector
