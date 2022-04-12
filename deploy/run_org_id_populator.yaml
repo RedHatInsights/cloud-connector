@@ -1,0 +1,9 @@
+---
+apiVersion: cloud.redhat.com/v1alpha1
+kind: ClowdJobInvocation
+metadata:
+    name: populate-org-id-column-1
+spec:
+  appName: cloud-connector
+  jobs:
+    - org-id-populator
