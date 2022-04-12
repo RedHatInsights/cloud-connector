@@ -305,6 +305,38 @@ objects:
 
 
     jobs:
+
+    - name: org-id-populator
+      podSpec:
+        image: quay.io/dehort/tenant-utils:f320347e8e4
+        command:
+          - ./org-id-column-populator
+          - -C
+          - -a
+          - account
+          - -o
+          - org_id
+          - -t
+          - connections
+          - --ean-translator-addr
+          - ${TENANT_TRANSLATOR_PROTOCOL}://${TENANT_TRANSLATOR_HOST}:${TENANT_TRANSLATOR_PORT}
+        env:
+          - name: TENANT_TRANSLATOR_PROTOCOL
+            value: ${TENANT_TRANSLATOR_PROTOCOL}
+          - name: TENANT_TRANSLATOR_HOST
+            value: ${TENANT_TRANSLATOR_HOST}
+          - name: TENANT_TRANSLATOR_PORT
+            value: ${TENANT_TRANSLATOR_PORT}
+          - name: LOG_FORMAT
+            value: ${LOG_FORMAT}
+        resources:
+          limits:
+            cpu: 300m
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 512Mi
+
     - name: connection-per-account-reporter
       schedule: ${CONNECTION_PER_ACCOUNT_REPORTER_SCHEDULE}
       suspend: ${{CONNECTION_PER_ACCOUNT_REPORTER_SUSPEND}}
@@ -576,3 +608,13 @@ parameters:
   value: "stdout"
 - name: CONNECTION_COUNT_PER_ACCOUNT_REPORT_ACCOUNT_EXCLUSION_LIST
   value: "477931,6089719,540155"
+
+- name: TENANT_TRANSLATOR_HOST
+  value: 'apicast.3scale-dev.svc.cluster.local'
+- name: TENANT_TRANSLATOR_PORT
+  value: '8892'
+- name: TENANT_TRANSLATOR_PROTOCOL
+  value: 'http'
+
+- name: PROMETHEUS_PUSH_GATEWAY
+  value: prometheus-push.insights-push-stage.svc.cluster.local:9091
