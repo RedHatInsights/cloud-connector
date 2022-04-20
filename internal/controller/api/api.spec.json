@@ -22,7 +22,7 @@
     }
   ],
   "paths": {
-    "/v2/message": {
+    "/v2/connections/{id}/message": {
       "post": {
         "tags": [
           "api"
@@ -37,6 +37,11 @@
             "PSKAuthAccount": [],
             "PSKAuthOrgID": [],
             "PSKAuthKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ID"
           }
         ],
         "requestBody": {
@@ -55,6 +60,55 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No connection to the target connected client"
+          }
+        }
+      }
+    },
+    "/v2/connections/{id}/status": {
+      "post": {
+        "operationId": "v2.connection.status.multiorg",
+        "tags": [
+          "api"
+        ],
+        "summary": "Retrieve the status of the connection.  This method will take the permitted tenants into consideration when looking up the connection details.  The value of the x-rh-cloud-connector-org-id header is compared against the permitted tenants to locate the connection.",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          },
+          {
+            "PSKAuthClientID": [],
+            "PSKAuthAccount": [],
+            "PSKAuthOrgID": [],
+            "PSKAuthKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/ID"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConnectionStatusRequestV2"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionStatusResponse"
                 }
               }
             }
@@ -98,50 +152,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MessageResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No connection to the target connected client"
-          }
-        }
-      }
-    },
-    "/v2/connection_status": {
-      "post": {
-        "operationId": "v2.connection.status.multiorg",
-        "tags": [
-          "api"
-        ],
-        "summary": "Retrieve the status of the connection.  This method will take the permitted tenants into consideration when looking up the connection details.  The value of the x-rh-cloud-connector-org-id header is compared against the permitted tenants to locate the connection.",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          },
-          {
-            "PSKAuthClientID": [],
-            "PSKAuthAccount": [],
-            "PSKAuthOrgID": [],
-            "PSKAuthKey": []
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ConnectionStatusRequestV2"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConnectionStatusResponse"
                 }
               }
             }
@@ -427,6 +437,15 @@
   },
   "components": {
     "parameters": {
+      "ID": {
+        "name": "id",
+        "in": "path",
+        "description": "The connection ID",
+        "required": true,
+        "schema": {
+          "type": "string"
+        }
+      },
       "AccountID": {
         "in": "path",
         "name": "account",
