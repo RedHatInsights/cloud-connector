@@ -620,5 +620,5 @@ parameters:
 - name: TENANT_TRANSLATOR_PROTOCOL
   value: 'http'
 
-- name: PROMETHEUS_PUSH_GATEWAY
+- name: PROMETHEUS_PUSHGATEWAY
   value: prometheus-push.insights-push-stage.svc.cluster.local:9091
