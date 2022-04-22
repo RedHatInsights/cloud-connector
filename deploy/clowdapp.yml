@@ -331,6 +331,8 @@ objects:
             value: ${TENANT_TRANSLATOR_PORT}
           - name: LOG_FORMAT
             value: ${LOG_FORMAT}
+          - name: PROMETHEUS_PUSHGATEWAY
+            value: ${PROMETHEUS_PUSHGATEWAY}
         resources:
           limits:
             cpu: 300m
