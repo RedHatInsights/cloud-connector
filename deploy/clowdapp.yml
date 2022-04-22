@@ -320,6 +320,8 @@ objects:
           - connections
           - --ean-translator-addr
           - ${TENANT_TRANSLATOR_PROTOCOL}://${TENANT_TRANSLATOR_HOST}:${TENANT_TRANSLATOR_PORT}
+          - --prometheus-push-addr
+          - ${PROMETHEUS_PUSHGATEWAY}
         env:
           - name: TENANT_TRANSLATOR_PROTOCOL
             value: ${TENANT_TRANSLATOR_PROTOCOL}
