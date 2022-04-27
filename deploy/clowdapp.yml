@@ -333,6 +333,8 @@ objects:
             value: ${LOG_FORMAT}
           - name: PROMETHEUS_PUSHGATEWAY
             value: ${PROMETHEUS_PUSHGATEWAY}
+          - name: LOG_BATCH_FREQUENCY
+            value: '1'
         resources:
           limits:
             cpu: 300m
