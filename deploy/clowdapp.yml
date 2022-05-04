@@ -308,7 +308,7 @@ objects:
 
     - name: org-id-populator
       podSpec:
-        image: quay.io/cloudservices/tenant-utils:pr-7-84b5529
+        image: quay.io/cloudservices/tenant-utils:29873f2
         command:
           - ./org-id-column-populator
           - -C
