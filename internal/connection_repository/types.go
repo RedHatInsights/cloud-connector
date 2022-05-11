@@ -6,6 +6,8 @@ import (
 
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
+
+	"github.com/sirupsen/logrus"
 )
 
 type FatalError struct {
@@ -27,3 +29,6 @@ type ConnectionLocator interface {
 	GetConnectionsByAccount(context.Context, domain.AccountID, int, int) (map[domain.ClientID]controller.ConnectorClient, int, error)
 	GetAllConnections(context.Context, int, int) (map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient, int, error)
 }
+
+type GetConnectionByClientID func(context.Context, *logrus.Entry, domain.OrgID, domain.ClientID) (domain.ConnectorClientState, error)
+type GetConnectionsByOrgID func(context.Context, *logrus.Entry, domain.OrgID, int, int) (map[domain.ClientID]domain.ConnectorClientState, int, error)

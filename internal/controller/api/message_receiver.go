@@ -52,8 +52,8 @@ func (jr *MessageReceiver) Routes() {
 		mmw.RecordHTTPMetrics,
 		amw.Authenticate)
 
-	securedSubRouter.HandleFunc("/message", jr.handleJob()).Methods(http.MethodPost)
-	securedSubRouter.HandleFunc("/connection_status", jr.handleConnectionStatus()).Methods(http.MethodPost)
+	securedSubRouter.HandleFunc("/v1/message", jr.handleJob()).Methods(http.MethodPost)
+	securedSubRouter.HandleFunc("/v1/connection_status", jr.handleConnectionStatus()).Methods(http.MethodPost)
 }
 
 type messageRequest struct {

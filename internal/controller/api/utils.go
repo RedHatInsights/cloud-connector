@@ -95,3 +95,17 @@ func getOffsetFromQueryParams(req *http.Request) (int, error) {
 
 	return offset, nil
 }
+
+func getOffsetAndLimitFromQueryParams(req *http.Request) (offset int, limit int, err error) {
+	limit, err = getLimitFromQueryParams(req)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	offset, err = getOffsetFromQueryParams(req)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return offset, limit, nil
+}

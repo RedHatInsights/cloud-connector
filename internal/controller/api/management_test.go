@@ -21,11 +21,11 @@ import (
 )
 
 const (
-	CONNECTION_LIST_ENDPOINT       = URL_BASE_PATH + "/connection"
-	CONNECTION_STATUS_ENDPOINT     = URL_BASE_PATH + "/connection/status"
-	CONNECTION_RECONNECT_ENDPOINT  = URL_BASE_PATH + "/connection/reconnect"
-	CONNECTION_DISCONNECT_ENDPOINT = URL_BASE_PATH + "/connection/disconnect"
-	CONNECTION_PING_ENDPOINT       = URL_BASE_PATH + "/connection/ping"
+	CONNECTION_LIST_ENDPOINT       = URL_BASE_PATH + "/v1/connection"
+	CONNECTION_STATUS_ENDPOINT     = URL_BASE_PATH + "/v1/connection/status"
+	CONNECTION_RECONNECT_ENDPOINT  = URL_BASE_PATH + "/v1/connection/reconnect"
+	CONNECTION_DISCONNECT_ENDPOINT = URL_BASE_PATH + "/v1/connection/disconnect"
+	CONNECTION_PING_ENDPOINT       = URL_BASE_PATH + "/v1/connection/ping"
 
 	CONNECTED_ACCOUNT_NUMBER = "1234"
 	CONNECTED_NODE_ID        = "345"
@@ -337,8 +337,8 @@ var _ = Describe("Management", func() {
 				var expectedResponse = paginatedResponse{
 					Meta: meta{Count: 1},
 					Links: navigationLinks{
-						First: "/api/cloud-connector/api/v1/connection?limit=1000&offset=0",
-						Last:  "/api/cloud-connector/api/v1/connection?limit=1000&offset=0",
+						First: "/api/cloud-connector/v1/connection?limit=1000&offset=0",
+						Last:  "/api/cloud-connector/v1/connection?limit=1000&offset=0",
 						Next:  "",
 						Prev:  "",
 					},
@@ -427,8 +427,8 @@ var _ = Describe("Management", func() {
 				var expectedResponse = paginatedResponse{
 					Meta: meta{Count: 1},
 					Links: navigationLinks{
-						First: "/api/cloud-connector/api/v1/connection/1234?limit=1000&offset=0",
-						Last:  "/api/cloud-connector/api/v1/connection/1234?limit=1000&offset=0",
+						First: "/api/cloud-connector/v1/connection/1234?limit=1000&offset=0",
+						Last:  "/api/cloud-connector/v1/connection/1234?limit=1000&offset=0",
 						Next:  "",
 						Prev:  "",
 					},

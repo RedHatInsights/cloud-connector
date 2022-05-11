@@ -28,8 +28,8 @@ const (
 	TOKEN_HEADER_CLIENT_NAME  = middlewares.PSKClientIdHeader
 	TOKEN_HEADER_ACCOUNT_NAME = middlewares.PSKAccountHeader
 	TOKEN_HEADER_PSK_NAME     = middlewares.PSKHeader
-	URL_BASE_PATH             = "/api/cloud-connector/api/v1"
-	MESSAGE_ENDPOINT          = URL_BASE_PATH + "/message"
+	URL_BASE_PATH             = "/api/cloud-connector"
+	MESSAGE_ENDPOINT          = URL_BASE_PATH + "/v1/message"
 )
 
 type MockClientProxyFactory struct {
@@ -462,7 +462,7 @@ var _ = Describe("MessageReceiver", func() {
 
 				postBody := createConnectionStatusPostBody(CONNECTED_ACCOUNT_NUMBER, CONNECTED_NODE_ID)
 
-				req, err := http.NewRequest("POST", URL_BASE_PATH+"/connection_status", postBody)
+				req, err := http.NewRequest("POST", URL_BASE_PATH+"/v1/connection_status", postBody)
 				Expect(err).NotTo(HaveOccurred())
 
 				validIdentityHeader = buildIdentityHeader("4321", "Associate") // Use the "wrong" account number here
@@ -486,7 +486,7 @@ var _ = Describe("MessageReceiver", func() {
 
 				postBody := createConnectionStatusPostBody(CONNECTED_ACCOUNT_NUMBER, CONNECTED_NODE_ID)
 
-				req, err := http.NewRequest("POST", URL_BASE_PATH+"/connection_status", postBody)
+				req, err := http.NewRequest("POST", URL_BASE_PATH+"/v1/connection_status", postBody)
 				Expect(err).NotTo(HaveOccurred())
 
 				req.Header.Add(TOKEN_HEADER_CLIENT_NAME, "test_client_1")

@@ -416,5 +416,5 @@ func GetConfig() *Config {
 }
 
 func buildUrlBasePath(pathPrefix string, appName string) string {
-	return fmt.Sprintf("/%s/%s/v1", pathPrefix, appName)
+	return fmt.Sprintf("/%s/%s", pathPrefix, appName)
 }
