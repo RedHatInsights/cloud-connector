@@ -345,3 +345,42 @@ Two complete examples of data messages as published by the *Client*:
     "content": "rejected"
 }
 ```
+
+## Internal REST interface
+
+The internal REST interface can be used to retreive the list of connections which belong to an organization,
+get information about a connection and send messages to a connected client.
+This REST interface is only available within the cluster where cloud-connector is deployed.
+
+In order to authenticate, the client is required to pass either the identity header or the following
+pre-shared key headers:
+
+```
+"x-rh-cloud-connector-org-id"
+"x-rh-cloud-connector-client-id"
+"x-rh-cloud-connector-psk"
+```
+
+If your service is internal and will not be passing requests through 3scale a psk will be provided.
+This psk will be unique to your service.
+The `x-rh-cloud-connector-org-id` is required so that cloud-connector knows which organzation it is
+acting on behalf of.
+
+### Get list of connections for an organization
+
+```
+GET /v2/connections
+```
+
+### Get status of a connection
+
+```
+GET /v2/connections/{client_id}/status
+```
+
+### Send a message to a connected client
+```
+POST /v2/connections/{client_id}/message
+```
+
+See [API schema](./internal/controller/api/api.spec.json) for more details.

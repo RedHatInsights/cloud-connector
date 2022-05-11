@@ -175,6 +175,10 @@ func LogError(msg string, err error) {
 	Log.WithFields(logrus.Fields{"error": err}).Error(msg)
 }
 
+func LogWithError(log *logrus.Entry, msg string, err error) {
+	log.WithFields(logrus.Fields{"error": err}).Error(msg)
+}
+
 func LogErrorWithAccountAndClientId(msg string, err error, account domain.AccountID, org_id domain.OrgID, client_id domain.ClientID) {
 	Log.WithFields(logrus.Fields{"error": err,
 		"account":   account,

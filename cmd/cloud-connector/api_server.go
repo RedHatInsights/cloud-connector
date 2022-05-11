@@ -179,6 +179,19 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 	jr := api.NewMessageReceiver(permittedTenantConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
 	jr.Routes()
 
+	getConnectionFunction, err := connection_repository.NewSqlGetConnectionByClientID(cfg, database)
+	if err != nil {
+		logger.LogFatalError("Unable to create connection_repository.GetConnection() function", err)
+	}
+
+	getConnectionListByOrgIDFunction, err := connection_repository.NewSqlGetConnectionsByOrgID(cfg, database)
+	if err != nil {
+		logger.LogFatalError("Unable to create connection_repository.GetConnectionsByOrgID() function", err)
+	}
+
+	connectionMediator := api.NewConnectionMediatorV2(getConnectionFunction, getConnectionListByOrgIDFunction, proxyFactory, apiMux, cfg.UrlBasePath, cfg)
+	connectionMediator.Routes()
+
 	apiSrv := utils.StartHTTPServer(mgmtAddr, "management", apiMux)
 
 	signalChan := make(chan os.Signal, 1)

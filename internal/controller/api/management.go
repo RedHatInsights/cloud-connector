@@ -53,7 +53,7 @@ func (s *ManagementServer) Routes() {
 		RequiredTenantIdentifier: middlewares.Account, // Account is the required tenant identifier for v1 rest interface
 	}
 
-	pathPrefix := fmt.Sprintf("%s/connection", s.urlPrefix)
+	pathPrefix := fmt.Sprintf("%s/v1/connection", s.urlPrefix)
 
 	securedSubRouter := s.router.PathPrefix(pathPrefix).Subrouter()
 	securedSubRouter.Use(logger.AccessLoggerMiddleware,
