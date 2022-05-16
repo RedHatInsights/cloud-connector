@@ -287,6 +287,8 @@ objects:
 
         - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_CONSUMER_GROUP
           value: ${{RHC_MESSAGE_KAFKA_CONSUMER_GROUP}}
+        - name: CLOUD_CONNECTOR_INVENTORY_KAFKA_BATCH_SIZE
+          value: ${{INVENTORY_KAFKA_BATCH_SIZE}}
 
         - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_IMPL
           value: ${{CLIENT_ID_TO_ACCOUNT_ID_IMPL}}
@@ -565,6 +567,8 @@ parameters:
 - name: RHC_MESSAGE_KAFKA_CONSUMER_GROUP
   required: true
   value: cloud-connector-rhc-message-consumer
+- name: INVENTORY_KAFKA_BATCH_SIZE
+  value: "100"
 - name: RHC_MESSAGE_KAFKA_BATCH_SIZE
   value: "100"
 - name: RHC_MESSAGE_KAFKA_BATCH_BYTES
