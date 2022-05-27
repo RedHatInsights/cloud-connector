@@ -22,7 +22,7 @@
     }
   ],
   "paths": {
-    "/v2/connections/{id}/message": {
+    "/v2/connections/{client_id}/message": {
       "post": {
         "tags": [
           "api"
@@ -34,14 +34,13 @@
           },
           {
             "PSKAuthClientID": [],
-            "PSKAuthAccount": [],
             "PSKAuthOrgID": [],
             "PSKAuthKey": []
           }
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/ID"
+            "$ref": "#/components/parameters/ClientID"
           }
         ],
         "requestBody": {
@@ -70,8 +69,8 @@
         }
       }
     },
-    "/v2/connections/{id}/status": {
-      "post": {
+    "/v2/connections/{client_id}/status": {
+      "get": {
         "operationId": "v2.connection.status.multiorg",
         "tags": [
           "api"
@@ -83,25 +82,48 @@
           },
           {
             "PSKAuthClientID": [],
-            "PSKAuthAccount": [],
             "PSKAuthOrgID": [],
             "PSKAuthKey": []
           }
         ],
         "parameters": [
           {
-            "$ref": "#/components/parameters/ID"
+            "$ref": "#/components/parameters/ClientID"
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ConnectionStatusRequestV2"
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConnectionStatusResponse"
+                }
               }
             }
+          },
+          "404": {
+            "description": "No connection to the target connected client"
           }
-        },
+        }
+      }
+    },
+    "/v2/connections": {
+      "get": {
+        "tags": [
+          "api"
+        ],
+        "summary": "Retrieve the list of connections available to the Org Id.",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          },
+          {
+            "PSKAuthClientID": [],
+            "PSKAuthOrgID": [],
+            "PSKAuthKey": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK",
@@ -437,8 +459,8 @@
   },
   "components": {
     "parameters": {
-      "ID": {
-        "name": "id",
+      "ClientID": {
+        "name": "client_id",
         "in": "path",
         "description": "The connection ID",
         "required": true,
@@ -543,17 +565,14 @@
       "MessageRequestV2": {
         "type": "object",
         "properties": {
-          "recipient": {
-            "type": "string"
-          },
-          "payload": {
-            "type": "string"
-          },
           "metadata": {
             "type": "object",
             "additionalProperties": {
               "type": "string"
             }
+          },
+          "payload": {
+            "type": "string"
           },
           "directive": {
             "type": "string"
@@ -644,14 +663,6 @@
               "type": "string",
               "example": "node-a"
             }
-          }
-        }
-      },
-      "ConnectionStatusRequestV2": {
-        "type": "object",
-        "properties": {
-          "client_id": {
-            "type": "string"
           }
         }
       },
