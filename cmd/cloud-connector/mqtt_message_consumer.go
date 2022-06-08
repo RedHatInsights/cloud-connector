@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -55,7 +56,7 @@ func startMqttMessageConsumer(mgmtAddr string) {
 	mqttTopicVerifier := mqtt.NewTopicVerifier(cfg.MqttTopicPrefix)
 
 	kafkaProducerCfg := &kafka.ConfigMap{
-		"bootstrap.servers":  cfg.RhcMessageKafkaBrokers,
+		"bootstrap.servers":  strings.Join(cfg.RhcMessageKafkaBrokers, ","),
 		"batch.num.messages": cfg.RhcMessageKafkaBatchSize,
 		"batch.size":         cfg.RhcMessageKafkaBatchBytes,
 		"balance.strategy":   "hash",

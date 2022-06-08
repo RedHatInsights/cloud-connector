@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -36,7 +37,7 @@ func NewConnectedClientRecorder(impl string, cfg *config.Config) (ConnectedClien
 	case "inventory":
 		if config.KAFKA_SASL_MECHANISM != "" {
 			kafkaProducerCfg = &kafka.ConfigMap{
-				"bootstrap.servers": cfg.InventoryKafkaBrokers,
+				"bootstrap.servers": strings.Join(cfg.InventoryKafkaBrokers, ","),
 				"security.protocol": cfg.KafkaProtocol,
 				"sasl.mechanism":    cfg.KafkaSASLMechanism,
 				"ssl.ca.location":   cfg.KafkaCA,
@@ -48,7 +49,7 @@ func NewConnectedClientRecorder(impl string, cfg *config.Config) (ConnectedClien
 			}
 		} else {
 			kafkaProducerCfg = &kafka.ConfigMap{
-				"bootstrap.servers": cfg.InventoryKafkaBrokers,
+				"bootstrap.servers": strings.Join(cfg.InventoryKafkaBrokers, ","),
 				"batch.num.message": cfg.InventoryKafkaBatchSize,
 				"batch.size":        cfg.InventoryKafkaBatchSize,
 				"balance.strategy":  "hash",

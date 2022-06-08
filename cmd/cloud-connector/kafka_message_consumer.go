@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -78,7 +79,7 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	mqttTopicVerifier := mqtt.NewTopicVerifier(cfg.MqttTopicPrefix)
 
 	rhcMessageKafkaConsumer = kafka.ConfigMap{
-		"bootstrap.servers": cfg.RhcMessageKafkaBrokers,
+		"bootstrap.servers": strings.Join(cfg.RhcMessageKafkaBrokers, ","),
 		"group.id":          cfg.RhcMessageKafkaConsumerGroup,
 	}
 
