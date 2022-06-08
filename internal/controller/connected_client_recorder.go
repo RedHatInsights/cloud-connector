@@ -13,8 +13,8 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/queue"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/identity_utils"
 
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/google/uuid"
-	kafka "github.com/segmentio/kafka-go"
 	"github.com/sirupsen/logrus"
 )
 
@@ -30,19 +30,35 @@ type ConnectedClientRecorder interface {
 
 func NewConnectedClientRecorder(impl string, cfg *config.Config) (ConnectedClientRecorder, error) {
 
+	var kafkaProducerCfg *kafka.ConfigMap
+
 	switch impl {
 	case "inventory":
-		kafkaProducerCfg := &queue.ProducerConfig{
-			Brokers:    cfg.InventoryKafkaBrokers,
-			Topic:      cfg.InventoryKafkaTopic,
-			BatchSize:  cfg.InventoryKafkaBatchSize,
-			BatchBytes: cfg.InventoryKafkaBatchBytes,
+		if config.KAFKA_SASL_MECHANISM != "" {
+			kafkaProducerCfg = &kafka.ConfigMap{
+				"bootstrap.servers": cfg.InventoryKafkaBrokers,
+				"security.protocol": cfg.KafkaProtocol,
+				"sasl.mechanism":    cfg.KafkaSASLMechanism,
+				"ssl.ca.location":   cfg.KafkaCA,
+				"sasl.username":     cfg.KafkaUsername,
+				"sasl.password":     cfg.KafkaPassword,
+				"batch.num.message": cfg.InventoryKafkaBatchSize,
+				"batch.size":        cfg.InventoryKafkaBatchSize,
+				"balance.strategy":  "hash",
+			}
+		} else {
+			kafkaProducerCfg = &kafka.ConfigMap{
+				"bootstrap.servers": cfg.InventoryKafkaBrokers,
+				"batch.num.message": cfg.InventoryKafkaBatchSize,
+				"batch.size":        cfg.InventoryKafkaBatchSize,
+				"balance.strategy":  "hash",
+			}
 		}
 
 		kafkaProducer := queue.StartProducer(kafkaProducerCfg)
 
 		connectedClientRecorder := InventoryBasedConnectedClientRecorder{
-			MessageProducer:      BuildInventoryMessageProducer(kafkaProducer),
+			MessageProducer:      BuildInventoryMessageProducer(kafkaProducer, cfg.InventoryKafkaTopic),
 			StaleTimestampOffset: cfg.InventoryStaleTimestampOffset,
 			ReporterName:         cfg.InventoryReporterName,
 		}
@@ -84,13 +100,14 @@ type InventoryBasedConnectedClientRecorder struct {
 
 type InventoryMessageProducer func(ctx context.Context, log *logrus.Entry, msg []byte) error
 
-func BuildInventoryMessageProducer(kafkaWriter *kafka.Writer) InventoryMessageProducer {
+func BuildInventoryMessageProducer(kafkaProducer *kafka.Producer, topic string) InventoryMessageProducer {
 	return func(ctx context.Context, log *logrus.Entry, msg []byte) error {
 
-		err := kafkaWriter.WriteMessages(ctx,
-			kafka.Message{
-				Value: msg,
-			})
+		err := kafkaProducer.Produce(
+			&kafka.Message{
+				TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny},
+				Value:          msg,
+			}, nil)
 
 		log.Debug("Inventory kafka message written")
 

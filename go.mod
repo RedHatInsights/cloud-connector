@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/aws/aws-sdk-go v1.42.44
+	github.com/confluentinc/confluent-kafka-go v1.8.2 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/eclipse/paho.mqtt.golang v1.3.5
 	github.com/felixge/httpsnoop v1.0.2 // indirect

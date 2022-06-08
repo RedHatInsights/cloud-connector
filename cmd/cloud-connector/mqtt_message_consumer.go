@@ -15,6 +15,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/queue"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/tls_utils"
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 
 	"github.com/gorilla/mux"
 )
@@ -53,12 +54,11 @@ func startMqttMessageConsumer(mgmtAddr string) {
 	mqttTopicBuilder := mqtt.NewTopicBuilder(cfg.MqttTopicPrefix)
 	mqttTopicVerifier := mqtt.NewTopicVerifier(cfg.MqttTopicPrefix)
 
-	kafkaProducerCfg := &queue.ProducerConfig{
-		Brokers:    cfg.RhcMessageKafkaBrokers,
-		Topic:      cfg.RhcMessageKafkaTopic,
-		BatchSize:  cfg.RhcMessageKafkaBatchSize,
-		BatchBytes: cfg.RhcMessageKafkaBatchBytes,
-		Balancer:   "hash",
+	kafkaProducerCfg := &kafka.ConfigMap{
+		"bootstrap.servers":  cfg.RhcMessageKafkaBrokers,
+		"batch.num.messages": cfg.RhcMessageKafkaBatchSize,
+		"batch.size":         cfg.RhcMessageKafkaBatchBytes,
+		"balance.strategy":   "hash",
 	}
 
 	kafkaProducer := queue.StartProducer(kafkaProducerCfg)

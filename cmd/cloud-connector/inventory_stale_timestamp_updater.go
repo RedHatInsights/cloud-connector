@@ -11,6 +11,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/db"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/queue"
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 
 	"github.com/sirupsen/logrus"
 )
@@ -41,16 +42,32 @@ func startInventoryStaleTimestampUpdater() {
 		logger.LogFatalError("Failed to create Account ID Resolver", err)
 	}
 
-	kafkaProducerCfg := &queue.ProducerConfig{
-		Brokers:    cfg.InventoryKafkaBrokers,
-		Topic:      cfg.InventoryKafkaTopic,
-		BatchSize:  cfg.InventoryKafkaBatchSize,
-		BatchBytes: cfg.InventoryKafkaBatchBytes,
+	var kafkaProducerCfg *kafka.ConfigMap
+
+	if config.KAFKA_SASL_MECHANISM != "" {
+		kafkaProducerCfg = &kafka.ConfigMap{
+			"bootstrap.servers": cfg.InventoryKafkaBrokers,
+			"security.protocol": cfg.KafkaProtocol,
+			"sasl.mechanism":    cfg.KafkaSASLMechanism,
+			"ssl.ca.location":   cfg.KafkaCA,
+			"sasl.username":     cfg.KafkaUsername,
+			"sasl.password":     cfg.KafkaPassword,
+			"batch.num.message": cfg.InventoryKafkaBatchSize,
+			"batch.size":        cfg.InventoryKafkaBatchSize,
+			"balance.strategy":  "hash",
+		}
+	} else {
+		kafkaProducerCfg = &kafka.ConfigMap{
+			"bootstrap.servers": cfg.InventoryKafkaBrokers,
+			"batch.num.message": cfg.InventoryKafkaBatchSize,
+			"batch.size":        cfg.InventoryKafkaBatchSize,
+			"balance.strategy":  "hash",
+		}
 	}
 
 	kafkaProducer := queue.StartProducer(kafkaProducerCfg)
 
-	connectedClientRecorder, err := controller.NewInventoryBasedConnectedClientRecorder(controller.BuildInventoryMessageProducer(kafkaProducer), cfg.InventoryStaleTimestampOffset, cfg.InventoryReporterName)
+	connectedClientRecorder, err := controller.NewInventoryBasedConnectedClientRecorder(controller.BuildInventoryMessageProducer(kafkaProducer, cfg.InventoryKafkaTopic), cfg.InventoryStaleTimestampOffset, cfg.InventoryReporterName)
 	if err != nil {
 		logger.LogFatalError("Failed to create Connected Client Recorder", err)
 	}
@@ -87,7 +104,6 @@ func startInventoryStaleTimestampUpdater() {
 		})
 
 	// Explicitly close the kafka producer...this should cause a flush of any buffered messages
-	if err := kafkaProducer.Close(); err != nil {
-		logger.LogFatalError("Failed to close the kafka writer", err)
-	}
+	// confluent kafka library does not returns no value
+	kafkaProducer.Close()
 }

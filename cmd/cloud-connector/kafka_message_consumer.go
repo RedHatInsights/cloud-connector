@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"os"
 	"os/signal"
 	"sync"
@@ -25,7 +24,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	kafka "github.com/segmentio/kafka-go"
+
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/sirupsen/logrus"
 )
 
@@ -37,6 +37,9 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	logger.Log.Info("Cloud-Connector configuration:\n", cfg)
 
 	database, err := db.InitializeDatabaseConnection(cfg)
+
+	var rhcMessageKafkaConsumer kafka.ConfigMap
+
 	if err != nil {
 		logger.LogFatalError("Unable to connect to database: ", err)
 	}
@@ -74,12 +77,15 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	mqttTopicBuilder := mqtt.NewTopicBuilder(cfg.MqttTopicPrefix)
 	mqttTopicVerifier := mqtt.NewTopicVerifier(cfg.MqttTopicPrefix)
 
-	rhcMessageKafkaConsumer := queue.ConsumerConfig{
-		Brokers: cfg.RhcMessageKafkaBrokers,
-		Topic:   cfg.RhcMessageKafkaTopic,
-		GroupID: cfg.RhcMessageKafkaConsumerGroup,
+	rhcMessageKafkaConsumer = kafka.ConfigMap{
+		"bootstrap.servers": cfg.RhcMessageKafkaBrokers,
+		"group.id":          cfg.RhcMessageKafkaConsumerGroup,
 	}
-	kafkaReader := queue.StartConsumer(&rhcMessageKafkaConsumer)
+
+	kafkaReader, err := queue.StartConsumer(&rhcMessageKafkaConsumer, cfg.RhcMessageKafkaTopic)
+	if err != nil {
+		logger.LogFatalError("Failed to start Kafka consumer", err)
+	}
 
 	brokerOptions, err := buildDefaultMqttBrokerConfigFuncList(cfg.MqttBrokerAddress, tlsConfig, cfg)
 	if err != nil {
@@ -220,46 +226,48 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 	}
 }
 
-func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*kafka.Message) error, ctx context.Context, fatalProcessingError chan struct{}) {
+func consumeMqttMessagesFromKafka(kafkaReader *kafka.Consumer, process func(*kafka.Message) error, ctx context.Context, fatalProcessingError chan struct{}) {
 
 	for {
-		m, err := kafkaReader.FetchMessage(ctx)
-		if err != nil {
-			if errors.Is(err, context.Canceled) != true {
-				logger.LogError("Failed to fetch message from kafka", err)
+		event := kafkaReader.Poll(100)
+		if event == nil {
+			continue
+		}
+
+		switch e := event.(type) {
+		case *kafka.Message:
+			metrics.kafkaMessageReceivedCounter.Inc()
+			logger.Log.Debugf("message from partition %d at offset %d: %s = %s\n", e.TopicPartition.Partition, e.TopicPartition.Offset, string(e.Key), string(e.Value))
+			err := process(e)
+			if err != nil {
+				logger.LogError("Error handling message:", err)
 				// Notify the main thread to shutdown
 				fatalProcessingError <- struct{}{}
+				break
 			}
-			break
-		}
 
-		logger.Log.Debugf("message from partition %d at offset %d: %s = %s\n", m.Partition, m.Offset, string(m.Key), string(m.Value))
-
-		metrics.kafkaMessageReceivedCounter.Inc()
-
-		err = process(&m)
-		if err != nil {
-			logger.LogError("Error handling message:", err)
+			// commit the message to kafka
+			_, err = kafkaReader.Commit()
+			if err != nil {
+				logger.LogError("Error committing message:", err)
+				// Notify the main thread to shutdown
+				fatalProcessingError <- struct{}{}
+				break
+			}
+		case *kafka.Error:
+			logger.LogError("Error from kafka:", e)
 			// Notify the main thread to shutdown
 			fatalProcessingError <- struct{}{}
-			break
 		}
 
-		// explicitly commit the message
-		err = kafkaReader.CommitMessages(ctx, m)
-		if err != nil {
-			logger.LogError("Failed to commit message to kafka", err)
-			// Notify the main thread to shutdown
-			fatalProcessingError <- struct{}{}
-			break
+		logger.Log.Infof("Stopped reading kafka messages")
+
+		if err := kafkaReader.Close(); err != nil {
+			logger.LogError("Failed to close kafka reader", err)
 		}
+
 	}
 
-	logger.Log.Infof("Stopped reading kafka messages")
-
-	if err := kafkaReader.Close(); err != nil {
-		logger.LogError("Failed to close kafka reader", err)
-	}
 }
 
 type mqttMetrics struct {
