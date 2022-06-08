@@ -45,7 +45,7 @@ func startInventoryStaleTimestampUpdater() {
 
 	var kafkaProducerCfg *kafka.ConfigMap
 
-	if config.KAFKA_SASL_MECHANISM != "" {
+	if cfg.KafkaSASLMechanism != "" {
 		kafkaProducerCfg = &kafka.ConfigMap{
 			"bootstrap.servers":  strings.Join(cfg.InventoryKafkaBrokers, ","),
 			"security.protocol":  cfg.KafkaProtocol,
