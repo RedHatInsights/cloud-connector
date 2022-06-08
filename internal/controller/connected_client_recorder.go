@@ -37,20 +37,20 @@ func NewConnectedClientRecorder(impl string, cfg *config.Config) (ConnectedClien
 	case "inventory":
 		if config.KAFKA_SASL_MECHANISM != "" {
 			kafkaProducerCfg = &kafka.ConfigMap{
-				"bootstrap.servers": strings.Join(cfg.InventoryKafkaBrokers, ","),
-				"security.protocol": cfg.KafkaProtocol,
-				"sasl.mechanism":    cfg.KafkaSASLMechanism,
-				"ssl.ca.location":   cfg.KafkaCA,
-				"sasl.username":     cfg.KafkaUsername,
-				"sasl.password":     cfg.KafkaPassword,
-				"batch.num.message": cfg.InventoryKafkaBatchSize,
-				"batch.size":        cfg.InventoryKafkaBatchSize,
+				"bootstrap.servers":  strings.Join(cfg.InventoryKafkaBrokers, ","),
+				"security.protocol":  cfg.KafkaProtocol,
+				"sasl.mechanism":     cfg.KafkaSASLMechanism,
+				"ssl.ca.location":    cfg.KafkaCA,
+				"sasl.username":      cfg.KafkaUsername,
+				"sasl.password":      cfg.KafkaPassword,
+				"batch.num.messages": cfg.InventoryKafkaBatchSize,
+				"batch.size":         cfg.InventoryKafkaBatchSize,
 			}
 		} else {
 			kafkaProducerCfg = &kafka.ConfigMap{
-				"bootstrap.servers": strings.Join(cfg.InventoryKafkaBrokers, ","),
-				"batch.num.message": cfg.InventoryKafkaBatchSize,
-				"batch.size":        cfg.InventoryKafkaBatchSize,
+				"bootstrap.servers":  strings.Join(cfg.InventoryKafkaBrokers, ","),
+				"batch.num.messages": cfg.InventoryKafkaBatchSize,
+				"batch.size":         cfg.InventoryKafkaBatchSize,
 			}
 		}
 

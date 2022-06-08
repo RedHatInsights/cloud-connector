@@ -47,22 +47,20 @@ func startInventoryStaleTimestampUpdater() {
 
 	if config.KAFKA_SASL_MECHANISM != "" {
 		kafkaProducerCfg = &kafka.ConfigMap{
-			"bootstrap.servers": strings.Join(cfg.InventoryKafkaBrokers, ","),
-			"security.protocol": cfg.KafkaProtocol,
-			"sasl.mechanism":    cfg.KafkaSASLMechanism,
-			"ssl.ca.location":   cfg.KafkaCA,
-			"sasl.username":     cfg.KafkaUsername,
-			"sasl.password":     cfg.KafkaPassword,
-			"batch.num.message": cfg.InventoryKafkaBatchSize,
-			"batch.size":        cfg.InventoryKafkaBatchSize,
-			"balance.strategy":  "hash",
+			"bootstrap.servers":  strings.Join(cfg.InventoryKafkaBrokers, ","),
+			"security.protocol":  cfg.KafkaProtocol,
+			"sasl.mechanism":     cfg.KafkaSASLMechanism,
+			"ssl.ca.location":    cfg.KafkaCA,
+			"sasl.username":      cfg.KafkaUsername,
+			"sasl.password":      cfg.KafkaPassword,
+			"batch.num.messages": cfg.InventoryKafkaBatchSize,
+			"batch.size":         cfg.InventoryKafkaBatchSize,
 		}
 	} else {
 		kafkaProducerCfg = &kafka.ConfigMap{
-			"bootstrap.servers": strings.Join(cfg.InventoryKafkaBrokers, ","),
-			"batch.num.message": cfg.InventoryKafkaBatchSize,
-			"batch.size":        cfg.InventoryKafkaBatchSize,
-			"balance.strategy":  "hash",
+			"bootstrap.servers":  strings.Join(cfg.InventoryKafkaBrokers, ","),
+			"batch.num.messages": cfg.InventoryKafkaBatchSize,
+			"batch.size":         cfg.InventoryKafkaBatchSize,
 		}
 	}
 
