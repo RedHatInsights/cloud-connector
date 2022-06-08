@@ -45,14 +45,12 @@ func NewConnectedClientRecorder(impl string, cfg *config.Config) (ConnectedClien
 				"sasl.password":     cfg.KafkaPassword,
 				"batch.num.message": cfg.InventoryKafkaBatchSize,
 				"batch.size":        cfg.InventoryKafkaBatchSize,
-				"balance.strategy":  "hash",
 			}
 		} else {
 			kafkaProducerCfg = &kafka.ConfigMap{
 				"bootstrap.servers": strings.Join(cfg.InventoryKafkaBrokers, ","),
 				"batch.num.message": cfg.InventoryKafkaBatchSize,
 				"batch.size":        cfg.InventoryKafkaBatchSize,
-				"balance.strategy":  "hash",
 			}
 		}
 

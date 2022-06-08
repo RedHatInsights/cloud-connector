@@ -59,7 +59,6 @@ func startMqttMessageConsumer(mgmtAddr string) {
 		"bootstrap.servers":  strings.Join(cfg.RhcMessageKafkaBrokers, ","),
 		"batch.num.messages": cfg.RhcMessageKafkaBatchSize,
 		"batch.size":         cfg.RhcMessageKafkaBatchBytes,
-		"balance.strategy":   "hash",
 	}
 
 	kafkaProducer := queue.StartProducer(kafkaProducerCfg)
