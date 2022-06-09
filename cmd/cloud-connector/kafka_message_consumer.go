@@ -239,8 +239,6 @@ func consumeMqttMessagesFromKafka(kafkaReader *kafka.Consumer,
 			case <-ctx.Done():
 				return
 			default:
-				logger.Log.Debugf("message from topic partition %d at offset %d: %s = %s", msg.TopicPartition.Partition, msg.TopicPartition.Offset, string(msg.Key), string(msg.Value))
-				metrics.kafkaMessageReceivedCounter.Inc()
 		}
 
 		if err != nil {
@@ -249,9 +247,10 @@ func consumeMqttMessagesFromKafka(kafkaReader *kafka.Consumer,
 				fatalProcessingError <- struct{}{}
 			}
 
-			continue
-			
+			continue	
 		}
+		logger.Log.Debugf("message from topic partition %d at offset %d: %s = %s", msg.TopicPartition.Partition, msg.TopicPartition.Offset, string(msg.Key), string(msg.Value))
+		metrics.kafkaMessageReceivedCounter.Inc()
 		
 		process(msg)
 	}
