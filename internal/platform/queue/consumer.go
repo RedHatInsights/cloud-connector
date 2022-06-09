@@ -2,7 +2,7 @@ package queue
 
 import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
-	kafka "github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
 
 func StartConsumer(cfg *kafka.ConfigMap, topic string) (*kafka.Consumer, error) {

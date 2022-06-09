@@ -227,49 +227,36 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 	}
 }
 
-func consumeMqttMessagesFromKafka(kafkaReader *kafka.Consumer, process func(*kafka.Message) error, ctx context.Context, fatalProcessingError chan struct{}) {
-
+func consumeMqttMessagesFromKafka(kafkaReader *kafka.Consumer,
+								  process func(*kafka.Message) error,
+								  ctx context.Context,
+								  fatalProcessingError chan struct{}) {
+	
 	for {
-		event := kafkaReader.Poll(100)
-		if event == nil {
+		msg, err := kafkaReader.ReadMessage(1 * time.Second)
+
+		select {
+			case <-ctx.Done():
+				return
+			default:
+				logger.Log.Debugf("message from topic partition %d at offset %d: %s = %s", msg.TopicPartition.Partition, msg.TopicPartition.Offset, string(msg.Key), string(msg.Value))
+				metrics.kafkaMessageReceivedCounter.Inc()
+		}
+
+		if err != nil {
+			if err.(kafka.Error).Code() != kafka.ErrTimedOut {
+				logger.Log.Error("Error reading from kafka: ", err)
+				fatalProcessingError <- struct{}{}
+			}
+
 			continue
+			
 		}
-
-		switch e := event.(type) {
-		case *kafka.Message:
-			metrics.kafkaMessageReceivedCounter.Inc()
-			logger.Log.Debugf("message from partition %d at offset %d: %s = %s\n", e.TopicPartition.Partition, e.TopicPartition.Offset, string(e.Key), string(e.Value))
-			err := process(e)
-			if err != nil {
-				logger.LogError("Error handling message:", err)
-				// Notify the main thread to shutdown
-				fatalProcessingError <- struct{}{}
-				break
-			}
-
-			// commit the message to kafka
-			_, err = kafkaReader.Commit()
-			if err != nil {
-				logger.LogError("Error committing message:", err)
-				// Notify the main thread to shutdown
-				fatalProcessingError <- struct{}{}
-				break
-			}
-		case *kafka.Error:
-			logger.LogError("Error from kafka:", e)
-			// Notify the main thread to shutdown
-			fatalProcessingError <- struct{}{}
-		}
-
-		logger.Log.Infof("Stopped reading kafka messages")
-
-		if err := kafkaReader.Close(); err != nil {
-			logger.LogError("Failed to close kafka reader", err)
-		}
-
+		
+		process(msg)
 	}
-
 }
+
 
 type mqttMetrics struct {
 	kafkaMessageReceivedCounter prometheus.Counter
