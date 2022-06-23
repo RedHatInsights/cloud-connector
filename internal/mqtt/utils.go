@@ -1,6 +1,7 @@
 package mqtt
 
 import (
+	"bytes"
 	"encoding/json"
 
 	"github.com/RedHatInsights/cloud-connector/internal/cloud_connector/protocol"
@@ -52,19 +53,21 @@ func sendMessage(mqttClient MQTT.Client, logger *logrus.Entry, clientID domain.C
 
 	logger = logger.WithFields(logrus.Fields{"message_id": messageID, "client_id": clientID})
 
-	messageBytes, err := json.Marshal(message)
-	if err != nil {
+	messageBuffer := &bytes.Buffer{}
+	encoder := json.NewEncoder(messageBuffer)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(message); err != nil {
 		return err
 	}
 
 	logger.Debug("Sending message to connected client on topic: ", topic, " qos: ", qos)
 
-	token := mqttClient.Publish(topic, qos, false, messageBytes)
+	token := mqttClient.Publish(topic, qos, false, messageBuffer.Bytes())
 	if token.Wait() && token.Error() != nil {
 		logger := logger.WithFields(logrus.Fields{"error": token.Error()})
 		logger.Error("Error sending a message to MQTT broker")
 		metrics.messagePublishedFailureCounter.Inc()
-		return err
+		return token.Error()
 	}
 
 	metrics.messagePublishedSuccessCounter.Inc()
