@@ -97,7 +97,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ConnectionStatusResponse"
+                  "$ref": "#/components/schemas/ConnectionStatusResponseV2"
                 }
               }
             }
@@ -130,7 +130,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ConnectionStatusResponse"
+                  "$ref": "#/components/schemas/ConnectionListByAccountResponseV2"
                 }
               }
             }
@@ -666,6 +666,48 @@
           }
         }
       },
+      "ConnectionListByAccountResponseV2": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PaginatedResponseMeta"
+          },
+          {
+            "$ref": "#/components/schemas/PaginatedResponseLinks"
+          }
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ConnectionV2"
+            }
+          }
+        }
+      },
+      "ConnectionV2": {
+        "type": "object",
+        "properties": {
+          "account": {
+            "type": "string"
+          },
+          "org_id": {
+            "type": "string"
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "canonical_facts": {
+            "type": "object"
+          },
+          "dispatchers": {
+            "type": "object"
+          },
+          "tags": {
+            "type": "object"
+          }
+        }
+      },
       "ConnectionStatusRequest": {
         "type": "object",
         "properties": {
@@ -685,6 +727,19 @@
           },
           "dispatchers": {
             "type": "object"
+          }
+        }
+      },
+      "ConnectionStatusResponseV2": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ConnectionV2"
+          }
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ConnectionStatus"
           }
         }
       },
