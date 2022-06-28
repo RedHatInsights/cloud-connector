@@ -22,7 +22,7 @@ require (
 	github.com/onsi/gomega v1.9.0
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/prometheus/client_golang v1.12.0
-	github.com/redhatinsights/app-common-go v1.6.0
+	github.com/redhatinsights/app-common-go v1.6.2
 	github.com/redhatinsights/platform-go-middlewares v0.12.0
 	github.com/segmentio/kafka-go v0.4.27
 	github.com/sirupsen/logrus v1.8.1
