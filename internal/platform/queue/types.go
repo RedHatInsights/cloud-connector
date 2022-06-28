@@ -14,3 +14,11 @@ type ConsumerConfig struct {
 	GroupID        string
 	ConsumerOffset int64
 }
+
+type SaslConfig struct {
+	SaslMechanism        string
+	SaslSecurityProtocol string
+	SaslUsername         string
+	SaslPassword         string
+	KafkaCA              string
+}
