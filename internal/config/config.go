@@ -55,6 +55,11 @@ const (
 	AUTH_GATEWAY_URL                             = "Auth_Gateway_Url"
 	AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT             = "Auth_Gateway_HTTP_Client_Timeout"
 	DEFAULT_KAFKA_BROKER_ADDRESS                 = "kafka:29092"
+	KAFKA_CA                                     = "Kafka_CA"
+	KAFKA_USERNAME                               = "Kafka_Username"
+	KAFKA_PASSWORD                               = "Kafka_Password"
+	KAFKA_SASL_MECHANISM                         = "Kafka_SASL_Mechanism"
+	KAFKA_PROTOCOL                               = "Kafka_Protocol"
 	CONNECTED_CLIENT_RECORDER_IMPL               = "Connected_Client_Recorder_Impl"
 	INVENTORY_KAFKA_BROKERS                      = "Inventory_Kafka_Brokers"
 	INVENTORY_KAFKA_TOPIC                        = "Inventory_Kafka_Topic"
@@ -108,6 +113,11 @@ type Config struct {
 	MqttDisconnectQuiesceTime               uint
 	InvalidHandshakeReconnectDelay          int
 	KafkaBrokers                            []string
+	KafkaCA                                 string
+	KafkaUsername                           string
+	KafkaPassword                           string
+	KafkaSASLMechanism                      string
+	KafkaProtocol                           string
 	ClientIdToAccountIdImpl                 string
 	ClientIdToAccountIdConfigFile           string
 	ClientIdToAccountIdDefaultAccountId     string
@@ -189,6 +199,11 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_SQLITE_FILE, c.ConnectionDatabaseSqliteFile)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_QUERY_TIMEOUT, c.ConnectionDatabaseQueryTimeout)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTED_CLIENT_RECORDER_IMPL, c.ConnectedClientRecorderImpl)
+	fmt.Fprintf(&b, "%s: %s\n", KAFKA_CA, c.KafkaCA)
+	fmt.Fprintf(&b, "%s: %s\n", KAFKA_USERNAME, c.KafkaUsername)
+	fmt.Fprintf(&b, "%s: %s\n", KAFKA_PASSWORD, c.KafkaPassword)
+	fmt.Fprintf(&b, "%s: %s\n", KAFKA_SASL_MECHANISM, c.KafkaSASLMechanism)
+	fmt.Fprintf(&b, "%s: %s\n", KAFKA_PROTOCOL, c.KafkaProtocol)
 	fmt.Fprintf(&b, "%s: %s\n", INVENTORY_KAFKA_BROKERS, c.InventoryKafkaBrokers)
 	fmt.Fprintf(&b, "%s: %s\n", INVENTORY_KAFKA_TOPIC, c.InventoryKafkaTopic)
 	fmt.Fprintf(&b, "%s: %d\n", INVENTORY_KAFKA_BATCH_SIZE, c.InventoryKafkaBatchSize)
@@ -321,6 +336,11 @@ func GetConfig() *Config {
 		AuthGatewayUrl:                          options.GetString(AUTH_GATEWAY_URL),
 		AuthGatewayHttpClientTimeout:            options.GetDuration(AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT) * time.Second,
 		ConnectedClientRecorderImpl:             options.GetString(CONNECTED_CLIENT_RECORDER_IMPL),
+		KafkaCA:                                 options.GetString(KAFKA_CA),
+		KafkaUsername:                           options.GetString(KAFKA_USERNAME),
+		KafkaPassword:                           options.GetString(KAFKA_PASSWORD),
+		KafkaSASLMechanism:                      options.GetString(KAFKA_SASL_MECHANISM),
+		KafkaProtocol:                           options.GetString(KAFKA_PROTOCOL),
 		InventoryKafkaBrokers:                   options.GetStringSlice(INVENTORY_KAFKA_BROKERS),
 		InventoryKafkaTopic:                     options.GetString(INVENTORY_KAFKA_TOPIC),
 		InventoryKafkaBatchSize:                 options.GetInt(INVENTORY_KAFKA_BATCH_SIZE),
@@ -347,6 +367,7 @@ func GetConfig() *Config {
 
 	if clowder.IsClowderEnabled() {
 		cfg := clowder.LoadedConfig
+		broker := cfg.Kafka.Brokers[0]
 
 		fmt.Println("Cloud-Connector is running in a Clowderized environment...overriding configuration!!")
 
@@ -360,6 +381,20 @@ func GetConfig() *Config {
 			fmt.Println("WARNING:  RHC Message kafka topic is not set within clowder!!")
 			// FIXME:  this is a hack!!
 			config.RhcMessageKafkaTopic = RHC_MESSAGE_KAFKA_TOPIC_DEFAULT
+		}
+
+		if broker.Authtype != nil {
+
+			caPath, err := cfg.KafkaCa(broker)
+			if err != nil {
+				panic("Kafka CA cert failed to write")
+			}
+
+			config.KafkaUsername = *broker.Sasl.Username
+			config.KafkaPassword = *broker.Sasl.Password
+			config.KafkaSASLMechanism = *broker.Sasl.SaslMechanism
+			config.KafkaProtocol = *broker.Sasl.SecurityProtocol
+			config.KafkaCA = caPath
 		}
 
 		config.ConnectionDatabaseHost = cfg.Database.Hostname
