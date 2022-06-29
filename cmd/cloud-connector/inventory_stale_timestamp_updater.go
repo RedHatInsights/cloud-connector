@@ -41,14 +41,29 @@ func startInventoryStaleTimestampUpdater() {
 		logger.LogFatalError("Failed to create Account ID Resolver", err)
 	}
 
+	var kafkaSaslCfg *queue.SaslConfig
+
+	if cfg.KafkaSASLMechanism != "" {
+		kafkaSaslCfg = &queue.SaslConfig{
+			SaslMechanism: cfg.KafkaSASLMechanism,
+			SaslUsername:  cfg.KafkaUsername,
+			SaslPassword:  cfg.KafkaPassword,
+			KafkaCA:       cfg.KafkaCA,
+		}
+	}
+
 	kafkaProducerCfg := &queue.ProducerConfig{
 		Brokers:    cfg.InventoryKafkaBrokers,
+		SaslConfig: kafkaSaslCfg,
 		Topic:      cfg.InventoryKafkaTopic,
 		BatchSize:  cfg.InventoryKafkaBatchSize,
 		BatchBytes: cfg.InventoryKafkaBatchBytes,
 	}
 
-	kafkaProducer := queue.StartProducer(kafkaProducerCfg)
+	kafkaProducer, err := queue.StartProducer(kafkaProducerCfg)
+	if err != nil {
+		logger.LogFatalError("Unable to start kafka producer", err)
+	}
 
 	connectedClientRecorder, err := controller.NewInventoryBasedConnectedClientRecorder(controller.BuildInventoryMessageProducer(kafkaProducer), cfg.InventoryStaleTimestampOffset, cfg.InventoryReporterName)
 	if err != nil {

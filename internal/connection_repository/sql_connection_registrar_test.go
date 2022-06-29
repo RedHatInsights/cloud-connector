@@ -1,3 +1,4 @@
+//go:build sql
 // +build sql
 
 package connection_repository

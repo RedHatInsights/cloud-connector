@@ -32,14 +32,29 @@ func NewConnectedClientRecorder(impl string, cfg *config.Config) (ConnectedClien
 
 	switch impl {
 	case "inventory":
+		var kafkaSaslCfg *queue.SaslConfig
+
+		if cfg.KafkaSASLMechanism != "" {
+			kafkaSaslCfg = &queue.SaslConfig{
+				SaslMechanism: cfg.KafkaSASLMechanism,
+				SaslUsername:  cfg.KafkaUsername,
+				SaslPassword:  cfg.KafkaPassword,
+				KafkaCA:       cfg.KafkaCA,
+			}
+		}
+
 		kafkaProducerCfg := &queue.ProducerConfig{
 			Brokers:    cfg.InventoryKafkaBrokers,
+			SaslConfig: kafkaSaslCfg,
 			Topic:      cfg.InventoryKafkaTopic,
 			BatchSize:  cfg.InventoryKafkaBatchSize,
 			BatchBytes: cfg.InventoryKafkaBatchBytes,
 		}
 
-		kafkaProducer := queue.StartProducer(kafkaProducerCfg)
+		kafkaProducer, err := queue.StartProducer(kafkaProducerCfg)
+		if err != nil {
+			return nil, err
+		}
 
 		connectedClientRecorder := InventoryBasedConnectedClientRecorder{
 			MessageProducer:      BuildInventoryMessageProducer(kafkaProducer),

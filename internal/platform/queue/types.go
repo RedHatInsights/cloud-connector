@@ -2,6 +2,7 @@ package queue
 
 type ProducerConfig struct {
 	Brokers    []string
+	SaslConfig *SaslConfig
 	Topic      string
 	BatchSize  int
 	BatchBytes int
@@ -10,6 +11,7 @@ type ProducerConfig struct {
 
 type ConsumerConfig struct {
 	Brokers        []string
+	SaslConfig     *SaslConfig
 	Topic          string
 	GroupID        string
 	ConsumerOffset int64
