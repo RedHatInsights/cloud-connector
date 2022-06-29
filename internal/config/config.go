@@ -200,8 +200,6 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_QUERY_TIMEOUT, c.ConnectionDatabaseQueryTimeout)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTED_CLIENT_RECORDER_IMPL, c.ConnectedClientRecorderImpl)
 	fmt.Fprintf(&b, "%s: %s\n", KAFKA_CA, c.KafkaCA)
-	fmt.Fprintf(&b, "%s: %s\n", KAFKA_USERNAME, c.KafkaUsername)
-	fmt.Fprintf(&b, "%s: %s\n", KAFKA_PASSWORD, c.KafkaPassword)
 	fmt.Fprintf(&b, "%s: %s\n", KAFKA_SASL_MECHANISM, c.KafkaSASLMechanism)
 	fmt.Fprintf(&b, "%s: %s\n", KAFKA_PROTOCOL, c.KafkaProtocol)
 	fmt.Fprintf(&b, "%s: %s\n", INVENTORY_KAFKA_BROKERS, c.InventoryKafkaBrokers)

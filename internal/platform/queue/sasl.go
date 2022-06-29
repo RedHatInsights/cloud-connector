@@ -3,73 +3,76 @@ package queue
 import (
 	"crypto/tls"
 	"crypto/x509"
-	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
-	kafka "github.com/segmentio/kafka-go"
-	"github.com/segmentio/kafka-go/sasl/plain"
-	"github.com/segmentio/kafka-go/sasl/scram"
+	"fmt"
 	"io/ioutil"
 	"strings"
 	"time"
+
+	kafka "github.com/segmentio/kafka-go"
+	"github.com/segmentio/kafka-go/sasl"
+	"github.com/segmentio/kafka-go/sasl/plain"
+	"github.com/segmentio/kafka-go/sasl/scram"
 )
 
-func saslDialer(cfg *SaslConfig) (*kafka.Dialer, error) {
+func createDialer(cfg *SaslConfig) (*kafka.Dialer, error) {
 
-	var dialer *kafka.Dialer
+	if cfg == nil {
+		return kafka.DefaultDialer, nil
+	}
 
-	caCert, err := ioutil.ReadFile(cfg.KafkaCA)
+	tlsConfig, err := createTLSConfig(cfg.KafkaCA)
 	if err != nil {
-		logger.Log.Fatal("Unable to read kafka cert", err)
 		return nil, err
+	}
+
+	saslMechanism, err := createSaslMechanism(cfg.SaslMechanism, cfg.SaslUsername, cfg.SaslPassword)
+	if err != nil {
+		return nil, err
+	}
+
+	return &kafka.Dialer{
+		Timeout:       10 * time.Second,
+		DualStack:     true,
+		SASLMechanism: saslMechanism,
+		TLS:           tlsConfig,
+	}, nil
+}
+
+func createTLSConfig(pathToCert string) (*tls.Config, error) {
+	caCert, err := ioutil.ReadFile(pathToCert)
+	if err != nil {
+		return nil, fmt.Errorf("unable to open cert file (%s): %w", pathToCert, err)
 	}
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 
-	switch strings.ToLower(cfg.SaslMechanism) {
+	return &tls.Config{RootCAs: caCertPool}, nil
+}
+
+func createSaslMechanism(saslMechanismName string, username string, password string) (sasl.Mechanism, error) {
+
+	switch strings.ToLower(saslMechanismName) {
 	case "plain":
-		mechanism := plain.Mechanism{
-			Username: cfg.SaslUsername,
-			Password: cfg.SaslPassword,
-		}
-
-		dialer = &kafka.Dialer{
-			Timeout:       10 * time.Second,
-			DualStack:     true,
-			SASLMechanism: mechanism,
-			TLS: &tls.Config{
-				RootCAs: caCertPool,
-			},
-		}
+		return plain.Mechanism{
+			Username: username,
+			Password: password,
+		}, nil
 	case "scram-sha-512":
-		scramMechanism, err := scram.Mechanism(scram.SHA512, cfg.SaslUsername, cfg.SaslPassword)
+		mechanism, err := scram.Mechanism(scram.SHA512, username, password)
 		if err != nil {
-			logger.Log.Error("Failed to create SCRAM-SHA-512 SASL mechanism: ", err)
-			return nil, err
+			return nil, fmt.Errorf("unable to create scram-sha-512 mechanism: %w", err)
 		}
 
-		dialer = &kafka.Dialer{
-			Timeout:       10 * time.Second,
-			DualStack:     true,
-			SASLMechanism: scramMechanism,
-			TLS: &tls.Config{
-				RootCAs: caCertPool,
-			},
-		}
+		return mechanism, nil
 	case "scra-sha-256":
-		scramMechanism, err := scram.Mechanism(scram.SHA256, cfg.SaslUsername, cfg.SaslPassword)
+		mechanism, err := scram.Mechanism(scram.SHA256, username, password)
 		if err != nil {
-			logger.Log.Error("Failed to create SCRAM-SHA-256 SASL mechanism: ", err)
-			return nil, err
+			return nil, fmt.Errorf("unable to create scram-sha-256 mechanism: %w", err)
 		}
 
-		dialer = &kafka.Dialer{
-			Timeout:       10 * time.Second,
-			DualStack:     true,
-			SASLMechanism: scramMechanism,
-			TLS: &tls.Config{
-				RootCAs: caCertPool,
-			},
-		}
+		return mechanism, nil
+	default:
+
+		return nil, fmt.Errorf("unable to configure sasl mechanism (%s)", saslMechanismName)
 	}
-
-	return dialer, nil
 }

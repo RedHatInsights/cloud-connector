@@ -1,33 +1,19 @@
 package queue
 
 import (
-	"github.com/RedHatInsights/cloud-connector/internal/config"
+	"fmt"
+
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	kafka "github.com/segmentio/kafka-go"
 )
 
-func StartProducer(cfg *ProducerConfig) *kafka.Writer {
+func StartProducer(cfg *ProducerConfig) (*kafka.Writer, error) {
 	logger.Log.Info("Starting a new Kafka producer..")
 	logger.Log.Info("Kafka producer configuration: ", cfg)
 
-	var kafkaDialer *kafka.Dialer
-	var err error
-
-	globalConfig := config.GetConfig()
-
-	if globalConfig.KafkaUsername != "" {
-
-		kafkaDialer, err = saslDialer(&SaslConfig{
-			SaslMechanism: globalConfig.KafkaSASLMechanism,
-			SaslUsername:  globalConfig.KafkaUsername,
-			SaslPassword:  globalConfig.KafkaPassword,
-			KafkaCA:       globalConfig.KafkaCA,
-		})
-		if err != nil {
-			logger.Log.Error("Failed to create a new Kafka dialer: ", err)
-			panic(err)
-		}
-
+	kafkaDialer, err := createDialer(cfg.SaslConfig)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create kafka dialer: %w", err)
 	}
 
 	writerConfig := kafka.WriterConfig{
@@ -35,10 +21,7 @@ func StartProducer(cfg *ProducerConfig) *kafka.Writer {
 		Topic:      cfg.Topic,
 		BatchSize:  cfg.BatchSize,
 		BatchBytes: cfg.BatchBytes,
-	}
-
-	if kafkaDialer != nil {
-		writerConfig.Dialer = kafkaDialer
+		Dialer:     kafkaDialer,
 	}
 
 	if cfg.Balancer == "hash" {
@@ -49,5 +32,5 @@ func StartProducer(cfg *ProducerConfig) *kafka.Writer {
 
 	logger.Log.Info("Producing messages to topic: ", cfg.Topic)
 
-	return w
+	return w, nil
 }
