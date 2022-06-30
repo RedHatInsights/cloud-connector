@@ -366,8 +366,11 @@ func GetConfig() *Config {
 	}
 
 	if clowder.IsClowderEnabled() {
+		var broker clowder.BrokerConfig
 		cfg := clowder.LoadedConfig
-		broker := cfg.Kafka.Brokers[0]
+		if cfg.Kafka.Brokers != nil {
+			broker = cfg.Kafka.Brokers[0]
+		}
 
 		fmt.Println("Cloud-Connector is running in a Clowderized environment...overriding configuration!!")
 
