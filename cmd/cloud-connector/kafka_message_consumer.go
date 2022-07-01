@@ -74,12 +74,10 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	mqttTopicBuilder := mqtt.NewTopicBuilder(cfg.MqttTopicPrefix)
 	mqttTopicVerifier := mqtt.NewTopicVerifier(cfg.MqttTopicPrefix)
 
-	rhcMessageKafkaConsumer := queue.ConsumerConfig{
-		Brokers: cfg.RhcMessageKafkaBrokers,
-		Topic:   cfg.RhcMessageKafkaTopic,
-		GroupID: cfg.RhcMessageKafkaConsumerGroup,
+	kafkaReader, err := queue.StartConsumer(buildRhcMessageKafkaConsumerConfig(cfg))
+	if err != nil {
+		logger.LogFatalError("Unable to start kafka consumer", err)
 	}
-	kafkaReader := queue.StartConsumer(&rhcMessageKafkaConsumer)
 
 	brokerOptions, err := buildDefaultMqttBrokerConfigFuncList(cfg.MqttBrokerAddress, tlsConfig, cfg)
 	if err != nil {
@@ -260,6 +258,28 @@ func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*kafka
 	if err := kafkaReader.Close(); err != nil {
 		logger.LogError("Failed to close kafka reader", err)
 	}
+}
+
+func buildRhcMessageKafkaConsumerConfig(cfg *config.Config) *queue.ConsumerConfig {
+	var kafkaSaslCfg *queue.SaslConfig
+
+	if cfg.KafkaSASLMechanism != "" {
+		kafkaSaslCfg = &queue.SaslConfig{
+			SaslMechanism: cfg.KafkaSASLMechanism,
+			SaslUsername:  cfg.KafkaUsername,
+			SaslPassword:  cfg.KafkaPassword,
+			KafkaCA:       cfg.KafkaCA,
+		}
+	}
+
+	rhcMessageKafkaConsumer := queue.ConsumerConfig{
+		Brokers:    cfg.RhcMessageKafkaBrokers,
+		SaslConfig: kafkaSaslCfg,
+		Topic:      cfg.RhcMessageKafkaTopic,
+		GroupID:    cfg.RhcMessageKafkaConsumerGroup,
+	}
+
+	return &rhcMessageKafkaConsumer
 }
 
 type mqttMetrics struct {

@@ -53,15 +53,10 @@ func startMqttMessageConsumer(mgmtAddr string) {
 	mqttTopicBuilder := mqtt.NewTopicBuilder(cfg.MqttTopicPrefix)
 	mqttTopicVerifier := mqtt.NewTopicVerifier(cfg.MqttTopicPrefix)
 
-	kafkaProducerCfg := &queue.ProducerConfig{
-		Brokers:    cfg.RhcMessageKafkaBrokers,
-		Topic:      cfg.RhcMessageKafkaTopic,
-		BatchSize:  cfg.RhcMessageKafkaBatchSize,
-		BatchBytes: cfg.RhcMessageKafkaBatchBytes,
-		Balancer:   "hash",
+	kafkaProducer, err := queue.StartProducer(buildRhcMessageKafkaProducerConfig(cfg))
+	if err != nil {
+		logger.LogFatalError("Unable to start kafka producer", err)
 	}
-
-	kafkaProducer := queue.StartProducer(kafkaProducerCfg)
 
 	controlMsgHandler := mqtt.ControlMessageHandler(context.TODO(), kafkaProducer, mqttTopicVerifier)
 	dataMsgHandler := mqtt.DataMessageHandler()
@@ -136,4 +131,28 @@ func buildBrokerTlsConfigFuncList(cfg *config.Config) ([]tls_utils.TlsConfigFunc
 	}
 
 	return tlsConfigFuncs, nil
+}
+
+func buildRhcMessageKafkaProducerConfig(cfg *config.Config) *queue.ProducerConfig {
+	var kafkaSaslCfg *queue.SaslConfig
+
+	if cfg.KafkaSASLMechanism != "" {
+		kafkaSaslCfg = &queue.SaslConfig{
+			SaslMechanism: cfg.KafkaSASLMechanism,
+			SaslUsername:  cfg.KafkaUsername,
+			SaslPassword:  cfg.KafkaPassword,
+			KafkaCA:       cfg.KafkaCA,
+		}
+	}
+
+	kafkaProducerCfg := &queue.ProducerConfig{
+		Brokers:    cfg.RhcMessageKafkaBrokers,
+		SaslConfig: kafkaSaslCfg,
+		Topic:      cfg.RhcMessageKafkaTopic,
+		BatchSize:  cfg.RhcMessageKafkaBatchSize,
+		BatchBytes: cfg.RhcMessageKafkaBatchBytes,
+		Balancer:   "hash",
+	}
+
+	return kafkaProducerCfg
 }
