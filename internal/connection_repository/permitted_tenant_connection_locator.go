@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
@@ -17,6 +18,7 @@ import (
 
 type PermittedTenantConnectionLocator struct {
 	database     *sql.DB
+	queryTimeout time.Duration
 	proxyFactory controller.ConnectorClientProxyFactory
 }
 
@@ -24,6 +26,7 @@ func NewPermittedTenantConnectionLocator(cfg *config.Config, database *sql.DB, p
 
 	return &PermittedTenantConnectionLocator{
 		database:     database,
+		queryTimeout: cfg.ConnectionDatabaseQueryTimeout,
 		proxyFactory: proxyFactory,
 	}, nil
 }
@@ -34,6 +37,9 @@ func (pacl *PermittedTenantConnectionLocator) GetConnection(ctx context.Context,
 
 	callDurationTimer := prometheus.NewTimer(metrics.sqlLookupConnectionByAccountOrPermittedTenantAndClientIDDuration)
 	defer callDurationTimer.ObserveDuration()
+
+	ctx, cancel := context.WithTimeout(ctx, pacl.queryTimeout)
+	defer cancel()
 
 	log := logger.Log.WithFields(logrus.Fields{"client_id": client_id,
 		"account": account,
@@ -57,7 +63,7 @@ func (pacl *PermittedTenantConnectionLocator) GetConnection(ctx context.Context,
 	var dispatchersString sql.NullString
 	var permittedTenants sql.NullString
 
-	err = statement.QueryRow(account, org_id, client_id).Scan(&connectionAccount, &orgId, &clientId, &dispatchersString, &permittedTenants)
+	err = statement.QueryRowContext(ctx, account, org_id, client_id).Scan(&connectionAccount, &orgId, &clientId, &dispatchersString, &permittedTenants)
 
 	if err != nil {
 		if err != sql.ErrNoRows {
