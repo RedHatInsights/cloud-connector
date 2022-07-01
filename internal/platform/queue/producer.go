@@ -30,7 +30,5 @@ func StartProducer(cfg *ProducerConfig) (*kafka.Writer, error) {
 
 	w := kafka.NewWriter(writerConfig)
 
-	logger.Log.Info("Producing messages to topic: ", cfg.Topic)
-
 	return w, nil
 }

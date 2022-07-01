@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+
 	kafka "github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl"
 	"github.com/segmentio/kafka-go/sasl/plain"
@@ -17,6 +19,7 @@ import (
 func createDialer(cfg *SaslConfig) (*kafka.Dialer, error) {
 
 	if cfg == nil {
+		logger.Log.Info("Using the default Kafka dialer")
 		return kafka.DefaultDialer, nil
 	}
 
@@ -29,6 +32,8 @@ func createDialer(cfg *SaslConfig) (*kafka.Dialer, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	logger.Log.Info("Creating custom Kafka dialer")
 
 	return &kafka.Dialer{
 		Timeout:       10 * time.Second,

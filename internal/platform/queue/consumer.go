@@ -26,7 +26,5 @@ func StartConsumer(cfg *ConsumerConfig) (*kafka.Reader, error) {
 
 	r := kafka.NewReader(readerConfig)
 
-	logger.Log.Info("Kafka consumer config: ", r.Config())
-
 	return r, nil
 }
