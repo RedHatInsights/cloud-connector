@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
@@ -15,12 +16,14 @@ import (
 
 type SqlConnectionLocator struct {
 	database     *sql.DB
+	queryTimeout time.Duration
 	proxyFactory controller.ConnectorClientProxyFactory
 }
 
 func NewSqlConnectionLocator(cfg *config.Config, database *sql.DB, proxyFactory controller.ConnectorClientProxyFactory) (*SqlConnectionLocator, error) {
 	return &SqlConnectionLocator{
 		database:     database,
+		queryTimeout: cfg.ConnectionDatabaseQueryTimeout,
 		proxyFactory: proxyFactory,
 	}, nil
 }
@@ -32,6 +35,9 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account doma
 	callDurationTimer := prometheus.NewTimer(metrics.sqlLookupConnectionByAccountAndClientIDDuration)
 	defer callDurationTimer.ObserveDuration()
 
+	ctx, cancel := context.WithTimeout(ctx, scm.queryTimeout)
+	defer cancel()
+
 	statement, err := scm.database.Prepare("SELECT client_id, dispatchers FROM connections WHERE account = $1 AND client_id = $2")
 	if err != nil {
 		logger.LogError("SQL Prepare failed", err)
@@ -41,7 +47,7 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account doma
 
 	var name string
 	var dispatchersString sql.NullString
-	err = statement.QueryRow(account, client_id).Scan(&name, &dispatchersString)
+	err = statement.QueryRowContext(ctx, account, client_id).Scan(&name, &dispatchersString)
 
 	if err != nil {
 		if err != sql.ErrNoRows {
@@ -74,6 +80,9 @@ func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, ac
 	callDurationTimer := prometheus.NewTimer(metrics.sqlLookupConnectionsByAccountDuration)
 	defer callDurationTimer.ObserveDuration()
 
+	ctx, cancel := context.WithTimeout(ctx, scm.queryTimeout)
+	defer cancel()
+
 	connectionsPerAccount := make(map[domain.ClientID]controller.ConnectorClient)
 
 	statement, err := scm.database.Prepare(
@@ -88,7 +97,7 @@ func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, ac
 	}
 	defer statement.Close()
 
-	rows, err := statement.Query(account, offset, limit)
+	rows, err := statement.QueryContext(ctx, account, offset, limit)
 	if err != nil {
 		logger.LogError("SQL query failed", err)
 		return nil, totalConnections, err
@@ -131,6 +140,9 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context, offset i
 	callDurationTimer := prometheus.NewTimer(metrics.sqlLookupAllConnectionsDuration)
 	defer callDurationTimer.ObserveDuration()
 
+	ctx, cancel := context.WithTimeout(ctx, scm.queryTimeout)
+	defer cancel()
+
 	connectionMap := make(map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient)
 
 	statement, err := scm.database.Prepare(
@@ -144,7 +156,7 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context, offset i
 	}
 	defer statement.Close()
 
-	rows, err := statement.Query(offset, limit)
+	rows, err := statement.QueryContext(ctx, offset, limit)
 	if err != nil {
 		logger.LogError("SQL query failed", err)
 		return nil, totalConnections, err

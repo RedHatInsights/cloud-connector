@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -17,12 +18,14 @@ import (
 )
 
 type SqlConnectionRegistrar struct {
-	database *sql.DB
+	database     *sql.DB
+	queryTimeout time.Duration
 }
 
 func NewSqlConnectionRegistrar(cfg *config.Config, database *sql.DB) (*SqlConnectionRegistrar, error) {
 	return &SqlConnectionRegistrar{
-		database: database,
+		database:     database,
+		queryTimeout: cfg.ConnectionDatabaseQueryTimeout,
 	}, nil
 }
 
@@ -34,6 +37,9 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 	account := rhcClient.Account
 	org_id := rhcClient.OrgID
 	client_id := rhcClient.ClientID
+
+	ctx, cancel := context.WithTimeout(ctx, scm.queryTimeout)
+	defer cancel()
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": account, "org_id": org_id, "client_id": client_id})
 
@@ -72,7 +78,7 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 		return err
 	}
 
-	_, err = statement.Exec(dispatchersString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp, permittedTenants, account, client_id, account, org_id, client_id, dispatchersString, canonicalFactsString, tagsString, permittedTenants, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp)
+	_, err = statement.ExecContext(ctx, dispatchersString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp, permittedTenants, account, client_id, account, org_id, client_id, dispatchersString, canonicalFactsString, tagsString, permittedTenants, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Insert/update failed")
 		return FatalError{err}
@@ -87,6 +93,9 @@ func (scm *SqlConnectionRegistrar) Unregister(ctx context.Context, client_id dom
 	callDurationTimer := prometheus.NewTimer(metrics.sqlConnectionUnregistrationDuration)
 	defer callDurationTimer.ObserveDuration()
 
+	ctx, cancel := context.WithTimeout(ctx, scm.queryTimeout)
+	defer cancel()
+
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": client_id})
 
 	statement, err := scm.database.Prepare("DELETE FROM connections WHERE client_id = $1")
@@ -96,7 +105,7 @@ func (scm *SqlConnectionRegistrar) Unregister(ctx context.Context, client_id dom
 	}
 	defer statement.Close()
 
-	_, err = statement.Exec(client_id)
+	_, err = statement.ExecContext(ctx, client_id)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Delete failed")
 		return FatalError{err}
@@ -115,6 +124,9 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 	callDurationTimer := prometheus.NewTimer(metrics.sqlConnectionLookupByClientIDDuration)
 	defer callDurationTimer.ObserveDuration()
 
+	ctx, cancel := context.WithTimeout(ctx, scm.queryTimeout)
+	defer cancel()
+
 	statement, err := scm.database.Prepare("SELECT account, org_id, client_id, dispatchers, canonical_facts, tags, message_id, message_sent FROM connections WHERE client_id = $1")
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("SQL prepare failed")
@@ -129,7 +141,7 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 	var tagsString sql.NullString
 	var latestMessageID sql.NullString
 
-	err = statement.QueryRow(client_id).Scan(&account,
+	err = statement.QueryRowContext(ctx, client_id).Scan(&account,
 		&orgID,
 		&connectorClient.ClientID,
 		&dispatchersString,
