@@ -44,11 +44,10 @@ func (this ConsumerConfig) String() string {
 }
 
 type SaslConfig struct {
-	SaslMechanism        string
-	SaslSecurityProtocol string
-	SaslUsername         string
-	SaslPassword         string
-	KafkaCA              string
+	SaslMechanism string
+	SaslUsername  string
+	SaslPassword  string
+	KafkaCA       string
 }
 
 func (this SaslConfig) String() string {
