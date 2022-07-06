@@ -69,7 +69,7 @@ func createSaslMechanism(saslMechanismName string, username string, password str
 		}
 
 		return mechanism, nil
-	case "scra-sha-256":
+	case "scram-sha-256":
 		mechanism, err := scram.Mechanism(scram.SHA256, username, password)
 		if err != nil {
 			return nil, fmt.Errorf("unable to create scram-sha-256 mechanism: %w", err)
