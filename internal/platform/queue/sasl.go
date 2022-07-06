@@ -44,8 +44,13 @@ func createDialer(cfg *SaslConfig) (*kafka.Dialer, error) {
 }
 
 func createTLSConfig(pathToCert string) (*tls.Config, error) {
+
+	tlsConfig := tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+
 	if pathToCert == "" {
-		return nil, nil
+		return &tlsConfig, nil
 	}
 
 	caCert, err := ioutil.ReadFile(pathToCert)
@@ -55,7 +60,9 @@ func createTLSConfig(pathToCert string) (*tls.Config, error) {
 	caCertPool := x509.NewCertPool()
 	caCertPool.AppendCertsFromPEM(caCert)
 
-	return &tls.Config{RootCAs: caCertPool}, nil
+	tlsConfig.RootCAs = caCertPool
+
+	return &tlsConfig, nil
 }
 
 func createSaslMechanism(saslMechanismName string, username string, password string) (sasl.Mechanism, error) {
