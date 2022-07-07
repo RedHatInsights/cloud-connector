@@ -42,13 +42,15 @@ func NewManagementServer(cm connection_repository.ConnectionLocator, r *mux.Rout
 
 func (s *ManagementServer) Routes() {
 	mmw := &middlewares.MetricsMiddleware{}
-	amw := &middlewares.AuthMiddleware{Secrets: s.config.ServiceToServiceCredentials,
+	amw := &middlewares.AuthMiddleware{
+		Secrets: s.config.ServiceToServiceCredentials,
 		IdentityAuth: func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				identity.EnforceIdentity(middlewares.EnforceTurnpikeAuthentication(next)).ServeHTTP(w, r)
 				return
 			})
 		},
+		RequiredTenantIdentifier: middlewares.Account, // Account is the required tenant identifier for v1 rest interface
 	}
 
 	pathPrefix := fmt.Sprintf("%s/connection", s.urlPrefix)

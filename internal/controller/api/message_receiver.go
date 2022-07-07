@@ -41,7 +41,11 @@ func NewMessageReceiver(cm connection_repository.ConnectionLocator, r *mux.Route
 
 func (jr *MessageReceiver) Routes() {
 	mmw := &middlewares.MetricsMiddleware{}
-	amw := &middlewares.AuthMiddleware{Secrets: jr.config.ServiceToServiceCredentials, IdentityAuth: identity.EnforceIdentity}
+	amw := &middlewares.AuthMiddleware{
+		Secrets:                  jr.config.ServiceToServiceCredentials,
+		IdentityAuth:             identity.EnforceIdentity,
+		RequiredTenantIdentifier: middlewares.Account, // Account is the required tenant identifier for v1 rest interface
+	}
 
 	securedSubRouter := jr.router.PathPrefix(jr.urlPrefix).Subrouter()
 	securedSubRouter.Use(logger.AccessLoggerMiddleware,

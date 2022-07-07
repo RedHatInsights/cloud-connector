@@ -5,8 +5,6 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/redhatinsights/platform-go-middlewares/identity"
-
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/sirupsen/logrus"
 )
@@ -21,130 +19,94 @@ const (
 	PSKHeader          = "x-rh-cloud-connector-psk"
 )
 
-// Principal interface can be implemented and expanded by various principal objects (type depends on middleware being used)
-type Principal interface {
-	GetAccount() string
-	GetOrgID() string
-}
+type RequiredTenantIdentifier int
 
-type key int
+const (
+	Account RequiredTenantIdentifier = iota
+	OrgID
+)
 
-var principalKey key
-
-type serviceToServicePrincipal struct {
-	account, clientID, orgID string
-}
-
-func (sp serviceToServicePrincipal) GetAccount() string {
-	return sp.account
-}
-
-func (sp serviceToServicePrincipal) GetClientID() string {
-	return sp.clientID
-}
-
-func (sp serviceToServicePrincipal) GetOrgID() string {
-	return sp.orgID
-}
-
-type identityPrincipal struct {
-	account, orgID string
-}
-
-func (ip identityPrincipal) GetAccount() string {
-	return ip.account
-}
-
-func (ip identityPrincipal) GetOrgID() string {
-	return ip.orgID
-}
-
-// GetPrincipal takes the request context and determines which middleware (identity header vs service to service) was used
-// before returning a principal object.
-func GetPrincipal(ctx context.Context) (Principal, bool) {
-	p, ok := ctx.Value(principalKey).(serviceToServicePrincipal)
-	if !ok {
-		id, ok := ctx.Value(identity.Key).(identity.XRHID)
-		p := identityPrincipal{account: id.Identity.AccountNumber, orgID: id.Identity.OrgID}
-		return p, ok
-	}
-	return p, ok
-}
-
-type serviceCredentials struct {
-	clientID string
-	orgID    string
-	account  string
-	psk      string
-}
-
-func newServiceCredentials(clientID, orgID, account, psk string) (*serviceCredentials, error) {
-	switch {
-	case clientID == "":
-		return nil, errors.New(authErrorLogHeader + "Missing " + PSKClientIdHeader + " header")
-	case account == "":
-		return nil, errors.New(authErrorLogHeader + "Missing " + PSKAccountHeader + " header")
-	case psk == "":
-		return nil, errors.New(authErrorLogHeader + "Missing " + PSKHeader + " header")
-	}
-	return &serviceCredentials{
-		clientID: clientID,
-		orgID:    orgID,
-		account:  account,
-		psk:      psk,
-	}, nil
-}
-
-type serviceCredentialsValidator struct {
-	knownServiceCredentials map[string]interface{}
-}
-
-func (scv *serviceCredentialsValidator) validate(sc *serviceCredentials) error {
-	switch {
-	case scv.knownServiceCredentials[sc.clientID] == nil:
-		return errors.New(authErrorLogHeader + "Provided ClientID not attached to any known keys")
-	case sc.psk != scv.knownServiceCredentials[sc.clientID]:
-		return errors.New(authErrorLogHeader + "Provided PSK does not match known key for this client")
-	}
-	return nil
-}
-
-// AuthMiddleware allows the passage of parameters into the Authenticate middleware
 type AuthMiddleware struct {
-	Secrets      map[string]interface{}
-	IdentityAuth func(http.Handler) http.Handler
+	Secrets                  map[string]interface{}
+	IdentityAuth             func(http.Handler) http.Handler
+	RequiredTenantIdentifier RequiredTenantIdentifier
 }
 
 // Authenticate determines which authentication method should be used, and delegates identity header
 // auth to the identity middleware
 func (amw *AuthMiddleware) Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get(identityHeader) != "" { // identity header auth
+		if r.Header.Get(identityHeader) != "" {
+			// identity header auth
 			amw.IdentityAuth(next).ServeHTTP(w, r)
-		} else { // token auth
-			sr, err := newServiceCredentials(
-				r.Header.Get(PSKClientIdHeader),
-				r.Header.Get(PSKOrgIdHeader),
-				r.Header.Get(PSKAccountHeader),
-				r.Header.Get(PSKHeader),
-			)
-			if err != nil {
-				logger.Log.WithFields(logrus.Fields{"error": err}).Debug("Authentication failure")
-				http.Error(w, authErrorMessage, 401)
-				return
-			}
-			logger.Log.Debugf("Received service to service request from %v using account:%v", sr.clientID, sr.account)
-			validator := serviceCredentialsValidator{knownServiceCredentials: amw.Secrets}
-			if err := validator.validate(sr); err != nil {
-				logger.Log.WithFields(logrus.Fields{"error": err}).Debug("Authentication failure")
-				http.Error(w, authErrorMessage, 401)
-				return
-			}
-
-			principal := serviceToServicePrincipal{account: sr.account, clientID: sr.clientID, orgID: sr.orgID}
-
-			ctx := context.WithValue(r.Context(), principalKey, principal)
-			next.ServeHTTP(w, r.WithContext(ctx))
+		} else {
+			handlePSKAuthentication(next, w, r, amw.Secrets, amw.RequiredTenantIdentifier)
 		}
 	})
+}
+
+func handlePSKAuthentication(next http.Handler, w http.ResponseWriter, r *http.Request, secrets map[string]interface{}, requiredTenant RequiredTenantIdentifier) {
+
+	clientID, orgID, account, psk, err := retrieveHeaderValues(r, requiredTenant)
+	if err != nil {
+		logger.Log.WithFields(logrus.Fields{"error": err}).Debug("Authentication failure")
+		http.Error(w, authErrorMessage, 401)
+		return
+	}
+
+	sr := newServiceCredentials(
+		clientID,
+		orgID,
+		account,
+		psk,
+	)
+
+	logger.Log.Debugf("Received service to service request from %s using account:%s and org_id: %s", sr.clientID, sr.account, sr.orgID)
+
+	validator := serviceCredentialsValidator{knownServiceCredentials: secrets}
+	if err := validator.validate(sr); err != nil {
+		logger.Log.WithFields(logrus.Fields{"error": err}).Debug("Authentication failure")
+		http.Error(w, authErrorMessage, 401)
+		return
+	}
+
+	principal := serviceToServicePrincipal{account: sr.account, clientID: sr.clientID, orgID: sr.orgID}
+
+	ctx := context.WithValue(r.Context(), principalKey, principal)
+
+	next.ServeHTTP(w, r.WithContext(ctx))
+}
+
+func retrieveHeaderValues(r *http.Request, requiredTenant RequiredTenantIdentifier) (clientID string, orgID string, account string, psk string, err error) {
+	clientID, err = verifyHeader(r, PSKClientIdHeader, true)
+	if err != nil {
+		return clientID, orgID, account, psk, err
+	}
+
+	orgID, err = verifyHeader(r, PSKOrgIdHeader, requiredTenant == OrgID)
+	if err != nil {
+		return clientID, orgID, account, psk, err
+	}
+
+	account, err = verifyHeader(r, PSKAccountHeader, requiredTenant == Account)
+	if err != nil {
+		return clientID, orgID, account, psk, err
+	}
+
+	psk, err = verifyHeader(r, PSKHeader, true)
+	if err != nil {
+		return clientID, orgID, account, psk, err
+	}
+
+	return clientID, orgID, account, psk, err
+}
+
+func verifyHeader(r *http.Request, header string, required bool) (string, error) {
+	value := r.Header.Get(header)
+
+	if required == true && value == "" {
+		return "", errors.New(authErrorLogHeader + "Missing " + header + " header")
+	}
+
+	return value, nil
 }

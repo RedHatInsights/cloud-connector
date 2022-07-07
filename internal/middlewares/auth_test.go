@@ -54,7 +54,7 @@ var _ = Describe("Auth", func() {
 	BeforeEach(func() {
 		knownSecrets := make(map[string]interface{})
 		knownSecrets["test_client_1"] = "12345"
-		amw = &middlewares.AuthMiddleware{Secrets: knownSecrets, IdentityAuth: identity.EnforceIdentity}
+		amw = &middlewares.AuthMiddleware{Secrets: knownSecrets, IdentityAuth: identity.EnforceIdentity, RequiredTenantIdentifier: middlewares.Account}
 
 		r, err := http.NewRequest("GET", "/api/cloud-connector/v1/job", nil)
 		if err != nil {
@@ -117,6 +117,98 @@ var _ = Describe("Auth", func() {
 			It("Should return 401 when the psk header is missing", func() {
 				req.Header.Add(TOKEN_HEADER_CLIENT_NAME, "test_client_1")
 				req.Header.Add(TOKEN_HEADER_ACCOUNT_NAME, "0000001")
+
+				boiler(req, 401, authFailure+"\n", "dont care", "", amw)
+			})
+		})
+	})
+
+	Describe("Use identity header authentication", func() {
+		Context("With valid identity header and no psk headers", func() {
+			It("Should return 200 when the key is correct", func() {
+				req.Header.Add(IDENTITY_HEADER_NAME, VALID_IDENTITY_HEADER)
+
+				boiler(req, 200, "", EXPECTED_ACCOUNT_FROM_IDENTITY_HEADER, EXPECTED_ORG_ID_FROM_IDENTITY_HEADER, amw)
+			})
+
+		})
+
+	})
+
+})
+
+var _ = Describe("PSK Based Authentication - OrgID as the required tenant", func() {
+	var (
+		req *http.Request
+		amw *middlewares.AuthMiddleware
+	)
+
+	BeforeEach(func() {
+		knownSecrets := make(map[string]interface{})
+		knownSecrets["test_client_1"] = "12345"
+		amw = &middlewares.AuthMiddleware{Secrets: knownSecrets, IdentityAuth: identity.EnforceIdentity, RequiredTenantIdentifier: middlewares.OrgID}
+
+		r, err := http.NewRequest("GET", "/api/cloud-connector/v1/job", nil)
+		if err != nil {
+			panic("Test error unable to get new request")
+		}
+		req = r
+	})
+
+	Describe("Using psk authentication", func() {
+		Context("With no missing psk auth headers", func() {
+			It("Should return 200 when the key is correct", func() {
+				req.Header.Add(TOKEN_HEADER_CLIENT_NAME, "test_client_1")
+				req.Header.Add(TOKEN_HEADER_ORG_NAME, EXPECTED_ORG_FROM_TOKEN)
+				req.Header.Add(TOKEN_HEADER_PSK_NAME, "12345")
+
+				boiler(req, 200, "", "", EXPECTED_ORG_FROM_TOKEN, amw)
+			})
+
+			It("Should return 200 when passing an orgID and account", func() {
+				req.Header.Add(TOKEN_HEADER_CLIENT_NAME, "test_client_1")
+				req.Header.Add(TOKEN_HEADER_ACCOUNT_NAME, EXPECTED_ACCOUNT_FROM_TOKEN)
+				req.Header.Add(TOKEN_HEADER_PSK_NAME, "12345")
+				req.Header.Add(TOKEN_HEADER_ORG_NAME, EXPECTED_ORG_FROM_TOKEN)
+
+				boiler(req, 200, "", EXPECTED_ACCOUNT_FROM_TOKEN, EXPECTED_ORG_FROM_TOKEN, amw)
+			})
+
+			It("Should return a 401 when the key is incorrect", func() {
+				req.Header.Add(TOKEN_HEADER_CLIENT_NAME, "test_client_1")
+				req.Header.Add(TOKEN_HEADER_ORG_NAME, EXPECTED_ORG_FROM_TOKEN)
+				req.Header.Add(TOKEN_HEADER_PSK_NAME, "678910")
+
+				boiler(req, 401, authFailure+"\n", "dont care", "dont care", amw)
+			})
+
+			It("Should return a 401 when the client id is unknown", func() {
+				req.Header.Add(TOKEN_HEADER_CLIENT_NAME, "test_client_nil")
+				req.Header.Add(TOKEN_HEADER_ORG_NAME, EXPECTED_ORG_FROM_TOKEN)
+				req.Header.Add(TOKEN_HEADER_PSK_NAME, "12345")
+
+				boiler(req, 401, authFailure+"\n", "dont care", "dont care", amw)
+			})
+		})
+
+		Context("With missing psk auth headers", func() {
+			It("Should return 401 when the client id header is missing", func() {
+				req.Header.Add(TOKEN_HEADER_ORG_NAME, EXPECTED_ORG_FROM_TOKEN)
+				req.Header.Add(TOKEN_HEADER_PSK_NAME, "12345")
+
+				boiler(req, 401, authFailure+"\n", "dont care", "dont care", amw)
+			})
+
+			It("Should return 401 when the org_id header is missing", func() {
+				req.Header.Add(TOKEN_HEADER_CLIENT_NAME, "test_client_1")
+				req.Header.Add(TOKEN_HEADER_PSK_NAME, "12345")
+
+				boiler(req, 401, authFailure+"\n", "dont care", "don't care", amw)
+			})
+
+			It("Should return 401 when the psk header is missing", func() {
+				req.Header.Add(TOKEN_HEADER_CLIENT_NAME, "test_client_1")
+				req.Header.Add(TOKEN_HEADER_ORG_NAME, EXPECTED_ORG_FROM_TOKEN)
 
 				boiler(req, 401, authFailure+"\n", "dont care", "", amw)
 			})
