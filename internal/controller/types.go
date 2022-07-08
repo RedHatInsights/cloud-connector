@@ -23,5 +23,5 @@ type ConnectorClient interface {
 }
 
 type ConnectorClientProxyFactory interface {
-	CreateProxy(context.Context, domain.AccountID, domain.ClientID, domain.Dispatchers) (ConnectorClient, error)
+	CreateProxy(context.Context, domain.OrgID, domain.AccountID, domain.ClientID, domain.Dispatchers) (ConnectorClient, error)
 }

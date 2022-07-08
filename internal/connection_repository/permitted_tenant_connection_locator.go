@@ -3,100 +3,48 @@ package connection_repository
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
-	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
 
 type PermittedTenantConnectionLocator struct {
-	database     *sql.DB
-	queryTimeout time.Duration
-	proxyFactory controller.ConnectorClientProxyFactory
+	proxyFactory            controller.ConnectorClientProxyFactory
+	getConnectionByClientID GetConnectionByClientID
 }
 
 func NewPermittedTenantConnectionLocator(cfg *config.Config, database *sql.DB, proxyFactory controller.ConnectorClientProxyFactory) (*PermittedTenantConnectionLocator, error) {
 
+	getConnectionByClientID, err := NewPermittedTenantSqlGetConnectionByClientID(cfg, database)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return &PermittedTenantConnectionLocator{
-		database:     database,
-		queryTimeout: cfg.ConnectionDatabaseQueryTimeout,
-		proxyFactory: proxyFactory,
+		proxyFactory:            proxyFactory,
+		getConnectionByClientID: getConnectionByClientID,
 	}, nil
 }
 
 func (pacl *PermittedTenantConnectionLocator) GetConnection(ctx context.Context, account domain.AccountID, org_id domain.OrgID, client_id domain.ClientID) controller.ConnectorClient {
-	var conn controller.ConnectorClient
-	var err error
-
-	callDurationTimer := prometheus.NewTimer(metrics.sqlLookupConnectionByAccountOrPermittedTenantAndClientIDDuration)
-	defer callDurationTimer.ObserveDuration()
-
-	ctx, cancel := context.WithTimeout(ctx, pacl.queryTimeout)
-	defer cancel()
 
 	log := logger.Log.WithFields(logrus.Fields{"client_id": client_id,
 		"account": account,
 		"org_id":  org_id})
 
-	log.Info("Searching for connection")
-
-	// Match a connection if the account number matches or if the org_id is within the permitted_tenants list
-	statement, err := pacl.database.Prepare(`SELECT account, org_id, client_id, dispatchers, permitted_tenants FROM connections
-        WHERE (account = $1 OR ((org_id is not null AND org_id != '') AND (org_id = $2 OR permitted_tenants @> to_jsonb($2::text))) )
-        AND client_id = $3`)
+	clientState, err := pacl.getConnectionByClientID(ctx, log, org_id, client_id)
 	if err != nil {
-		logger.LogError("SQL Prepare failed", err)
-		return nil
-	}
-	defer statement.Close()
-
-	var connectionAccount string
-	var orgId sql.NullString
-	var clientId string
-	var dispatchersString sql.NullString
-	var permittedTenants sql.NullString
-
-	err = statement.QueryRowContext(ctx, account, org_id, client_id).Scan(&connectionAccount, &orgId, &clientId, &dispatchersString, &permittedTenants)
-
-	if err != nil {
-		if err != sql.ErrNoRows {
-			logger.LogError("SQL query failed:", err)
-		}
+		log.WithFields(logrus.Fields{"error": err}).Error("Unable to locate connection")
 		return nil
 	}
 
-	var connectionOrgId string
-	if orgId.Valid {
-		connectionOrgId = orgId.String
-	}
-
-	log = log.WithFields(logrus.Fields{
-		"connection_account": connectionAccount,
-		"connection_org_id":  connectionOrgId,
-		"permitted_tenants":  permittedTenants})
-
-	log.Debug("Connection found")
-
-	var dispatchers domain.Dispatchers
-	if dispatchersString.Valid {
-		err = json.Unmarshal([]byte(dispatchersString.String), &dispatchers)
-		if err != nil {
-			log.WithFields(logrus.Fields{"error": err}).Error("Unable to unmarshal dispatchers from database")
-		}
-	}
-
-	if connectionAccount != string(account) && connectionOrgId != string(org_id) && org_id != "" {
-		log.Info("Connection located based on permitted tenant match")
-	}
-
-	conn, err = pacl.proxyFactory.CreateProxy(ctx, domain.AccountID(connectionAccount), domain.ClientID(client_id), dispatchers)
+	conn, err := pacl.proxyFactory.CreateProxy(ctx, clientState.OrgID, clientState.Account, clientState.ClientID, clientState.Dispatchers)
 	if err != nil {
 		log.WithFields(logrus.Fields{"error": err}).Error("Unable to create the proxy")
 		return nil

@@ -17,6 +17,8 @@ type FatalError struct {
 func (fe FatalError) Error() string { return "FATAL: " + fe.Err.Error() }
 
 var NotFoundError = errors.New("Not found")
+var InvalidOrgIDError = errors.New("Invalid OrgID")
+var InvalidClientIDError = errors.New("Invalid ClientID")
 
 type ConnectionRegistrar interface {
 	Register(context.Context, domain.ConnectorClientState) error

@@ -106,6 +106,19 @@ objects:
         - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
           value: ${{MQTT_TOPIC_PREFIX}}
 
+        - name: CLOUD_CONNECTOR_API_SERVER_CONNECTION_LOOKUP_IMPL
+          value: ${{API_SERVER_CONNECTION_LOOKUP_IMPL}}
+
+        - name: CLOUD_CONNECTOR_TENANT_TRANSLATOR_IMPL
+          value: ${{TENANT_TRANSLATOR_IMPL}}
+        - name: CLOUD_CONNECTOR_TENANT_TRANSLATOR_MOCK_MAPPING
+          value: ${TENANT_TRANSLATOR_MOCK_MAPPING}
+        - name: CLOUD_CONNECTOR_TENANT_TRANSLATOR_URL
+          value: ${TENANT_TRANSLATOR_PROTOCOL}://${TENANT_TRANSLATOR_HOST}:${TENANT_TRANSLATOR_PORT}
+        - name: CLOUD_CONNECTOR_TENANT_TRANSLATOR_TIMEOUT
+          value: ${TENANT_TRANSLATOR_TIMEOUT}
+
+
     - name: mqtt-message-consumer
       webServices:
         private:
@@ -594,6 +607,10 @@ parameters:
   value: "fake"
   required: true
 
+- name: API_SERVER_CONNECTION_LOOKUP_IMPL
+  value: "relaxed"
+  required: true
+
 - name: CONNECTION_PER_ACCOUNT_REPORTER_SCHEDULE
   value: "00 01 * * 1"
 - name: CONNECTION_PER_ACCOUNT_REPORTER_SUSPEND
@@ -625,6 +642,13 @@ parameters:
   value: '8892'
 - name: TENANT_TRANSLATOR_PROTOCOL
   value: 'http'
+
+- name: TENANT_TRANSLATOR_IMPL
+  value: 'translator-service'
+- name: TENANT_TRANSLATOR_MOCK_MAPPING
+  value: "{\"10001\": \"010101\", \"10000\": \"000000\", \"0002\": \"111000\", \"0001\": \"\", \"10002\": \"010102\", \"10003\": \"010103\"}"
+- name: TENANT_TRANSLATOR_TIMEOUT
+  value: "5"
 
 - name: PROMETHEUS_PUSHGATEWAY
   value: prometheus-push.insights-push-stage.svc.cluster.local:9091

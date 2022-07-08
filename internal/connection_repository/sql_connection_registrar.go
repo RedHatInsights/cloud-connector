@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -43,10 +42,7 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": account, "org_id": org_id, "client_id": client_id})
 
-	permittedTenants, err := retrievePermittedTenants(logger, rhcClient)
-	if err != nil {
-		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to determine permitted tenants")
-	}
+	permittedTenants := "[]"
 
 	update := "UPDATE connections SET dispatchers=$1, tags = $2, updated_at = NOW(), message_id = $3, message_sent = $4, permitted_tenants = $5 WHERE account=$6 AND client_id=$7"
 	insert := "INSERT INTO connections (account, org_id, client_id, dispatchers, canonical_facts, tags, permitted_tenants, message_id, message_sent) SELECT $8, $9, $10, $11, $12, $13, $14, $15, $16"
@@ -196,44 +192,4 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 	}
 
 	return connectorClient, nil
-}
-
-func retrievePermittedTenants(logger *logrus.Entry, clientState domain.ConnectorClientState) (string, error) {
-
-	emptyPermittedTenants := "[]"
-
-	if clientState.Dispatchers == nil {
-		logger.Debug("No permitted tenants found")
-		return emptyPermittedTenants, nil
-	}
-
-	dispatchersMap := clientState.Dispatchers.(map[string]interface{})
-
-	satelliteMapInterface, gotSatellite := dispatchersMap["satellite"]
-
-	if gotSatellite == false {
-		logger.Debug("No satellite dispatcher found")
-		return emptyPermittedTenants, nil
-	}
-
-	logger.Debug("***** Found satellite map: ", satelliteMapInterface)
-
-	satelliteMap := satelliteMapInterface.(map[string]interface{})
-
-	permittedTenantsString, gotPermittedTenants := satelliteMap["tenant_list"]
-
-	if gotPermittedTenants == false {
-		logger.Debug("No permitted tenants found")
-		return emptyPermittedTenants, nil
-	}
-
-	permittedTenantsList := strings.Split(permittedTenantsString.(string), ",")
-
-	j, err := json.Marshal(permittedTenantsList)
-	if err != nil {
-		logger.WithFields(logrus.Fields{"error": err}).Debug("Unable to parse permitted tenants list")
-		return emptyPermittedTenants, nil
-	}
-
-	return string(j), nil
 }

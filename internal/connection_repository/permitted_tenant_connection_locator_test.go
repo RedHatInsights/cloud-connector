@@ -14,15 +14,16 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
 	"database/sql"
+	"encoding/json"
 )
 
 func init() {
 	logger.InitLogger()
 }
 
-func insertTestData(database *sql.DB, account domain.AccountID, org_id domain.OrgID, client_id domain.ClientID, permitted_tenants string) (func(), error) {
-	insert := "INSERT INTO connections (account, client_id, permitted_tenants, org_id) VALUES ($1, $2, $3, $4)"
-	delete := "DELETE FROM connections WHERE account = $1 AND client_id = $2"
+func insertTestData(database *sql.DB, account domain.AccountID, org_id domain.OrgID, client_id domain.ClientID, dispatchers domain.Dispatchers) (func(), error) {
+	insert := "INSERT INTO connections (account, org_id, client_id, dispatchers) VALUES ($1, $2, $3, $4)"
+	delete := "DELETE FROM connections WHERE org_id = $1 AND client_id = $2"
 
 	noOpFunc := func() {}
 
@@ -32,7 +33,12 @@ func insertTestData(database *sql.DB, account domain.AccountID, org_id domain.Or
 	}
 	defer statement.Close()
 
-	_, err = statement.Exec(account, client_id, permitted_tenants, org_id)
+	dispatchersJson, err := json.Marshal(dispatchers)
+	if err != nil {
+		return noOpFunc, err
+	}
+
+	_, err = statement.Exec(account, org_id, client_id, dispatchersJson)
 	if err != nil {
 		return noOpFunc, err
 	}
@@ -55,12 +61,14 @@ func insertTestData(database *sql.DB, account domain.AccountID, org_id domain.Or
 
 type mockConnectorClientProxyFactory struct {
 	callCount int
+	orgID     domain.OrgID
 	account   domain.AccountID
 	clientID  domain.ClientID
 }
 
-func (m *mockConnectorClientProxyFactory) CreateProxy(ctx context.Context, account domain.AccountID, clientID domain.ClientID, dispatchers domain.Dispatchers) (controller.ConnectorClient, error) {
+func (m *mockConnectorClientProxyFactory) CreateProxy(ctx context.Context, orgID domain.OrgID, account domain.AccountID, clientID domain.ClientID, dispatchers domain.Dispatchers) (controller.ConnectorClient, error) {
 	m.callCount += 1
+	m.orgID = orgID
 	m.account = account
 	m.clientID = clientID
 	return nil, nil
@@ -75,26 +83,31 @@ func TestPermittedTenantConnectionLocator(t *testing.T) {
 		t.Fatal("Unable to connect to database: ", err)
 	}
 
+	dispatchersWithSatellite := map[string]map[string]string{
+		"echo":          {},
+		"fred":          {},
+		satelliteWorker: {"version": "1.2.3"},
+	}
+	dispatchersWithoutSatellite := map[string]map[string]string{}
+
 	testCases := []struct {
 		testName            string
 		account             domain.AccountID
 		orgID               domain.OrgID
 		clientID            domain.ClientID
-		permittedTenants    string
+		dispatchers         domain.Dispatchers
 		accountToSearchFor  domain.AccountID
 		orgIDToSearchFor    domain.OrgID
 		clientIDToSearchFor domain.ClientID
 		verifyResults       func(*testing.T, mockConnectorClientProxyFactory)
 	}{
-		{"primary account match", "999999", "11111", "client-1", "[]", "999999", "dont_match_org_id", "client-1", verifyProxyFactoryWasCalled("999999", "client-1")},
-		{"primary org_id match", "888888", "11112", "client-2", "[\"0001\", \"0002\"]", "dont_match_account", "11112", "client-2", verifyProxyFactoryWasCalled("888888", "client-2")},
-		{"primary account match and org_id match", "2222", "3333", "client-2", "[\"0001\", \"0002\"]", "2222", "3333", "client-2", verifyProxyFactoryWasCalled("2222", "client-2")},
-		{"permitted tenant match", "888888", "11112", "client-2", "[\"0001\", \"0002\"]", "dont_match_account", "0002", "client-2", verifyProxyFactoryWasCalled("888888", "client-2")},
-		{"no matching account, no matching primary org_id, no matching permitted tenants (empty array)", "999999", "111113", "client-3", "[]", "888888", "77777", "client-3", verifyProxyFactoryWasNotCalled()},
-		{"no matching account, no matching primary org_id, no matching permitted tenants", "999999", "111113", "client-3", "[\"nomatch\",\"nope\"]", "888888", "77777", "client-3", verifyProxyFactoryWasNotCalled()},
-		{"search for blank org_id", "999999", "", "client-3", "[]", "888888", "", "client-3", verifyProxyFactoryWasNotCalled()},
-		{"account matches, but client-id does not", "999999", "111114", "client-4", "[]", "999999", "1111", "will-not-find-this-client", verifyProxyFactoryWasNotCalled()},
-		{"account matches, primary org_id matches, but client-id does not", "999999", "111114", "client-4", "[111114]", "999999", "111114", "will-not-find-this-client", verifyProxyFactoryWasNotCalled()},
+		{"org_id match", "999999", "11111", "client-1", dispatchersWithoutSatellite, "dont_match_account", "11111", "client-1", verifyProxyFactoryWasCalled("999999", "11111", "client-1")},
+		{"failed org_id match, match based on satellite worker", "1000000", "11112", "client-2", dispatchersWithSatellite, "dont_match_account", "dont_match_org_id", "client-2", verifyProxyFactoryWasCalled("1000000", "11112", "client-2")},
+		{"no matching org_id, no matching satellite worker", "999999", "111113", "client-3", nil, "888888", "77777", "client-3", verifyProxyFactoryWasNotCalled()},
+		{"org id matches, but client-id does not", "999998", "111114", "client-4", dispatchersWithoutSatellite, "999998", "111114", "will-not-find-this-client", verifyProxyFactoryWasNotCalled()},
+		{"org id matches and has satellite worker, but client-id does not", "999997", "111115", "client-5", dispatchersWithSatellite, "999997", "111115", "will-not-find-this-client", verifyProxyFactoryWasNotCalled()},
+		{"search for blank org_id", "999996", "", "client-6", dispatchersWithoutSatellite, "999996", "", "client-6", verifyProxyFactoryWasNotCalled()},
+		{"search for blank client_id", "999996", "1", "client-6", dispatchersWithoutSatellite, "999996", "1", "", verifyProxyFactoryWasNotCalled()},
 	}
 
 	for _, tc := range testCases {
@@ -108,7 +121,7 @@ func TestPermittedTenantConnectionLocator(t *testing.T) {
 				t.Fatal("unexpected error while creating the PermittedTenantConnectionLocator", err)
 			}
 
-			cleanUpTestData, err := insertTestData(database, tc.account, tc.orgID, tc.clientID, tc.permittedTenants)
+			cleanUpTestData, err := insertTestData(database, tc.account, tc.orgID, tc.clientID, tc.dispatchers)
 			if err != nil {
 				t.Fatal("unexpected error while inserting test data into the database", err)
 			}
@@ -123,10 +136,14 @@ func TestPermittedTenantConnectionLocator(t *testing.T) {
 	}
 }
 
-func verifyProxyFactoryWasCalled(expectedAccount domain.AccountID, expectedClientID domain.ClientID) func(t *testing.T, mockProxyFactory mockConnectorClientProxyFactory) {
+func verifyProxyFactoryWasCalled(expectedAccount domain.AccountID, expectedOrgID domain.OrgID, expectedClientID domain.ClientID) func(t *testing.T, mockProxyFactory mockConnectorClientProxyFactory) {
 	return func(t *testing.T, mockProxyFactory mockConnectorClientProxyFactory) {
 		if mockProxyFactory.callCount != 1 {
 			t.Fatalf("expected proxy factory call count to be 1, but got %d!", mockProxyFactory.callCount)
+		}
+
+		if mockProxyFactory.orgID != expectedOrgID {
+			t.Fatalf("expected proxy factory to be called with orgID %s, but got %s!", mockProxyFactory.orgID, expectedOrgID)
 		}
 
 		if mockProxyFactory.account != expectedAccount {

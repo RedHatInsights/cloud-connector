@@ -30,15 +30,13 @@ func TestSqlConnectionRegistrar(t *testing.T) {
 	}
 
 	testCases := []struct {
-		testName         string
-		account          domain.AccountID
-		clientID         domain.ClientID
-		dispatchers      string
-		permittedTenants []string
+		testName    string
+		account     domain.AccountID
+		clientID    domain.ClientID
+		dispatchers string
 	}{
-		{"no dispatchers", "999999", "registrar-test-client-1", "{}", []string{}},
-		{"satellite dispatchers - one account", "888888", "registrar-test-client-2", "{\"satellite\": {\"tenant_list\": \"0002\"}}", []string{"0002"}},
-		{"satellite dispatchers - two accounts", "888888", "registrar-test-client-2", "{\"satellite\": {\"tenant_list\": \"0002,0001\"}}", []string{"0002", "0001"}},
+		{"with no dispatchers", "999999", "registrar-test-client-1", "{}"},
+		{"with satellite dispatchers", "888888", "registrar-test-client-2", "{\"satellite\": {\"version\": \"0.2\"}}"},
 	}
 
 	for _, tc := range testCases {
@@ -74,7 +72,7 @@ func TestSqlConnectionRegistrar(t *testing.T) {
 
 			verifyConnectorClientState(t, connectorClientState, actualClientState)
 
-			verifyStoredClientState(t, database, tc.account, tc.clientID, tc.permittedTenants)
+			verifyStoredClientState(t, database, tc.account, tc.clientID, []string{})
 
 			err = connectionRegistrar.Unregister(context.TODO(), tc.clientID)
 			if err != nil {

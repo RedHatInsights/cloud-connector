@@ -187,8 +187,8 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 		dispatchers["catalog"]["WorkerSHA"] = "48d28791e3b59f7334d2671c07978113b0d40374"
 		dispatchers["catalog"]["WorkerVersion"] = "v0.1.0"
 
-		dispatchers["satellite"] = make(map[string]string)
-		dispatchers["satellite"]["tenant_list"] = "0002,0001"
+		dispatchers["foreman_rh_cloud"] = make(map[string]string)
+		dispatchers["foreman_rh_cloud"]["version"] = "6.11"
 
 		tags := make(Connector.Tags)
 		tags["key1"] = "value1"

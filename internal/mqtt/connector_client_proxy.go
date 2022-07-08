@@ -21,6 +21,7 @@ var (
 type ConnectorClientMQTTProxy struct {
 	Logger       *logrus.Entry
 	Config       *config.Config
+	OrgID        domain.OrgID
 	AccountID    domain.AccountID
 	ClientID     domain.ClientID
 	Client       MQTT.Client
