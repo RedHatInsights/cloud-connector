@@ -100,6 +100,9 @@ func (this *ConnectionMediatorV2) handleSendMessage() http.HandlerFunc {
 			return
 		}
 
+		logger.Infof("Looking up connection for org_id:%s - client id:%s",
+			principal.GetOrgID(), recipient)
+
 		var clientState domain.ConnectorClientState
 		var err error
 		clientState, err = this.getConnectionByClientID(req.Context(), logger, domain.OrgID(principal.GetOrgID()), recipient)
@@ -116,7 +119,7 @@ func (this *ConnectionMediatorV2) handleSendMessage() http.HandlerFunc {
 			return
 		}
 
-		client, err := this.proxyFactory.CreateProxy(req.Context(), clientState.Account, clientState.ClientID, clientState.Dispatchers)
+		client, err := this.proxyFactory.CreateProxy(req.Context(), clientState.OrgID, clientState.Account, clientState.ClientID, clientState.Dispatchers)
 		if err != nil {
 			logging.LogWithError(logger, "Unable to create proxy for connection", err)
 			writeConnectionFailureResponse(logger, w)
@@ -189,6 +192,9 @@ func (this *ConnectionMediatorV2) handleConnectionStatus() http.HandlerFunc {
 
 		var clientState domain.ConnectorClientState
 		var err error
+
+		logger.Infof("Checking connection status for org_id:%s - client id:%s",
+			principal.GetOrgID(), recipient)
 
 		clientState, err = this.getConnectionByClientID(req.Context(), logger, domain.OrgID(principal.GetOrgID()), recipient)
 		if err != nil {

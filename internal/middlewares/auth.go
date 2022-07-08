@@ -61,7 +61,7 @@ func handlePSKAuthentication(next http.Handler, w http.ResponseWriter, r *http.R
 		psk,
 	)
 
-	logger.Log.Debugf("Received service to service request from %s using account:%s and org_id: %s", sr.clientID, sr.account, sr.orgID)
+	logger.Log.Debugf("Received service to service request from %s using account:%s and org_id:%s", sr.clientID, sr.account, sr.orgID)
 
 	validator := serviceCredentialsValidator{knownServiceCredentials: secrets}
 	if err := validator.validate(sr); err != nil {

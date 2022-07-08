@@ -83,6 +83,11 @@ const (
 	PENDO_REQUEST_TIMEOUT                        = "Pendo_Request_Timeout"
 	PENDO_INTEGRATION_KEY                        = "Pendo_Integration_Key"
 	PENDO_REQUEST_SIZE                           = "Pendo_Request_Size"
+	API_SERVER_CONNECTION_LOOKUP_IMPL            = "API_Server_Connection_Lookup_Impl"
+	TENANT_TRANSLATOR_IMPL                       = "Tenant_Translator_Impl"
+	TENANT_TRANSLATOR_MOCK_MAPPING               = "Tenant_Translator_Mock_Mapping"
+	TENANT_TRANSLATOR_URL                        = "Tenant_Translator_URL"
+	TENANT_TRANSLATOR_TIMEOUT                    = "Tenant_Translator_Timeout"
 )
 
 type Config struct {
@@ -155,6 +160,11 @@ type Config struct {
 	PendoRequestTimeout                     time.Duration
 	PendoIntegrationKey                     string
 	PendoRequestSize                        int
+	ApiServerConnectionLookupImpl           string
+	TenantTranslatorImpl                    string
+	TenantTranslatorMockMapping             map[string]interface{}
+	TenantTranslatorURL                     string
+	TenantTranslatorTimeout                 time.Duration
 }
 
 func (c Config) String() string {
@@ -219,6 +229,11 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %d\n", RHC_MESSAGE_KAFKA_BATCH_SIZE, c.RhcMessageKafkaBatchSize)
 	fmt.Fprintf(&b, "%s: %d\n", RHC_MESSAGE_KAFKA_BATCH_BYTES, c.RhcMessageKafkaBatchBytes)
 	fmt.Fprintf(&b, "%s: %s\n", RHC_MESSAGE_KAFKA_CONSUMER_GROUP, c.RhcMessageKafkaConsumerGroup)
+	fmt.Fprintf(&b, "%s: %s\n", API_SERVER_CONNECTION_LOOKUP_IMPL, c.ApiServerConnectionLookupImpl)
+	fmt.Fprintf(&b, "%s: %s\n", TENANT_TRANSLATOR_IMPL, c.TenantTranslatorImpl)
+	fmt.Fprintf(&b, "%s: %s\n", TENANT_TRANSLATOR_MOCK_MAPPING, c.TenantTranslatorMockMapping)
+	fmt.Fprintf(&b, "%s: %s\n", TENANT_TRANSLATOR_URL, c.TenantTranslatorURL)
+	fmt.Fprintf(&b, "%s: %s\n", TENANT_TRANSLATOR_TIMEOUT, c.TenantTranslatorTimeout)
 	return b.String()
 }
 
@@ -284,6 +299,11 @@ func GetConfig() *Config {
 	options.SetDefault(PENDO_REQUEST_TIMEOUT, 5)
 	options.SetDefault(PENDO_INTEGRATION_KEY, "")
 	options.SetDefault(PENDO_REQUEST_SIZE, 100)
+	options.SetDefault(API_SERVER_CONNECTION_LOOKUP_IMPL, "relaxed")
+	options.SetDefault(TENANT_TRANSLATOR_IMPL, "mock")
+	options.SetDefault(TENANT_TRANSLATOR_MOCK_MAPPING, map[string]string{"10001": "010101", "10000": "000000", "0002": "111000", "10002": "010102", "10003": "010103"})
+	options.SetDefault(TENANT_TRANSLATOR_URL, "http://apicast.3scale-dev.svc.cluster.local:8892")
+	options.SetDefault(TENANT_TRANSLATOR_TIMEOUT, 5)
 
 	options.SetEnvPrefix(ENV_PREFIX)
 	options.AutomaticEnv()
@@ -357,6 +377,11 @@ func GetConfig() *Config {
 		PendoRequestTimeout:                     options.GetDuration(PENDO_REQUEST_TIMEOUT) * time.Second,
 		PendoIntegrationKey:                     options.GetString(PENDO_INTEGRATION_KEY),
 		PendoRequestSize:                        options.GetInt(PENDO_REQUEST_SIZE),
+		ApiServerConnectionLookupImpl:           options.GetString(API_SERVER_CONNECTION_LOOKUP_IMPL),
+		TenantTranslatorImpl:                    options.GetString(TENANT_TRANSLATOR_IMPL),
+		TenantTranslatorMockMapping:             options.GetStringMap(TENANT_TRANSLATOR_MOCK_MAPPING),
+		TenantTranslatorURL:                     options.GetString(TENANT_TRANSLATOR_URL),
+		TenantTranslatorTimeout:                 options.GetDuration(TENANT_TRANSLATOR_TIMEOUT) * time.Second,
 	}
 
 	if clowder.IsClowderEnabled() {

@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"database/sql"
 	"errors"
+	"fmt"
 	"net/url"
 	"os"
 	"os/signal"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
+	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/controller/api"
 	"github.com/RedHatInsights/cloud-connector/internal/mqtt"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/db"
@@ -20,6 +23,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/jwt_utils"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/tls_utils"
+	"github.com/RedHatInsights/tenant-utils/pkg/tenantid"
 	"github.com/redhatinsights/platform-go-middlewares/request_id"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -171,18 +175,13 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 	mgmtServer := api.NewManagementServer(sqlConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
 	mgmtServer.Routes()
 
-	permittedTenantConnectionLocator, err := connection_repository.NewPermittedTenantConnectionLocator(cfg, database, proxyFactory)
-	if err != nil {
-		logger.LogFatalError("Failed to create Permitted Account Connection Locator", err)
-	}
+	var v1ConnectionLocator connection_repository.ConnectionLocator
+	var getConnectionFunction connection_repository.GetConnectionByClientID
 
-	jr := api.NewMessageReceiver(permittedTenantConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
+	v1ConnectionLocator, getConnectionFunction = buildConnectionLookupInstances(cfg, database, proxyFactory)
+
+	jr := api.NewMessageReceiver(v1ConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
 	jr.Routes()
-
-	getConnectionFunction, err := connection_repository.NewSqlGetConnectionByClientID(cfg, database)
-	if err != nil {
-		logger.LogFatalError("Unable to create connection_repository.GetConnection() function", err)
-	}
 
 	getConnectionListByOrgIDFunction, err := connection_repository.NewSqlGetConnectionsByOrgID(cfg, database)
 	if err != nil {
@@ -209,4 +208,86 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 	mqttClient.Disconnect(cfg.MqttDisconnectQuiesceTime)
 
 	logger.Log.Info("Cloud-Connector shutting down")
+}
+
+func buildConnectionLookupInstances(cfg *config.Config, database *sql.DB, proxyFactory controller.ConnectorClientProxyFactory) (connection_repository.ConnectionLocator, connection_repository.GetConnectionByClientID) {
+
+	var v1ConnectionLocator connection_repository.ConnectionLocator
+	var getConnectionFunction connection_repository.GetConnectionByClientID
+	var err error
+
+	if cfg.ApiServerConnectionLookupImpl == "relaxed" {
+		logger.Log.Info("Using \"relaxed\" connection lookup mechanism")
+
+		v1ConnectionLocator, err = connection_repository.NewPermittedTenantConnectionLocator(cfg, database, proxyFactory)
+		if err != nil {
+			logger.LogFatalError("Failed to create Permitted Account Connection Locator", err)
+		}
+
+		getConnectionFunction, err = connection_repository.NewPermittedTenantSqlGetConnectionByClientID(cfg, database)
+		if err != nil {
+			logger.LogFatalError("Unable to create connection_repository.GetConnection() function", err)
+		}
+	} else {
+
+		logger.Log.Info("Using \"strict\" connection lookup mechanism")
+
+		v1ConnectionLocator, err = connection_repository.NewSqlConnectionLocator(cfg, database, proxyFactory)
+		if err != nil {
+			logger.LogFatalError("Failed to create Permitted Account Connection Locator", err)
+		}
+
+		getConnectionFunction, err = connection_repository.NewSqlGetConnectionByClientID(cfg, database)
+		if err != nil {
+			logger.LogFatalError("Unable to create connection_repository.GetConnection() function", err)
+		}
+	}
+
+	tenantTranslator, err := buildTenantTranslatorInstance(cfg)
+	if err != nil {
+		logger.LogFatalError("Unable to create tenant translator", err)
+	}
+
+	v1ConnectionLocator, err = connection_repository.NewTenantTranslatorDecorator(cfg, tenantTranslator, v1ConnectionLocator)
+	if err != nil {
+		logger.LogFatalError("Unable to create tenant translator decorator", err)
+	}
+
+	return v1ConnectionLocator, getConnectionFunction
+}
+
+func buildTenantTranslatorInstance(cfg *config.Config) (tenantid.Translator, error) {
+
+	logger.Log.Infof("Using \"%s\" tenant translator impl", cfg.TenantTranslatorImpl)
+
+	if cfg.TenantTranslatorImpl == "translator-service" {
+
+		return tenantid.NewTranslator(cfg.TenantTranslatorURL, tenantid.WithTimeout(cfg.TenantTranslatorTimeout)), nil
+	}
+
+	if cfg.TenantTranslatorImpl == "mock" {
+
+		mapping := buildTenantTranslatorMockMapping(cfg.TenantTranslatorMockMapping)
+
+		return tenantid.NewTranslatorMockWithMapping(mapping), nil
+	}
+
+	logger.Log.Fatalf("Invalid tenant translator impl - %s", cfg.TenantTranslatorImpl)
+
+	return nil, fmt.Errorf("Invalid tenant translator impl")
+}
+
+func buildTenantTranslatorMockMapping(mappingFromConfig map[string]interface{}) map[string]*string {
+	mapping := make(map[string]*string)
+
+	for k, v := range mappingFromConfig {
+		value := v.(string)
+		if value == "" {
+			mapping[k] = nil
+		} else {
+			mapping[k] = &value
+		}
+	}
+
+	return mapping
 }

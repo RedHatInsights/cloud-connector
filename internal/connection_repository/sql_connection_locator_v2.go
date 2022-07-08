@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -14,20 +13,73 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	satelliteWorker              = "foreman_rh_cloud"
+	connectionQueryPrefix        = "SELECT  account, org_id, dispatchers, canonical_facts, tags FROM connections "
+	strictConnectionLookupQuery  = connectionQueryPrefix + "WHERE org_id = $1 AND client_id = $2"
+	relaxedConnectionLookupQuery = connectionQueryPrefix + "WHERE (org_id = $1 OR dispatchers ? '" + satelliteWorker + "') AND client_id = $2"
+)
+
 func NewSqlGetConnectionByClientID(cfg *config.Config, database *sql.DB) (GetConnectionByClientID, error) {
+
+	return createGetConnectionByClientIDImpl(cfg, database, strictConnectionLookupQuery)
+}
+
+func NewPermittedTenantSqlGetConnectionByClientID(cfg *config.Config, database *sql.DB) (GetConnectionByClientID, error) {
+
+	// The "relaxed" / "permitted" tenant logic is basically contained here.
+	// This allows us to reuse a big chunk of the logic required to read the
+	// connection state from the database.
+
+	lookupFunc, err := createGetConnectionByClientIDImpl(cfg, database, relaxedConnectionLookupQuery)
+	if err != nil {
+		return lookupFunc, err
+	}
+
+	// Wrap the real connection lookup method with a method that logs that the access has been "relaxed"
+	return func(ctx context.Context, log *logrus.Entry, orgId domain.OrgID, clientId domain.ClientID) (domain.ConnectorClientState, error) {
+
+		clientState, err := lookupFunc(ctx, log, orgId, clientId)
+		if err != nil {
+			return clientState, err
+		}
+
+		if orgId != clientState.OrgID {
+			log = log.WithFields(logrus.Fields{
+				"connection_owner_account": clientState.Account,
+				"connection_owner_org_id":  clientState.OrgID})
+
+			log.Info("Allowing relaxed access to connection")
+		}
+
+		return clientState, err
+	}, nil
+}
+
+func createGetConnectionByClientIDImpl(cfg *config.Config, database *sql.DB, sqlQuery string) (GetConnectionByClientID, error) {
 
 	return func(ctx context.Context, log *logrus.Entry, orgId domain.OrgID, clientId domain.ClientID) (domain.ConnectorClientState, error) {
 		var clientState domain.ConnectorClientState
 		var err error
 
+		err = verifyOrgId(orgId)
+		if err != nil {
+			return clientState, err
+		}
+
+		err = verifyClientId(clientId)
+		if err != nil {
+			return clientState, err
+		}
+
+		// We should probably use different timer for different look ups.
 		callDurationTimer := prometheus.NewTimer(metrics.sqlLookupConnectionByAccountAndClientIDDuration)
 		defer callDurationTimer.ObserveDuration()
 
 		ctx, cancel := context.WithTimeout(ctx, cfg.ConnectionDatabaseQueryTimeout)
 		defer cancel()
 
-		statement, err := database.Prepare(`SELECT  account, dispatchers, canonical_facts, tags
-            FROM connections WHERE org_id = $1 AND client_id = $2`)
+		statement, err := database.Prepare(sqlQuery)
 		if err != nil {
 			logger.LogWithError(log, "SQL Prepare failed", err)
 			return clientState, nil
@@ -35,11 +87,12 @@ func NewSqlGetConnectionByClientID(cfg *config.Config, database *sql.DB) (GetCon
 		defer statement.Close()
 
 		var accountString sql.NullString
+		var orgID string
 		var dispatchersString sql.NullString
 		var canonicalFactsString sql.NullString
 		var tagsString sql.NullString
 
-		err = statement.QueryRowContext(ctx, orgId, clientId).Scan(&accountString, &dispatchersString, &canonicalFactsString, &tagsString)
+		err = statement.QueryRowContext(ctx, orgId, clientId).Scan(&accountString, &orgID, &dispatchersString, &canonicalFactsString, &tagsString)
 
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -50,7 +103,7 @@ func NewSqlGetConnectionByClientID(cfg *config.Config, database *sql.DB) (GetCon
 			return clientState, err
 		}
 
-		clientState.OrgID = orgId
+		clientState.OrgID = domain.OrgID(orgID)
 		clientState.ClientID = clientId
 
 		if accountString.Valid {
@@ -95,10 +148,6 @@ func NewSqlGetConnectionsByOrgID(cfg *config.Config, database *sql.DB) (GetConne
 		defer cancel()
 
 		connectionsPerAccount := make(map[domain.ClientID]domain.ConnectorClientState)
-
-		fmt.Println("orgId: ", orgId)
-		fmt.Println("limit: ", limit)
-		fmt.Println("offset: ", offset)
 
 		statement, err := database.Prepare(
 			`SELECT client_id, org_id, account, dispatchers, canonical_facts, tags, COUNT(*) OVER() FROM connections
