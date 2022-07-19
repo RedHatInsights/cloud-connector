@@ -1,0 +1,158 @@
+# This docker-compose file spins up containers for kafka, zookeeper, and the receptor controller
+
+version: "3"
+services:
+# Cloud Connector
+  db:
+    image: postgres
+    restart: always
+    environment:
+        POSTGRES_PASSWORD: insights
+        POSTGRES_USER: insights
+        POSTGRES_DB: cloud-connector
+    ports:
+        - "5432:5432"
+  migrate:
+    image: quay.io/cloudservices/cloud-connector
+    depends_on:
+      db:
+        condition: service_started
+    environment:
+      - CLOUD_CONNECTOR_CONNECTION_DATABASE_HOST=db
+    entrypoint: /migrate_db upgrade
+  kafka-consumer:
+    image: quay.io/cloudservices/cloud-connector
+    depends_on:
+      kafka:
+        condition: service_healthy
+      db:
+        condition: service_started
+      mqtt-consumer:
+        condition: service_started
+    volumes:
+      - "./dev/kafka:/data:Z"
+    ports:
+      - "8083:8083"
+    environment:
+      - CLOUD_CONNECTOR_MQTT_CLIENT_ID=kafka-consumer
+      - CLOUD_CONNECTOR_AUTH_GATEWAY_URL=http://FAKE/
+      - CLOUD_CONNECTOR_SOURCES_HTTO_CLIENT_TIMEOUT=51
+      - CLOUD_CONNECTOR_AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT=5
+      - CLOUD_CONNECTOR_SLEEP_TIME_HACK=0
+      - CLOUD_CONNECTOR_SOURCES_RECORDER_IMPL=fake
+      - CLOUD_CONNECTOR_CONNECTED_CLIENT_RECORDER_IMPL=inventory
+      - CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY=true
+      - CLOUD_CONNECTOR_SERVICE_TO_SERVICE_CREDENTIALS="{\"fred\":\"fredskey\"}"
+      - CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE=/data/client_id_to_account_id_map.json
+      - CLOUD_CONNECTOR_INVENTORY_KAFKA_TOPIC=platform.inventory.host-ingress
+      - CLOUD_CONNECTOR_CONNECTION_DATABASE_HOST=db
+      - CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS=tcp://mqtt-broker:8883
+      - CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BROKERS=kafka:9092
+    entrypoint: /cloud-connector kafka_message_consumer -l localhost:8083
+    restart_policy:
+      condition: on-failure
+      delay: 10s
+      max_attempts: 5
+      window: 60s
+  mqtt-consumer:
+    image: quay.io/cloudservices/cloud-connector
+    depends_on:
+      kafka:
+        condition: service_healthy
+      mqtt-broker:
+        condition: service_started
+      db:
+        condition: service_started
+    ports:
+      - "8082:8082"
+    environment:
+      - CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BATCH_SIZE=1
+      - CLOUD_CONNECTOR_MQTT_MESSAGE_DISPATCHER_CONCURRENCY_LIMIT=100
+      - CLOUD_CONNECTOR_MQTT_CLIENT_ID=connector-service
+      - CLOUD_CONNECTOR_AUTH_GATEWAY_URL=http://FAKE/
+      - CLOUD_CONNECTOR_SOURCES_HTTP_CLIENT_TIMEOUT=51
+      - CLOUD_CONNECTOR_AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT=5
+      - CLOUD_CONNECTOR_SOURCES_RECORDER_IMPL=fake
+      - CLOUD_CONNECTOR_CONNECTED_CLIENT_RECORDER_IMPL=inventory
+      - CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY=true
+      - CLOUD_CONNECTOR_SERVICE_TO_SERVICE_CREDENTIALS="{\"fred\":\"fredskey\"}"
+      - CLOUD_CONNECTOR_INVENTORY_KAFKA_TOPIC=platform.inventory.host-ingress
+      - CLOUD_CONNECTOR_CONNECTION_DATABASE_HOST=db
+      - CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS=tcp://mqtt-broker:8883
+      - CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BROKERS=kafka:9092
+    entrypoint: /cloud-connector mqtt_message_consumer -l localhost:8082
+    restart_policy:
+      condition: on-failure
+      delay: 10s
+      max_attempts: 5
+      window: 60s
+  api:
+    image: quay.io/cloudservices/cloud-connector
+    depends_on:
+      db:
+        condition: service_started
+      migrate:
+        condition: service_started
+      kafka-consumer:
+        condition: service_started
+      mqtt-consumer:
+        condition: service_started
+    ports:
+      - "8081:8081"
+    environment:
+      - CLOUD_CONNECTOR_SERVICE_TO_SERVICE_CREDENTIALS="{\"fred\":\"fredskey\"}"
+      - CLOUD_CONNECTOR_MQTT_CLIENT_ID=api-service
+      - CLOUD_CONNECTOR_SLEEP_TIME_HACK=0
+      - CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY=true
+      - CLOUD_CONNECTOR_INVENTORY_KAFKA_TOPIC=platform.inventory.host-ingress
+      - CLOUD_CONNECTOR_CONNECTION_DATABASE_HOST=db
+      - CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS=tcp://mqtt-broker:8883
+    entrypoint: /cloud-connector api_server -l localhost:8081
+    restart_policy:
+      condition: on-failure
+      delay: 10s
+      max_attempts: 5
+      window: 60s
+
+# Dependencies
+  zookeeper:
+    image: confluentinc/cp-zookeeper
+    environment:
+      - ZOOKEEPER_CLIENT_PORT=32181
+      - ZOOKEEPER_SERVER_ID=1
+    ports:
+      - "32181:32181"
+  kafka:
+    image: confluentinc/cp-kafka
+    ports:
+      - "29092:29092"
+    depends_on:
+      - zookeeper
+    environment:
+      - KAFKA_LISTENERS=INTERNAL://kafka:9092,EXTERNAL://kafka:29092
+      - KAFKA_ADVERTISED_LISTENERS=INTERNAL://kafka:9092,EXTERNAL://localhost:29092
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL
+      - KAFKA_BROKER_ID=1
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:32181
+      - KAFKA_MAX_REQUEST_SIZE=1048576
+    healthcheck:
+      test: kafka-topics --bootstrap-server kafka:9092 --list
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  mqtt-broker:
+    image: eclipse-mosquitto
+    user: root
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "/usr/sbin/mosquitto -c /mosquitto/config/mosquitto.conf"
+    volumes:
+      - "./dev/mosquitto:/mosquitto:Z"
+    ports:
+      - "8883:8883"
+    networks:
+      - default
+  
