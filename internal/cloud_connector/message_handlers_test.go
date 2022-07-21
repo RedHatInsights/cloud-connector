@@ -12,6 +12,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/mqtt"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/sirupsen/logrus"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 )
@@ -65,15 +66,17 @@ func TestHandleOnlineMessagesNoExistingConnection(t *testing.T) {
 	var connectedClientRecorder = &mockConnectedClientRecorder{}
 	var sourcesRecorder controller.SourcesRecorder
 
+	logger := logger.Log.WithFields(logrus.Fields{})
+
 	incomingMessage := buildOnlineMessage(t, "56789", time.Now())
 
-	err := handleOnlineMessage(mqttClient, clientID, incomingMessage, &cfg, &topicBuilder, accountResolver, connectionRegistrar, connectedClientRecorder, sourcesRecorder)
+	err := handleOnlineMessage(logger, mqttClient, clientID, incomingMessage, &cfg, &topicBuilder, accountResolver, connectionRegistrar, connectedClientRecorder, sourcesRecorder)
 
 	if err != nil {
 		t.Fatal("handleOnlineMessage should not have returned an error")
 	}
 
-	recordedConnectionState, err := connectionRegistrar.FindConnectionByClientID(context.Background(), clientID)
+	recordedConnectionState, _ := connectionRegistrar.FindConnectionByClientID(context.Background(), clientID)
 
 	if recordedConnectionState.MessageMetadata.LatestMessageID != incomingMessage.MessageID {
 		t.Error("incoming messages does not appear to have been stored")
@@ -111,13 +114,15 @@ func TestHandleOnlineMessagesUpdateExistingConnection(t *testing.T) {
 
 	incomingMessage := buildOnlineMessage(t, expectedMessageID, expecteMessageSentTime)
 
-	err := handleOnlineMessage(mqttClient, clientID, incomingMessage, &cfg, &topicBuilder, accountResolver, connectionRegistrar, connectedClientRecorder, sourcesRecorder)
+	logger := logger.Log.WithFields(logrus.Fields{})
+
+	err := handleOnlineMessage(logger, mqttClient, clientID, incomingMessage, &cfg, &topicBuilder, accountResolver, connectionRegistrar, connectedClientRecorder, sourcesRecorder)
 
 	if err != nil {
 		t.Fatal("handleOnlineMessage should not have returned an error")
 	}
 
-	recordedConnectionState, err := connectionRegistrar.FindConnectionByClientID(context.Background(), clientID)
+	recordedConnectionState, _ := connectionRegistrar.FindConnectionByClientID(context.Background(), clientID)
 
 	if recordedConnectionState.MessageMetadata.LatestMessageID != incomingMessage.MessageID {
 		t.Error("incoming messages does not appear to have been stored")
@@ -138,6 +143,8 @@ func TestHandleDuplicateAndOldOnlineMessages(t *testing.T) {
 	var accountResolver = &mockAccountIdResolver{}
 	var connectedClientRecorder = &mockConnectedClientRecorder{}
 	var sourcesRecorder controller.SourcesRecorder
+
+	logger := logger.Log.WithFields(logrus.Fields{})
 
 	now := time.Now()
 
@@ -175,7 +182,7 @@ func TestHandleDuplicateAndOldOnlineMessages(t *testing.T) {
 
 			incomingMessage := buildOnlineMessage(t, tc.incomingMessageID, tc.incomingSentTime)
 
-			err := handleOnlineMessage(mqttClient, clientID, incomingMessage, &cfg, &topicBuilder, accountResolver, connectionRegistrar, connectedClientRecorder, sourcesRecorder)
+			err := handleOnlineMessage(logger, mqttClient, clientID, incomingMessage, &cfg, &topicBuilder, accountResolver, connectionRegistrar, connectedClientRecorder, sourcesRecorder)
 
 			if err != tc.expectedError {
 				t.Fatal("handleOnlineMesssage did not return the expected error!")
