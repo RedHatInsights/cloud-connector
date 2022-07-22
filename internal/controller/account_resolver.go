@@ -14,6 +14,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/google/uuid"
 	"github.com/redhatinsights/platform-go-middlewares/identity"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -62,8 +63,10 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 	if err != nil {
 		return "", "", "", err
 	}
+	uuid := uuid.NewString()
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("x-rh-certauth-cn", fmt.Sprintf("/CN=%s", clientID))
+	req.Header.Add("x-rh-insights-request-id", uuid)
 	logger.Debug("About to call Auth Gateway")
 	r, err := client.Do(req)
 	logger.Debug("Returned from call to Auth Gateway")
