@@ -61,7 +61,7 @@ func TestProcessDispatchers(t *testing.T) {
 	contentMap := make(map[string]interface{})
 	contentMap[dispatchersKey] = dispatchersMap
 
-	logger := logger.Log.WithFields(logrus.Fields{})
+	logger := logger.Log.WithFields(logrus.Fields{"client_id": expectedClientId, "account": expectedAccount, "org_id": expectedOrgID})
 
 	processDispatchers(logger, sourcesRecorder, expectedIdentity, expectedAccount, expectedOrgID, expectedClientId, contentMap)
 

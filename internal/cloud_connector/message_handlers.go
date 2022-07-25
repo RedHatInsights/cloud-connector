@@ -58,6 +58,8 @@ func HandleControlMessage(cfg *config.Config, mqttClient MQTT.Client, topicBuild
 			return nil
 		}
 
+		logger = logger.WithFields(logrus.Fields{"message_id": controlMsg.MessageID})
+
 		logger.Debug("Got a control message:", controlMsg)
 
 		switch controlMsg.MessageType {
@@ -73,7 +75,6 @@ func HandleControlMessage(cfg *config.Config, mqttClient MQTT.Client, topicBuild
 }
 
 func handleConnectionStatusMessage(logger *logrus.Entry, client MQTT.Client, clientID domain.ClientID, msg protocol.ControlMessage, cfg *config.Config, topicBuilder *mqtt.TopicBuilder, connectionRegistrar connection_repository.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
-	logger = logger.WithFields(logrus.Fields{"client_id": clientID})
 
 	logger.Debug("handling connection status control message")
 
@@ -107,8 +108,6 @@ func handleConnectionStatusMessage(logger *logrus.Entry, client MQTT.Client, cli
 }
 
 func handleOnlineMessage(logger *logrus.Entry, client MQTT.Client, clientID domain.ClientID, msg protocol.ControlMessage, cfg *config.Config, topicBuilder *mqtt.TopicBuilder, accountResolver controller.AccountIdResolver, connectionRegistrar connection_repository.ConnectionRegistrar, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) error {
-
-	logger = logger.WithFields(logrus.Fields{"client_id": clientID, "message_id": msg.MessageID})
 
 	logger.Debug("handling online connection-status message")
 
@@ -208,9 +207,6 @@ func isDuplicateOrOldMessage(currentConnectionState domain.ConnectorClientState,
 }
 
 func processDispatchers(logger *logrus.Entry, sourcesRecorder controller.SourcesRecorder, identity domain.Identity, account domain.AccountID, orgID domain.OrgID, clientId domain.ClientID, handshakePayload map[string]interface{}) {
-
-	logger = logger.WithFields(logrus.Fields{"client_id": clientId, "account": account, "org_id": orgID})
-
 	dispatchers, gotDispatchers := handshakePayload[dispatchersKey]
 
 	if gotDispatchers == false {
@@ -247,8 +243,6 @@ func processDispatchers(logger *logrus.Entry, sourcesRecorder controller.Sources
 }
 
 func handleOfflineMessage(logger *logrus.Entry, client MQTT.Client, clientID domain.ClientID, msg protocol.ControlMessage, connectionRegistrar connection_repository.ConnectionRegistrar) error {
-	logger = logger.WithFields(logrus.Fields{"client_id": clientID})
-
 	logger.Debug("handling offline connection-status message")
 
 	err := connectionRegistrar.Unregister(context.Background(), clientID)
@@ -260,7 +254,6 @@ func handleOfflineMessage(logger *logrus.Entry, client MQTT.Client, clientID dom
 }
 
 func handleEventMessage(logger *logrus.Entry, client MQTT.Client, clientID domain.ClientID, msg protocol.ControlMessage) error {
-	logger = logger.WithFields(logrus.Fields{"client_id": clientID})
 	logger.Debugf("Received an event message from client: %v\n", msg)
 	return nil
 }

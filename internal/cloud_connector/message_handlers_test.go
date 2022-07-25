@@ -66,9 +66,9 @@ func TestHandleOnlineMessagesNoExistingConnection(t *testing.T) {
 	var connectedClientRecorder = &mockConnectedClientRecorder{}
 	var sourcesRecorder controller.SourcesRecorder
 
-	logger := logger.Log.WithFields(logrus.Fields{})
-
 	incomingMessage := buildOnlineMessage(t, "56789", time.Now())
+
+	logger := logger.Log.WithFields(logrus.Fields{"clientID": clientID, "messageID": incomingMessage.MessageID})
 
 	err := handleOnlineMessage(logger, mqttClient, clientID, incomingMessage, &cfg, &topicBuilder, accountResolver, connectionRegistrar, connectedClientRecorder, sourcesRecorder)
 
@@ -114,7 +114,7 @@ func TestHandleOnlineMessagesUpdateExistingConnection(t *testing.T) {
 
 	incomingMessage := buildOnlineMessage(t, expectedMessageID, expecteMessageSentTime)
 
-	logger := logger.Log.WithFields(logrus.Fields{})
+	logger := logger.Log.WithFields(logrus.Fields{"clientID": clientID, "messageID": incomingMessage.MessageID})
 
 	err := handleOnlineMessage(logger, mqttClient, clientID, incomingMessage, &cfg, &topicBuilder, accountResolver, connectionRegistrar, connectedClientRecorder, sourcesRecorder)
 
@@ -144,8 +144,6 @@ func TestHandleDuplicateAndOldOnlineMessages(t *testing.T) {
 	var connectedClientRecorder = &mockConnectedClientRecorder{}
 	var sourcesRecorder controller.SourcesRecorder
 
-	logger := logger.Log.WithFields(logrus.Fields{})
-
 	now := time.Now()
 
 	testCases := []struct {
@@ -159,6 +157,8 @@ func TestHandleDuplicateAndOldOnlineMessages(t *testing.T) {
 		{"duplicate", "1234-56789", now, "1234-56789", now, errDuplicateOrOldMQTTMessage},
 		{"old message", "1234-56789", now, "1234-98765", now.Add(-2 * time.Second), errDuplicateOrOldMQTTMessage},
 	}
+
+	logger := logger.Log.WithFields(logrus.Fields{"clientID": clientID})
 
 	for _, tc := range testCases {
 		t.Run(tc.testCaseName, func(t *testing.T) {
@@ -181,6 +181,8 @@ func TestHandleDuplicateAndOldOnlineMessages(t *testing.T) {
 			}
 
 			incomingMessage := buildOnlineMessage(t, tc.incomingMessageID, tc.incomingSentTime)
+
+			logger = logger.WithFields(logrus.Fields{"messageID": incomingMessage.MessageID})
 
 			err := handleOnlineMessage(logger, mqttClient, clientID, incomingMessage, &cfg, &topicBuilder, accountResolver, connectionRegistrar, connectedClientRecorder, sourcesRecorder)
 
