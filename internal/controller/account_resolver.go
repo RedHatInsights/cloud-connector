@@ -50,8 +50,9 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 
 	callDurationTimer := prometheus.NewTimer(metrics.authGatewayAccountLookupDuration)
 	defer callDurationTimer.ObserveDuration()
+	requestID := uuid.NewString()
 
-	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID})
+	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID, "request_id": requestID})
 
 	logger.Debugf("Looking up the client %s account number in via Gateway", clientID)
 
@@ -63,10 +64,10 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 	if err != nil {
 		return "", "", "", err
 	}
-	uuid := uuid.NewString()
+	
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("x-rh-certauth-cn", fmt.Sprintf("/CN=%s", clientID))
-	req.Header.Add("x-rh-insights-request-id", uuid)
+	req.Header.Add("x-rh-insights-request-id", requestID)
 	logger.Debug("About to call Auth Gateway")
 	r, err := client.Do(req)
 	logger.Debug("Returned from call to Auth Gateway")
