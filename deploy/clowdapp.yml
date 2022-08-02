@@ -25,7 +25,7 @@ objects:
       partitions: 16
       topicName: platform.inventory.host-ingress-p1
     - replicas: 3
-      partitions: 3
+      partitions: 24
       topicName: platform.cloud-connector.rhc-message-ingress
     deployments:
     - name: api
