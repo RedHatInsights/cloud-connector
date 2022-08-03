@@ -5,6 +5,7 @@ import (
 
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/sirupsen/logrus"
 )
 
 func init() {
@@ -60,7 +61,9 @@ func TestProcessDispatchers(t *testing.T) {
 	contentMap := make(map[string]interface{})
 	contentMap[dispatchersKey] = dispatchersMap
 
-	processDispatchers(sourcesRecorder, expectedIdentity, expectedAccount, expectedOrgID, expectedClientId, contentMap)
+	logger := logger.Log.WithFields(logrus.Fields{"client_id": expectedClientId, "account": expectedAccount, "org_id": expectedOrgID})
+
+	processDispatchers(logger, sourcesRecorder, expectedIdentity, expectedAccount, expectedOrgID, expectedClientId, contentMap)
 
 	// Verify that the SourcesRecorder is called and the parameters were as expected
 
