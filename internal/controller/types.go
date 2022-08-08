@@ -19,6 +19,8 @@ type ConnectorClient interface {
 	Ping(context.Context) error
 	Reconnect(context.Context, string, int) error
 	GetDispatchers(context.Context) (domain.Dispatchers, error)
+	GetCanonicalFacts(context.Context) (domain.CanonicalFacts, error)
+	GetTags(context.Context) (domain.Tags, error)
 	Disconnect(context.Context, string) error
 }
 

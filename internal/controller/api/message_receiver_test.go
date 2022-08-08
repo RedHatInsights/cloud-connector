@@ -73,6 +73,22 @@ func (mc MockClient) GetDispatchers(ctx context.Context) (domain.Dispatchers, er
 	return dispatchers, nil
 }
 
+func (mc MockClient) GetCanonicalFacts(ctx context.Context) (domain.CanonicalFacts, error) {
+	var canonicalFacts domain.CanonicalFacts
+	if mc.returnAnError {
+		return canonicalFacts, errors.New("ImaError")
+	}
+	return canonicalFacts, nil
+}
+
+func (mc MockClient) GetTags(ctx context.Context) (domain.Tags, error) {
+	var tags domain.Tags
+	if mc.returnAnError {
+		return tags, errors.New("ImaError")
+	}
+	return tags, nil
+}
+
 func (mc MockClient) Disconnect(context.Context, string) error {
 	return nil
 }

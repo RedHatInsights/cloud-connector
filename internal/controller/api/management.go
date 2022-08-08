@@ -74,8 +74,10 @@ type connectionID struct {
 }
 
 type connectionStatusResponse struct {
-	Status      string      `json:"status"`
-	Dispatchers interface{} `json:"dispatchers,omitempty"`
+	Status         string                `json:"status"`
+	Dispatchers    interface{}           `json:"dispatchers,omitempty"`
+	CanonicalFacts domain.CanonicalFacts `json:"canonical_facts,omitempty"`
+	Tags           domain.Tags           `json:"tags,omitempty"`
 }
 
 type connectionPingResponse struct {
