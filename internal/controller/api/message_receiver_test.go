@@ -165,7 +165,17 @@ var _ = Describe("MessageReceiver", func() {
 		apiMux := mux.NewRouter()
 		cfg := config.GetConfig()
 		connectionManager := NewMockConnectionManager()
-		connectorClient := domain.ConnectorClientState{Account: account, ClientID: "345"}
+		connectorClient := domain.ConnectorClientState{
+			Account:  account,
+			ClientID: "345",
+			CanonicalFacts: map[string]string{
+				"foo": "bar",
+			},
+			Tags: map[string]string{
+				"tag1": "value1",
+				"tag2": "value2",
+			},
+		}
 		connectionManager.Register(context.TODO(), connectorClient)
 		errorConnectorClient := domain.ConnectorClientState{Account: account, ClientID: "error-client"}
 		connectionManager.Register(context.TODO(), errorConnectorClient)
@@ -492,6 +502,28 @@ var _ = Describe("MessageReceiver", func() {
 				Expect(rr.Code).To(Equal(http.StatusForbidden))
 
 				verifyErrorResponse(rr.Body, accountMismatchErrorMsg)
+			})
+
+			It("Should return the canonical facts and tags", func() {
+				postBody := createConnectionStatusPostBody(CONNECTED_ACCOUNT_NUMBER, CONNECTED_NODE_ID)
+
+				req, err := http.NewRequest("POST", URL_BASE_PATH+"/v1/connection_status", postBody)
+				Expect(err).NotTo(HaveOccurred())
+
+				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
+
+				rr := httptest.NewRecorder()
+
+				jr.router.ServeHTTP(rr, req)
+
+				Expect(rr.Code).To(Equal(http.StatusOK))
+
+				connectionStatusResponse := &connectionStatusResponse{}
+				err = json.Unmarshal(rr.Body.Bytes(), connectionStatusResponse)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(connectionStatusResponse.CanonicalFacts.G).Should(Equal("bar"))
+				Expect(connectionStatusResponse.Tags["tag1"]).Should(Equal("value1"))
+
 			})
 		})
 
