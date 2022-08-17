@@ -72,8 +72,6 @@ func TestSqlConnectionRegistrar(t *testing.T) {
 
 			verifyConnectorClientState(t, connectorClientState, actualClientState)
 
-			verifyStoredClientState(t, database, tc.account, tc.clientID, []string{})
-
 			err = connectionRegistrar.Unregister(context.TODO(), tc.clientID)
 			if err != nil {
 				t.Fatal("unexpected error while registering a connection", err)
@@ -93,33 +91,4 @@ func verifyConnectorClientState(t *testing.T, expectedClientState, actualClientS
 		expectedClientState.ClientID != actualClientState.ClientID {
 		t.Fatal("actual client state does not match expected client state", actualClientState, expectedClientState)
 	}
-}
-
-func verifyStoredClientState(t *testing.T, database *sql.DB, account domain.AccountID, clientID domain.ClientID, permittedTenants []string) {
-
-	statement, err := database.Prepare(`SELECT permitted_tenants FROM connections
-    WHERE account = $1 AND
-    client_id = $2`)
-	if err != nil {
-		t.Fatal("sql prepare failed", err)
-		return
-	}
-	defer statement.Close()
-
-	var permittedTenantsFromDatabase string
-	err = statement.QueryRow(account, clientID).Scan(&permittedTenantsFromDatabase)
-	if err != nil {
-		t.Fatal("sql prepare failed", err)
-		return
-	}
-
-	var actualPermittedTenents []string
-	json.Unmarshal([]byte(permittedTenantsFromDatabase), &actualPermittedTenents)
-
-	if reflect.DeepEqual(actualPermittedTenents, permittedTenants) == false {
-		t.Fatalf("expected permitted tenants to be %s, but got %s", permittedTenants, actualPermittedTenents)
-		return
-	}
-
-	return
 }

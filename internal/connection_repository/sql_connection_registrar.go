@@ -42,10 +42,8 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": account, "org_id": org_id, "client_id": client_id})
 
-	permittedTenants := "[]"
-
-	update := "UPDATE connections SET dispatchers=$1, tags = $2, updated_at = NOW(), message_id = $3, message_sent = $4, permitted_tenants = $5 WHERE account=$6 AND client_id=$7"
-	insert := "INSERT INTO connections (account, org_id, client_id, dispatchers, canonical_facts, tags, permitted_tenants, message_id, message_sent) SELECT $8, $9, $10, $11, $12, $13, $14, $15, $16"
+	update := "UPDATE connections SET dispatchers=$1, tags = $2, updated_at = NOW(), message_id = $3, message_sent = $4 WHERE account=$5 AND client_id=$6"
+	insert := "INSERT INTO connections (account, org_id, client_id, dispatchers, canonical_facts, tags, message_id, message_sent) SELECT $7, $8, $9, $10, $11, $12, $13, $14"
 
 	insertOrUpdate := fmt.Sprintf("WITH upsert AS (%s RETURNING *) %s WHERE NOT EXISTS (SELECT * FROM upsert)", update, insert)
 
@@ -74,7 +72,7 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 		return err
 	}
 
-	_, err = statement.ExecContext(ctx, dispatchersString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp, permittedTenants, account, client_id, account, org_id, client_id, dispatchersString, canonicalFactsString, tagsString, permittedTenants, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp)
+	_, err = statement.ExecContext(ctx, dispatchersString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp, account, client_id, account, org_id, client_id, dispatchersString, canonicalFactsString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Insert/update failed")
 		return FatalError{err}
