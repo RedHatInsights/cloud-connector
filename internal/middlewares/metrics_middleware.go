@@ -12,6 +12,11 @@ var (
 		Name: "cloud_connector_http_status_code_counter",
 		Help: "The number of http status codes per interface",
 	}, []string{"status_code"})
+
+	httpResponseDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "cloud_connector_http_response_duration",
+		Help: "The amount of time the http request took to process",
+	}, []string{"status_code"})
 )
 
 // MetricsMiddleware allows the passage of parameters into the metrics middleware
@@ -19,9 +24,15 @@ type MetricsMiddleware struct {
 }
 
 func (mw *MetricsMiddleware) RecordHTTPMetrics(next http.Handler) http.Handler {
+
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 
 		resp := &wrappedResponseWriter{w, 200}
+
+		httpResponseTimer := prometheus.NewTimer(prometheus.ObserverFunc(func(v float64) {
+			httpResponseDuration.WithLabelValues(strconv.Itoa(resp.statusCode)).Observe(v)
+		}))
+		defer httpResponseTimer.ObserveDuration()
 
 		next.ServeHTTP(resp, req)
 
