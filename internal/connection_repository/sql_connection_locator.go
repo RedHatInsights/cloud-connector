@@ -3,7 +3,6 @@ package connection_repository
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -12,6 +11,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/sirupsen/logrus"
 )
 
 type SqlConnectionLocator struct {
@@ -32,13 +32,17 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account doma
 	var conn controller.ConnectorClient
 	var err error
 
+	log := logger.Log.WithFields(logrus.Fields{"client_id": client_id,
+		"account": account,
+		"org_id":  orgID})
+
 	callDurationTimer := prometheus.NewTimer(metrics.sqlLookupConnectionByAccountAndClientIDDuration)
 	defer callDurationTimer.ObserveDuration()
 
 	ctx, cancel := context.WithTimeout(ctx, scm.queryTimeout)
 	defer cancel()
 
-	statement, err := scm.database.Prepare("SELECT client_id, dispatchers FROM connections WHERE account = $1 AND client_id = $2")
+	statement, err := scm.database.Prepare("SELECT client_id, canonical_facts, dispatchers, tags FROM connections WHERE account = $1 AND client_id = $2")
 	if err != nil {
 		logger.LogError("SQL Prepare failed", err)
 		return nil
@@ -46,8 +50,11 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account doma
 	defer statement.Close()
 
 	var name string
-	var dispatchersString sql.NullString
-	err = statement.QueryRowContext(ctx, account, client_id).Scan(&name, &dispatchersString)
+	var serializedCanonicalFacts sql.NullString
+	var serializedDispatchers sql.NullString
+	var serializedTags sql.NullString
+
+	err = statement.QueryRowContext(ctx, account, client_id).Scan(&name, &serializedCanonicalFacts, &serializedDispatchers, &serializedTags)
 
 	if err != nil {
 		if err != sql.ErrNoRows {
@@ -56,15 +63,11 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account doma
 		return nil
 	}
 
-	var dispatchers domain.Dispatchers
-	if dispatchersString.Valid {
-		err = json.Unmarshal([]byte(dispatchersString.String), &dispatchers)
-		if err != nil {
-			logger.LogErrorWithAccountAndClientId("Unable to unmarshal dispatchers from database", err, account, orgID, client_id)
-		}
-	}
+	canonicalFacts := deserializeCanonicalFacts(log, serializedDispatchers)
+	dispatchers := deserializeDispatchers(log, serializedDispatchers)
+	tags := deserializeTags(log, serializedDispatchers)
 
-	conn, err = scm.proxyFactory.CreateProxy(ctx, orgID, domain.AccountID(account), domain.ClientID(client_id), dispatchers)
+	conn, err = scm.proxyFactory.CreateProxy(ctx, orgID, domain.AccountID(account), domain.ClientID(client_id), canonicalFacts, dispatchers, tags)
 	if err != nil {
 		logger.LogErrorWithAccountAndClientId("Unable to create the proxy", err, account, orgID, client_id)
 		return nil
@@ -74,6 +77,8 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account doma
 }
 
 func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, account domain.AccountID, offset int, limit int) (map[domain.ClientID]controller.ConnectorClient, int, error) {
+
+	log := logger.Log.WithFields(logrus.Fields{"account": account})
 
 	var totalConnections int
 
@@ -86,7 +91,7 @@ func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, ac
 	connectionsPerAccount := make(map[domain.ClientID]controller.ConnectorClient)
 
 	statement, err := scm.database.Prepare(
-		`SELECT client_id, org_id, dispatchers, COUNT(*) OVER() FROM connections
+		`SELECT client_id, org_id, canonical_facts, dispatchers, tags COUNT(*) OVER() FROM connections
             WHERE account = $1
             ORDER BY client_id
             OFFSET $2
@@ -107,21 +112,24 @@ func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, ac
 	for rows.Next() {
 		var client_id domain.ClientID
 		var orgIdString sql.NullString
-		var dispatchersString string
-		if err := rows.Scan(&client_id, &orgIdString, &dispatchersString, &totalConnections); err != nil {
+		var serializedCanonicalFacts sql.NullString
+		var serializedDispatchers sql.NullString
+		var serializedTags sql.NullString
+
+		if err := rows.Scan(&client_id, &orgIdString, &serializedCanonicalFacts, &serializedDispatchers, &serializedTags, &totalConnections); err != nil {
 			logger.LogError("SQL scan failed.  Skipping row.", err)
 			continue
 		}
 
 		org_id := domain.OrgID(orgIdString.String)
 
-		var dispatchers domain.Dispatchers
-		err = json.Unmarshal([]byte(dispatchersString), &dispatchers)
-		if err != nil {
-			logger.LogErrorWithAccountAndClientId("Unable to unmarshal dispatchers from database", err, account, org_id, client_id)
-		}
+		log := log.WithFields(logrus.Fields{"org_id": org_id, "client_id": client_id})
 
-		proxy, err := scm.proxyFactory.CreateProxy(ctx, org_id, domain.AccountID(account), domain.ClientID(client_id), dispatchers)
+		canonicalFacts := deserializeCanonicalFacts(log, serializedCanonicalFacts)
+		dispatchers := deserializeDispatchers(log, serializedDispatchers)
+		tags := deserializeTags(log, serializedTags)
+
+		proxy, err := scm.proxyFactory.CreateProxy(ctx, org_id, domain.AccountID(account), domain.ClientID(client_id), canonicalFacts, dispatchers, tags)
 		if err != nil {
 			logger.LogErrorWithAccountAndClientId("Unable to create the proxy.  Skipping row.", err, account, org_id, client_id)
 			continue
@@ -146,7 +154,7 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context, offset i
 	connectionMap := make(map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient)
 
 	statement, err := scm.database.Prepare(
-		`SELECT account, org_id, client_id, dispatchers, COUNT(*) OVER() FROM connections
+		`SELECT account, org_id, client_id, canonical_facts, dispatchers, tags, COUNT(*) OVER() FROM connections
             ORDER BY account, client_id
             OFFSET $1
             LIMIT $2`)
@@ -167,24 +175,24 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context, offset i
 		var account domain.AccountID
 		var orgIdString sql.NullString
 		var clientId domain.ClientID
-		var dispatchersString sql.NullString
+		var serializedCanonicalFacts sql.NullString
+		var serializedDispatchers sql.NullString
+		var serializedTags sql.NullString
 
-		if err := rows.Scan(&account, &orgIdString, &clientId, &dispatchersString, &totalConnections); err != nil {
+		if err := rows.Scan(&account, &orgIdString, &clientId, &serializedCanonicalFacts, &serializedDispatchers, &serializedTags, &totalConnections); err != nil {
 			logger.LogError("SQL scan failed.  Skipping row.", err)
 			continue
 		}
 
 		orgId := domain.OrgID(orgIdString.String)
 
-		var dispatchers domain.Dispatchers
-		if dispatchersString.Valid {
-			err = json.Unmarshal([]byte(dispatchersString.String), &dispatchers)
-			if err != nil {
-				logger.LogErrorWithAccountAndClientId("Unable to unmarshal dispatchers from database", err, account, orgId, clientId)
-			}
-		}
+		log := logger.Log.WithFields(logrus.Fields{"account": account, "org_id": orgId, "client_id": clientId})
 
-		proxy, err := scm.proxyFactory.CreateProxy(ctx, orgId, domain.AccountID(account), domain.ClientID(clientId), dispatchers)
+		canonicalFacts := deserializeCanonicalFacts(log, serializedCanonicalFacts)
+		dispatchers := deserializeDispatchers(log, serializedDispatchers)
+		tags := deserializeTags(log, serializedTags)
+
+		proxy, err := scm.proxyFactory.CreateProxy(ctx, orgId, domain.AccountID(account), domain.ClientID(clientId), canonicalFacts, dispatchers, tags)
 		if err != nil {
 			logger.LogErrorWithAccountAndClientId("Unable to create the proxy.  Skipping row.", err, account, orgId, clientId)
 			continue
