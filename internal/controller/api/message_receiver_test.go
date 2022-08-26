@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+    "fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -40,6 +41,12 @@ func (MockClientProxyFactory) CreateProxy(context.Context, domain.AccountID, dom
 }
 
 type MockClient struct {
+	orgID          domain.OrgID
+	accountID      domain.AccountID
+	clientID       domain.ClientID
+	dispatchers    domain.Dispatchers
+	canonicalFacts domain.CanonicalFacts
+	tags           domain.Tags
 	returnAnError bool
 }
 
@@ -66,27 +73,24 @@ func (mc MockClient) Reconnect(ctx context.Context, message string, delay int) e
 }
 
 func (mc MockClient) GetDispatchers(ctx context.Context) (domain.Dispatchers, error) {
-	var dispatchers domain.Dispatchers
 	if mc.returnAnError {
-		return dispatchers, errors.New("ImaError")
+		return mc.dispatchers, errors.New("ImaError")
 	}
-	return dispatchers, nil
+	return mc.dispatchers, nil
 }
 
 func (mc MockClient) GetCanonicalFacts(ctx context.Context) (domain.CanonicalFacts, error) {
-	var canonicalFacts domain.CanonicalFacts
 	if mc.returnAnError {
-		return canonicalFacts, errors.New("ImaError")
+		return mc.canonicalFacts, errors.New("ImaError")
 	}
-	return canonicalFacts, nil
+	return mc.canonicalFacts, nil
 }
 
 func (mc MockClient) GetTags(ctx context.Context) (domain.Tags, error) {
-	var tags domain.Tags
 	if mc.returnAnError {
-		return tags, errors.New("ImaError")
+        return mc.tags, errors.New("ImaError")
 	}
-	return tags, nil
+	return mc.tags, nil
 }
 
 func (mc MockClient) Disconnect(context.Context, string) error {
@@ -110,13 +114,21 @@ func (m *MockConnectionManager) Register(ctx context.Context, rhcClient domain.C
 		m.AccountIndex[rhcClient.Account] = make(map[domain.ClientID]controller.ConnectorClient)
 	}
 
-	mockClient := MockClient{}
+	mockClient := MockClient{
+        orgID: rhcClient.OrgID,
+        accountID: rhcClient.Account,
+        clientID: rhcClient.ClientID,
+        canonicalFacts: rhcClient.CanonicalFacts,
+        dispatchers:    rhcClient.Dispatchers,
+        tags: rhcClient.Tags,
+    }
 
 	if rhcClient.ClientID == "error-client" { // FIXME: this is kinda gross
 		mockClient.returnAnError = true
 	}
 
-	m.AccountIndex[rhcClient.Account][rhcClient.ClientID] = mockClient
+    m.AccountIndex[rhcClient.Account][rhcClient.ClientID] = mockClient
+
 	m.ClientIndex[rhcClient.ClientID] = rhcClient.Account
 
 	return nil
@@ -514,6 +526,7 @@ var _ = Describe("MessageReceiver", func() {
 
 				rr := httptest.NewRecorder()
 
+                fmt.Println("*************** HERE *************")
 				jr.router.ServeHTTP(rr, req)
 
 				Expect(rr.Code).To(Equal(http.StatusOK))
@@ -521,9 +534,14 @@ var _ = Describe("MessageReceiver", func() {
 				connectionStatusResponse := &connectionStatusResponse{}
 				err = json.Unmarshal(rr.Body.Bytes(), connectionStatusResponse)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(connectionStatusResponse.CanonicalFacts.G).Should(Equal("bar"))
-				Expect(connectionStatusResponse.Tags["tag1"]).Should(Equal("value1"))
 
+                canonicalFacts := connectionStatusResponse.CanonicalFacts.(map[string]interface{})
+                fact := canonicalFacts["foo"].(string)
+                Expect(fact).Should(Equal("bar"))
+
+                tags := connectionStatusResponse.Tags.(map[string]interface{})
+                valueOfTag1 := tags["tag1"].(string)
+                Expect(valueOfTag1).Should(Equal("value1"))
 			})
 		})
 
