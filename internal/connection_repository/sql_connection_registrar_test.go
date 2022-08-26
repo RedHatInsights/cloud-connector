@@ -5,9 +5,7 @@ package connection_repository
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
-	"reflect"
 	"testing"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
