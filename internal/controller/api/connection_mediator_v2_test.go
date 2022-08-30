@@ -88,6 +88,21 @@ var _ = Describe("ConnectionMediatorV2", func() {
 				json.Unmarshal(rr.Body.Bytes(), &m)
 				Expect(m).Should(HaveKey("id"))
 			})
+
+			It("Should not be able to send a job to a client with empty post body", func() {
+				postBody := "{}"
+
+				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT_V2, strings.NewReader(postBody))
+				Expect(err).NotTo(HaveOccurred())
+
+				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
+
+				rr := httptest.NewRecorder()
+
+				cm.router.ServeHTTP(rr, req)
+
+				Expect(rr.Code).To(Equal(http.StatusBadRequest))
+			})
 		})
 	})
 })
