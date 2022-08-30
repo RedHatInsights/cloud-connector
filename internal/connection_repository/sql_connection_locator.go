@@ -63,9 +63,9 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account doma
 		return nil
 	}
 
-	canonicalFacts := deserializeCanonicalFacts(log, serializedDispatchers)
+	canonicalFacts := deserializeCanonicalFacts(log, serializedCanonicalFacts)
 	dispatchers := deserializeDispatchers(log, serializedDispatchers)
-	tags := deserializeTags(log, serializedDispatchers)
+	tags := deserializeTags(log, serializedTags)
 
 	conn, err = scm.proxyFactory.CreateProxy(ctx, orgID, domain.AccountID(account), domain.ClientID(client_id), canonicalFacts, dispatchers, tags)
 	if err != nil {
