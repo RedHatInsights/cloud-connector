@@ -18,7 +18,6 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/klauspost/compress v1.14.2 // indirect
 	github.com/lib/pq v1.9.0
-	github.com/mattn/go-sqlite3 v1.10.0
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.18.1
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
