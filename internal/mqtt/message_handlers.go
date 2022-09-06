@@ -118,3 +118,43 @@ func DefaultMessageHandler(topicVerifier *TopicVerifier, controlMessageHandler, 
 		}
 	}
 }
+
+func ThrottlingMessageHandler(maxInFlight int, f MQTT.MessageHandler) MQTT.MessageHandler {
+	// WARNING:  Messages buffered here can be lost if the process is restarted.  We probably need
+	//  to come up with a better message buffering mechanism that allows control messages (at least)
+	//  to not be lost when a restart occurs.
+
+	logger.Log.Debug("maxInFlight: ", maxInFlight)
+
+	type messageWrapper struct {
+		client  MQTT.Client
+		message MQTT.Message
+	}
+
+	messagePipe := make(chan messageWrapper, maxInFlight)
+
+	// FIXME: pass a shutdown channel to this go routine for a clean shutdown
+	go func() {
+		for msgWrapper := range messagePipe {
+			metrics.mqttMessagesWaitingToBeProcessed.Dec()
+			f(msgWrapper.client, msgWrapper.message)
+		}
+	}()
+
+	return func(c MQTT.Client, m MQTT.Message) {
+		metrics.mqttMessagesWaitingToBeProcessed.Inc()
+		messagePipe <- messageWrapper{c, m}
+	}
+}
+
+func GoRoutinePerMessage_MessageHandler(f MQTT.MessageHandler) MQTT.MessageHandler {
+	logger.Log.Debug("**** Spawning a go routine per mqtt message!")
+
+	return func(c MQTT.Client, m MQTT.Message) {
+		go func(client MQTT.Client, message MQTT.Message) {
+			metrics.mqttMessagesWaitingToBeProcessed.Inc()
+			defer metrics.mqttMessagesWaitingToBeProcessed.Dec()
+			f(client, message)
+		}(c, m)
+	}
+}
