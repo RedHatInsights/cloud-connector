@@ -6,7 +6,10 @@ data:
         "list": [
           {
             "builtIn": 1,
-            "datasource": "-- Grafana --",
+            "datasource": {
+              "type": "datasource",
+              "uid": "grafana"
+            },
             "enable": true,
             "hide": true,
             "iconColor": "rgba(0, 211, 255, 1)",
@@ -23,15 +26,17 @@ data:
       },
       "editable": true,
       "fiscalYearStartMonth": 0,
-      "gnetId": null,
       "graphTooltip": 0,
-      "id": 1,
-      "iteration": 1634844167929,
+      "id": 69,
+      "iteration": 1662404960011,
       "links": [],
       "liveNow": false,
       "panels": [
         {
-          "datasource": null,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "tuHy3WB7z"
+          },
           "gridPos": {
             "h": 2,
             "w": 10,
@@ -44,11 +49,23 @@ data:
             "content": "<center><h1>Cloud-Connector Kafka Consumer</h1></center>",
             "mode": "html"
           },
-          "pluginVersion": "8.2.1",
+          "pluginVersion": "9.0.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "tuHy3WB7z"
+              },
+              "refId": "A"
+            }
+          ],
           "type": "text"
         },
         {
-          "datasource": null,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "tuHy3WB7z"
+          },
           "gridPos": {
             "h": 2,
             "w": 10,
@@ -61,12 +78,22 @@ data:
             "content": "<center><h1>Cloud-Connector MQTT Consumer</h1></center>",
             "mode": "html"
           },
-          "pluginVersion": "8.2.1",
+          "pluginVersion": "9.0.3",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "tuHy3WB7z"
+              },
+              "refId": "A"
+            }
+          ],
           "type": "text"
         },
         {
-          "cacheTimeout": null,
-          "datasource": "$datasource",
+          "datasource": {
+            "uid": "$datasource"
+          },
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -102,12 +129,11 @@ data:
           },
           "gridPos": {
             "h": 3,
-            "w": 5,
+            "w": 10,
             "x": 0,
             "y": 2
           },
           "id": 34,
-          "interval": null,
           "links": [],
           "maxDataPoints": 100,
           "options": {
@@ -125,9 +151,12 @@ data:
             "text": {},
             "textMode": "auto"
           },
-          "pluginVersion": "8.2.1",
+          "pluginVersion": "9.0.3",
           "targets": [
             {
+              "datasource": {
+                "uid": "$datasource"
+              },
               "expr": "sum(increase(kube_pod_container_status_restarts_total{container=\"cloud-connector-api\"}[$__range]))",
               "interval": "",
               "legendFormat": "",
@@ -138,8 +167,9 @@ data:
           "type": "stat"
         },
         {
-          "cacheTimeout": null,
-          "datasource": "$datasource",
+          "datasource": {
+            "uid": "$datasource"
+          },
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -175,85 +205,11 @@ data:
           },
           "gridPos": {
             "h": 3,
-            "w": 5,
-            "x": 5,
-            "y": 2
-          },
-          "id": 35,
-          "interval": null,
-          "links": [],
-          "maxDataPoints": 100,
-          "options": {
-            "colorMode": "none",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "horizontal",
-            "reduceOptions": {
-              "calcs": [
-                "mean"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "text": {},
-            "textMode": "auto"
-          },
-          "pluginVersion": "8.2.1",
-          "targets": [
-            {
-              "expr": "sum(increase(cloud_connector_inventory_kafka_writer_failure_count{container=\"cloud-connector-api\"}[$__range]))",
-              "interval": "",
-              "legendFormat": "",
-              "refId": "B"
-            }
-          ],
-          "title": "Inventory Message Kafka Write Failures",
-          "type": "stat"
-        },
-        {
-          "cacheTimeout": null,
-          "datasource": "$datasource",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [
-                {
-                  "options": {
-                    "match": "null",
-                    "result": {
-                      "text": "N/A"
-                    }
-                  },
-                  "type": "special"
-                }
-              ],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "none"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 3,
-            "w": 5,
+            "w": 10,
             "x": 10,
             "y": 2
           },
           "id": 36,
-          "interval": null,
           "links": [],
           "maxDataPoints": 100,
           "options": {
@@ -271,9 +227,12 @@ data:
             "text": {},
             "textMode": "auto"
           },
-          "pluginVersion": "8.2.1",
+          "pluginVersion": "9.0.3",
           "targets": [
             {
+              "datasource": {
+                "uid": "$datasource"
+              },
               "exemplar": true,
               "expr": "sum(increase(kube_pod_container_status_restarts_total{container=\"cloud-connector-mqtt-message-consumer\"}[$__range]))",
               "interval": "",
@@ -285,9 +244,10 @@ data:
           "type": "stat"
         },
         {
-          "cacheTimeout": null,
-          "datasource": "$datasource",
-          "description": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -310,10 +270,6 @@ data:
                   {
                     "color": "green",
                     "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
                   }
                 ]
               },
@@ -324,16 +280,15 @@ data:
           "gridPos": {
             "h": 3,
             "w": 5,
-            "x": 15,
-            "y": 2
+            "x": 0,
+            "y": 5
           },
-          "id": 37,
-          "interval": null,
+          "id": 50,
           "links": [],
           "maxDataPoints": 100,
           "options": {
-            "colorMode": "none",
-            "graphMode": "none",
+            "colorMode": "value",
+            "graphMode": "area",
             "justifyMode": "auto",
             "orientation": "horizontal",
             "reduceOptions": {
@@ -346,25 +301,472 @@ data:
             "text": {},
             "textMode": "auto"
           },
-          "pluginVersion": "8.2.1",
+          "pluginVersion": "9.0.3",
           "targets": [
             {
-              "exemplar": true,
-              "expr": "sum(increase(cloud_connector_mqtt_message_published_failure_count{container=\"cloud-connector-mqtt-message-consumer\"}[$__range]))",
+              "datasource": {
+                "uid": "$datasource"
+              },
+              "expr": "cloud_connector_inventory_kafka_writer_success_count",
               "interval": "",
               "legendFormat": "",
               "refId": "B"
             }
           ],
-          "title": "Kafka Write Failures",
+          "title": "Inventory Messages Produced",
+          "transformations": [
+            {
+              "id": "calculateField",
+              "options": {
+                "mode": "reduceRow",
+                "reduce": {
+                  "include": [],
+                  "reducer": "sum"
+                },
+                "replaceFields": true
+              }
+            }
+          ],
           "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "N/A"
+                    }
+                  },
+                  "type": "special"
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "none"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 5,
+            "x": 5,
+            "y": 5
+          },
+          "id": 35,
+          "links": [],
+          "maxDataPoints": 100,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "mean"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "text": {},
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.0.3",
+          "targets": [
+            {
+              "datasource": {
+                "uid": "$datasource"
+              },
+              "expr": "cloud_connector_inventory_kafka_writer_failure_count",
+              "interval": "",
+              "legendFormat": "",
+              "refId": "B"
+            }
+          ],
+          "title": "Inventory Messages Failed",
+          "transformations": [
+            {
+              "id": "calculateField",
+              "options": {
+                "mode": "reduceRow",
+                "reduce": {
+                  "reducer": "sum"
+                },
+                "replaceFields": true
+              }
+            }
+          ],
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "N/A"
+                    }
+                  },
+                  "type": "special"
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "none"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 5,
+            "x": 10,
+            "y": 5
+          },
+          "id": 52,
+          "links": [],
+          "maxDataPoints": 100,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "mean"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "text": {},
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.0.3",
+          "targets": [
+            {
+              "datasource": {
+                "uid": "$datasource"
+              },
+              "expr": "cloud_connector_mqtt_message_published_success_count",
+              "interval": "",
+              "legendFormat": "",
+              "refId": "B"
+            }
+          ],
+          "title": "MQTT Messages Sent",
+          "transformations": [
+            {
+              "id": "calculateField",
+              "options": {
+                "mode": "reduceRow",
+                "reduce": {
+                  "include": [],
+                  "reducer": "sum"
+                },
+                "replaceFields": true
+              }
+            }
+          ],
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [
+                {
+                  "options": {
+                    "match": "null",
+                    "result": {
+                      "text": "N/A"
+                    }
+                  },
+                  "type": "special"
+                }
+              ],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "none"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 3,
+            "w": 5,
+            "x": 15,
+            "y": 5
+          },
+          "id": 51,
+          "links": [],
+          "maxDataPoints": 100,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "orientation": "horizontal",
+            "reduceOptions": {
+              "calcs": [
+                "mean"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "text": {},
+            "textMode": "auto"
+          },
+          "pluginVersion": "9.0.3",
+          "targets": [
+            {
+              "datasource": {
+                "uid": "$datasource"
+              },
+              "expr": "cloud_connector_mqtt_message_published_failure_count",
+              "interval": "",
+              "legendFormat": "",
+              "refId": "B"
+            }
+          ],
+          "title": "MQTT Messages Failed",
+          "transformations": [
+            {
+              "id": "calculateField",
+              "options": {
+                "mode": "reduceRow",
+                "reduce": {
+                  "reducer": "sum"
+                },
+                "replaceFields": true
+              }
+            }
+          ],
+          "type": "stat"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 10,
+            "x": 0,
+            "y": 8
+          },
+          "id": 49,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "rate(cloud_connector_kafka_message_received_count[1m])",
+              "refId": "A"
+            }
+          ],
+          "title": "Kafka Messages Consumed",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 6,
+            "w": 10,
+            "x": 10,
+            "y": 8
+          },
+          "id": 48,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom"
+            },
+            "tooltip": {
+              "mode": "single",
+              "sort": "none"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "${datasource}"
+              },
+              "expr": "rate(cloud_connector_mqtt_control_message_received_count[1m]) + rate(cloud_connector_mqtt_data_message_received_count[1m])",
+              "refId": "A"
+            }
+          ],
+          "title": "MQTT Message Consumed",
+          "type": "timeseries"
         },
         {
           "aliasColors": {},
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "$datasource",
+          "datasource": {
+            "uid": "$datasource"
+          },
           "description": "",
           "fieldConfig": {
             "defaults": {
@@ -378,7 +780,7 @@ data:
             "h": 7,
             "w": 5,
             "x": 0,
-            "y": 5
+            "y": 14
           },
           "hiddenSeries": false,
           "id": 29,
@@ -399,7 +801,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "8.2.1",
+          "pluginVersion": "9.0.3",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -409,6 +811,9 @@ data:
           "steppedLine": false,
           "targets": [
             {
+              "datasource": {
+                "uid": "$datasource"
+              },
               "exemplar": true,
               "expr": "rate(container_cpu_usage_seconds_total{container=\"cloud-connector-kafka-message-consumer\"}[1m])",
               "interval": "",
@@ -417,9 +822,7 @@ data:
             }
           ],
           "thresholds": [],
-          "timeFrom": null,
           "timeRegions": [],
-          "timeShift": null,
           "title": "CPU",
           "tooltip": {
             "shared": true,
@@ -428,33 +831,24 @@ data:
           },
           "type": "graph",
           "xaxis": {
-            "buckets": null,
             "mode": "time",
-            "name": null,
             "show": true,
             "values": []
           },
           "yaxes": [
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             },
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             }
           ],
           "yaxis": {
-            "align": false,
-            "alignLevel": null
+            "align": false
           }
         },
         {
@@ -462,7 +856,9 @@ data:
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "$datasource",
+          "datasource": {
+            "uid": "$datasource"
+          },
           "description": "",
           "fieldConfig": {
             "defaults": {
@@ -476,7 +872,7 @@ data:
             "h": 7,
             "w": 5,
             "x": 5,
-            "y": 5
+            "y": 14
           },
           "hiddenSeries": false,
           "id": 30,
@@ -497,7 +893,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "8.2.1",
+          "pluginVersion": "9.0.3",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -507,6 +903,9 @@ data:
           "steppedLine": false,
           "targets": [
             {
+              "datasource": {
+                "uid": "$datasource"
+              },
               "exemplar": true,
               "expr": "container_memory_usage_bytes{container=\"cloud-connector-kafka-message-consumer\"}",
               "interval": "",
@@ -515,9 +914,7 @@ data:
             }
           ],
           "thresholds": [],
-          "timeFrom": null,
           "timeRegions": [],
-          "timeShift": null,
           "title": "Memory",
           "tooltip": {
             "shared": true,
@@ -526,33 +923,24 @@ data:
           },
           "type": "graph",
           "xaxis": {
-            "buckets": null,
             "mode": "time",
-            "name": null,
             "show": true,
             "values": []
           },
           "yaxes": [
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             },
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             }
           ],
           "yaxis": {
-            "align": false,
-            "alignLevel": null
+            "align": false
           }
         },
         {
@@ -560,7 +948,9 @@ data:
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "$datasource",
+          "datasource": {
+            "uid": "$datasource"
+          },
           "description": "",
           "fieldConfig": {
             "defaults": {
@@ -574,7 +964,7 @@ data:
             "h": 7,
             "w": 5,
             "x": 10,
-            "y": 5
+            "y": 14
           },
           "hiddenSeries": false,
           "id": 38,
@@ -595,7 +985,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "8.2.1",
+          "pluginVersion": "9.0.3",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -605,6 +995,9 @@ data:
           "steppedLine": false,
           "targets": [
             {
+              "datasource": {
+                "uid": "$datasource"
+              },
               "exemplar": true,
               "expr": "rate(container_cpu_usage_seconds_total{container=\"cloud-connector-mqtt-message-consumer\"}[1m])",
               "interval": "",
@@ -613,9 +1006,7 @@ data:
             }
           ],
           "thresholds": [],
-          "timeFrom": null,
           "timeRegions": [],
-          "timeShift": null,
           "title": "CPU",
           "tooltip": {
             "shared": true,
@@ -624,33 +1015,24 @@ data:
           },
           "type": "graph",
           "xaxis": {
-            "buckets": null,
             "mode": "time",
-            "name": null,
             "show": true,
             "values": []
           },
           "yaxes": [
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             },
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             }
           ],
           "yaxis": {
-            "align": false,
-            "alignLevel": null
+            "align": false
           }
         },
         {
@@ -658,7 +1040,9 @@ data:
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "$datasource",
+          "datasource": {
+            "uid": "$datasource"
+          },
           "description": "",
           "fieldConfig": {
             "defaults": {
@@ -672,7 +1056,7 @@ data:
             "h": 7,
             "w": 5,
             "x": 15,
-            "y": 5
+            "y": 14
           },
           "hiddenSeries": false,
           "id": 39,
@@ -693,7 +1077,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "8.2.1",
+          "pluginVersion": "9.0.3",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -703,6 +1087,9 @@ data:
           "steppedLine": false,
           "targets": [
             {
+              "datasource": {
+                "uid": "$datasource"
+              },
               "exemplar": true,
               "expr": "container_memory_usage_bytes{container=\"cloud-connector-mqtt-message-consumer\"}",
               "interval": "",
@@ -711,9 +1098,7 @@ data:
             }
           ],
           "thresholds": [],
-          "timeFrom": null,
           "timeRegions": [],
-          "timeShift": null,
           "title": "Memory",
           "tooltip": {
             "shared": true,
@@ -722,33 +1107,24 @@ data:
           },
           "type": "graph",
           "xaxis": {
-            "buckets": null,
             "mode": "time",
-            "name": null,
             "show": true,
             "values": []
           },
           "yaxes": [
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             },
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             }
           ],
           "yaxis": {
-            "align": false,
-            "alignLevel": null
+            "align": false
           }
         },
         {
@@ -756,7 +1132,9 @@ data:
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "$datasource",
+          "datasource": {
+            "uid": "$datasource"
+          },
           "fieldConfig": {
             "defaults": {
               "links": []
@@ -769,7 +1147,7 @@ data:
             "h": 6,
             "w": 10,
             "x": 0,
-            "y": 12
+            "y": 21
           },
           "hiddenSeries": false,
           "id": 2,
@@ -790,7 +1168,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "8.2.1",
+          "pluginVersion": "9.0.3",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -800,6 +1178,9 @@ data:
           "steppedLine": false,
           "targets": [
             {
+              "datasource": {
+                "uid": "$datasource"
+              },
               "exemplar": true,
               "expr": "go_goroutines{namespace=~\"cloud-connector-.*\",pod=~\"cloud-connector-kafka-.*\"}",
               "interval": "",
@@ -808,9 +1189,7 @@ data:
             }
           ],
           "thresholds": [],
-          "timeFrom": null,
           "timeRegions": [],
-          "timeShift": null,
           "title": "Go Routines",
           "tooltip": {
             "shared": true,
@@ -819,33 +1198,24 @@ data:
           },
           "type": "graph",
           "xaxis": {
-            "buckets": null,
             "mode": "time",
-            "name": null,
             "show": true,
             "values": []
           },
           "yaxes": [
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             },
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             }
           ],
           "yaxis": {
-            "align": false,
-            "alignLevel": null
+            "align": false
           }
         },
         {
@@ -853,7 +1223,9 @@ data:
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "$datasource",
+          "datasource": {
+            "uid": "$datasource"
+          },
           "fieldConfig": {
             "defaults": {
               "links": []
@@ -866,7 +1238,7 @@ data:
             "h": 6,
             "w": 10,
             "x": 10,
-            "y": 12
+            "y": 21
           },
           "hiddenSeries": false,
           "id": 46,
@@ -887,7 +1259,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "8.2.1",
+          "pluginVersion": "9.0.3",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -897,6 +1269,9 @@ data:
           "steppedLine": false,
           "targets": [
             {
+              "datasource": {
+                "uid": "$datasource"
+              },
               "exemplar": true,
               "expr": "go_goroutines{namespace=~\"cloud-connector-.*\",pod=~\"cloud-connector-mqtt-.*\"}",
               "interval": "",
@@ -905,9 +1280,7 @@ data:
             }
           ],
           "thresholds": [],
-          "timeFrom": null,
           "timeRegions": [],
-          "timeShift": null,
           "title": "Go Routines",
           "tooltip": {
             "shared": true,
@@ -916,33 +1289,24 @@ data:
           },
           "type": "graph",
           "xaxis": {
-            "buckets": null,
             "mode": "time",
-            "name": null,
             "show": true,
             "values": []
           },
           "yaxes": [
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             },
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             }
           ],
           "yaxis": {
-            "align": false,
-            "alignLevel": null
+            "align": false
           }
         },
         {
@@ -950,7 +1314,9 @@ data:
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "$datasource",
+          "datasource": {
+            "uid": "$datasource"
+          },
           "description": "",
           "fieldConfig": {
             "defaults": {
@@ -964,7 +1330,7 @@ data:
             "h": 6,
             "w": 10,
             "x": 0,
-            "y": 18
+            "y": 27
           },
           "hiddenSeries": false,
           "id": 33,
@@ -985,7 +1351,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "8.2.1",
+          "pluginVersion": "9.0.3",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -995,12 +1361,18 @@ data:
           "steppedLine": false,
           "targets": [
             {
+              "datasource": {
+                "uid": "$datasource"
+              },
               "expr": "avg_over_time(cloud_connector_inventory_kafka_writer_go_routine_count[5m])",
               "interval": "",
               "legendFormat": "",
               "refId": "A"
             },
             {
+              "datasource": {
+                "uid": "$datasource"
+              },
               "expr": "max_over_time(cloud_connector_inventory_kafka_writer_go_routine_count[5m])",
               "interval": "",
               "legendFormat": "",
@@ -1008,9 +1380,7 @@ data:
             }
           ],
           "thresholds": [],
-          "timeFrom": null,
           "timeRegions": [],
-          "timeShift": null,
           "title": "Kafka Inventory Writer Go Routine Metrics - 5m",
           "tooltip": {
             "shared": true,
@@ -1019,42 +1389,36 @@ data:
           },
           "type": "graph",
           "xaxis": {
-            "buckets": null,
             "mode": "time",
-            "name": null,
             "show": true,
             "values": []
           },
           "yaxes": [
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             },
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             }
           ],
           "yaxis": {
-            "align": false,
-            "alignLevel": null
+            "align": false
           }
         },
         {
-          "datasource": null,
+          "datasource": {
+            "type": "prometheus",
+            "uid": "tuHy3WB7z"
+          },
           "gridPos": {
             "h": 2,
             "w": 10,
             "x": 0,
-            "y": 24
+            "y": 33
           },
           "id": 40,
           "links": [],
@@ -1062,85 +1426,22 @@ data:
             "content": "<center><h1>Cloud-Connector API Service</h1></center>",
             "mode": "html"
           },
-          "pluginVersion": "8.2.1",
-          "type": "text"
-        },
-        {
-          "cacheTimeout": null,
-          "datasource": "$datasource",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
-              "mappings": [
-                {
-                  "options": {
-                    "match": "null",
-                    "result": {
-                      "text": "N/A"
-                    }
-                  },
-                  "type": "special"
-                }
-              ],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "none"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 3,
-            "w": 5,
-            "x": 0,
-            "y": 26
-          },
-          "id": 41,
-          "interval": null,
-          "links": [],
-          "maxDataPoints": 100,
-          "options": {
-            "colorMode": "none",
-            "graphMode": "none",
-            "justifyMode": "auto",
-            "orientation": "horizontal",
-            "reduceOptions": {
-              "calcs": [
-                "mean"
-              ],
-              "fields": "",
-              "values": false
-            },
-            "text": {},
-            "textMode": "auto"
-          },
-          "pluginVersion": "8.2.1",
+          "pluginVersion": "9.0.3",
           "targets": [
             {
-              "expr": "sum(increase(kube_pod_container_status_restarts_total{container=\"cloud-connector-api\"}[$__range]))",
-              "interval": "",
-              "legendFormat": "",
+              "datasource": {
+                "type": "prometheus",
+                "uid": "tuHy3WB7z"
+              },
               "refId": "A"
             }
           ],
-          "title": "Pod Restarts",
-          "type": "stat"
+          "type": "text"
         },
         {
-          "cacheTimeout": null,
-          "datasource": "$datasource",
+          "datasource": {
+            "uid": "$datasource"
+          },
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -1176,12 +1477,11 @@ data:
           },
           "gridPos": {
             "h": 3,
-            "w": 5,
-            "x": 5,
-            "y": 26
+            "w": 10,
+            "x": 0,
+            "y": 35
           },
-          "id": 44,
-          "interval": null,
+          "id": 41,
           "links": [],
           "maxDataPoints": 100,
           "options": {
@@ -1199,9 +1499,12 @@ data:
             "text": {},
             "textMode": "auto"
           },
-          "pluginVersion": "8.2.1",
+          "pluginVersion": "9.0.3",
           "targets": [
             {
+              "datasource": {
+                "uid": "$datasource"
+              },
               "expr": "sum(increase(kube_pod_container_status_restarts_total{container=\"cloud-connector-api\"}[$__range]))",
               "interval": "",
               "legendFormat": "",
@@ -1216,7 +1519,9 @@ data:
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "$datasource",
+          "datasource": {
+            "uid": "$datasource"
+          },
           "description": "",
           "fieldConfig": {
             "defaults": {
@@ -1230,7 +1535,7 @@ data:
             "h": 7,
             "w": 5,
             "x": 0,
-            "y": 29
+            "y": 38
           },
           "hiddenSeries": false,
           "id": 42,
@@ -1251,7 +1556,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "8.2.1",
+          "pluginVersion": "9.0.3",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -1261,6 +1566,9 @@ data:
           "steppedLine": false,
           "targets": [
             {
+              "datasource": {
+                "uid": "$datasource"
+              },
               "expr": "rate(container_cpu_usage_seconds_total{container=\"cloud-connector-api\"}[1m])",
               "interval": "",
               "legendFormat": "",
@@ -1268,9 +1576,7 @@ data:
             }
           ],
           "thresholds": [],
-          "timeFrom": null,
           "timeRegions": [],
-          "timeShift": null,
           "title": "CPU",
           "tooltip": {
             "shared": true,
@@ -1279,33 +1585,24 @@ data:
           },
           "type": "graph",
           "xaxis": {
-            "buckets": null,
             "mode": "time",
-            "name": null,
             "show": true,
             "values": []
           },
           "yaxes": [
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             },
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             }
           ],
           "yaxis": {
-            "align": false,
-            "alignLevel": null
+            "align": false
           }
         },
         {
@@ -1313,7 +1610,9 @@ data:
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "$datasource",
+          "datasource": {
+            "uid": "$datasource"
+          },
           "description": "",
           "fieldConfig": {
             "defaults": {
@@ -1327,7 +1626,7 @@ data:
             "h": 7,
             "w": 5,
             "x": 5,
-            "y": 29
+            "y": 38
           },
           "hiddenSeries": false,
           "id": 43,
@@ -1348,7 +1647,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "8.2.1",
+          "pluginVersion": "9.0.3",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -1358,6 +1657,9 @@ data:
           "steppedLine": false,
           "targets": [
             {
+              "datasource": {
+                "uid": "$datasource"
+              },
               "expr": "container_memory_usage_bytes{container=\"cloud-connector-api\"}",
               "interval": "",
               "legendFormat": "",
@@ -1365,9 +1667,7 @@ data:
             }
           ],
           "thresholds": [],
-          "timeFrom": null,
           "timeRegions": [],
-          "timeShift": null,
           "title": "Memory",
           "tooltip": {
             "shared": true,
@@ -1376,33 +1676,24 @@ data:
           },
           "type": "graph",
           "xaxis": {
-            "buckets": null,
             "mode": "time",
-            "name": null,
             "show": true,
             "values": []
           },
           "yaxes": [
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             },
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             }
           ],
           "yaxis": {
-            "align": false,
-            "alignLevel": null
+            "align": false
           }
         },
         {
@@ -1410,7 +1701,9 @@ data:
           "bars": false,
           "dashLength": 10,
           "dashes": false,
-          "datasource": "$datasource",
+          "datasource": {
+            "uid": "$datasource"
+          },
           "fieldConfig": {
             "defaults": {
               "links": []
@@ -1423,7 +1716,7 @@ data:
             "h": 6,
             "w": 10,
             "x": 0,
-            "y": 36
+            "y": 45
           },
           "hiddenSeries": false,
           "id": 45,
@@ -1444,7 +1737,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "8.2.1",
+          "pluginVersion": "9.0.3",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -1454,6 +1747,9 @@ data:
           "steppedLine": false,
           "targets": [
             {
+              "datasource": {
+                "uid": "$datasource"
+              },
               "expr": "go_goroutines{namespace=~\"cloud-connector-.*\",pod=~\"cloud-connector-api-.*\"}",
               "interval": "",
               "legendFormat": "",
@@ -1461,9 +1757,7 @@ data:
             }
           ],
           "thresholds": [],
-          "timeFrom": null,
           "timeRegions": [],
-          "timeShift": null,
           "title": "Go Routines",
           "tooltip": {
             "shared": true,
@@ -1472,53 +1766,41 @@ data:
           },
           "type": "graph",
           "xaxis": {
-            "buckets": null,
             "mode": "time",
-            "name": null,
             "show": true,
             "values": []
           },
           "yaxes": [
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             },
             {
               "format": "short",
-              "label": null,
               "logBase": 1,
-              "max": null,
-              "min": null,
               "show": true
             }
           ],
           "yaxis": {
-            "align": false,
-            "alignLevel": null
+            "align": false
           }
         }
       ],
       "refresh": false,
-      "schemaVersion": 31,
+      "schemaVersion": 36,
       "style": "dark",
       "tags": [],
       "templating": {
         "list": [
           {
             "current": {
-              "selected": true,
+              "selected": false,
               "text": "crcs02ue1-prometheus",
               "value": "crcs02ue1-prometheus"
             },
-            "description": null,
-            "error": null,
             "hide": 0,
             "includeAll": false,
-            "label": null,
             "multi": false,
             "name": "datasource",
             "options": [],
@@ -1563,7 +1845,8 @@ data:
       "timezone": "",
       "title": "Cloud-Connector",
       "uid": "c91dcda039618ded",
-      "version": 2
+      "version": 1,
+      "weekStart": ""
     }
 kind: ConfigMap
 metadata:
