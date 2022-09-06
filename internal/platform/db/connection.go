@@ -8,7 +8,6 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 
 	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 func initializePostgresConnection(cfg *config.Config) (*sql.DB, error) {
@@ -39,10 +38,6 @@ func buildPostgresSslConfigString(cfg *config.Config) (string, error) {
 	}
 }
 
-func initializeSqliteConnection(cfg *config.Config) (*sql.DB, error) {
-	return sql.Open("sqlite3", cfg.ConnectionDatabaseSqliteFile)
-}
-
 func InitializeDatabaseConnection(cfg *config.Config) (*sql.DB, error) {
 
 	var database *sql.DB
@@ -50,8 +45,6 @@ func InitializeDatabaseConnection(cfg *config.Config) (*sql.DB, error) {
 
 	if cfg.ConnectionDatabaseImpl == "postgres" {
 		database, err = initializePostgresConnection(cfg)
-	} else if cfg.ConnectionDatabaseImpl == "sqlite3" {
-		database, err = initializeSqliteConnection(cfg)
 	} else {
 		return nil, errors.New("Invalid SQL database impl requested")
 	}

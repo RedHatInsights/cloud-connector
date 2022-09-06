@@ -64,7 +64,7 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 	if err != nil {
 		return "", "", "", err
 	}
-	
+
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("x-rh-certauth-cn", fmt.Sprintf("/CN=%s", clientID))
 	req.Header.Add("x-rh-insights-request-id", requestID)

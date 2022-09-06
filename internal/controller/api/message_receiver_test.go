@@ -7,7 +7,6 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -141,7 +140,6 @@ var _ = Describe("MessageReceiver", func() {
 	var (
 		jr                  *MessageReceiver
 		validIdentityHeader string
-		sqliteDbFileName    string
 	)
 
 	BeforeEach(func() {
@@ -157,10 +155,6 @@ var _ = Describe("MessageReceiver", func() {
 		jr.Routes()
 
 		validIdentityHeader = buildIdentityHeader(account, "Associate")
-	})
-
-	AfterEach(func() {
-		os.Remove(sqliteDbFileName)
 	})
 
 	Describe("Connecting to the job receiver", func() {
