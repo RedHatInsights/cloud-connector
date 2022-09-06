@@ -19,11 +19,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	MESSAGE_ENDPOINT_V2 = URL_BASE_PATH + "/v2/connections/345/message"
-	ACCOUNT_NUMBER      = domain.AccountID("1234")
-)
-
 func mockedGetConnectionByClientID(expectedOrgId domain.OrgID, expectedAccount domain.AccountID, expectedClientId domain.ClientID) connection_repository.GetConnectionByClientID {
 	return func(ctx context.Context, log *logrus.Entry, actualOrgId domain.OrgID, actualClientId domain.ClientID) (domain.ConnectorClientState, error) {
 		if actualOrgId != expectedOrgId {
@@ -121,7 +116,7 @@ var _ = Describe("ConnectionMediatorV2", func() {
 			It("Should not be able to send a job to a client with empty post body", func() {
 				postBody := "{}"
 
-				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT_V2, strings.NewReader(postBody))
+				req, err := http.NewRequest("POST", messageEndpointV2, strings.NewReader(postBody))
 				Expect(err).NotTo(HaveOccurred())
 
 				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
