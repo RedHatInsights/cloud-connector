@@ -56,7 +56,7 @@ func (this *ConnectionMediatorV2) Routes() {
 }
 
 type messageRequestV2 struct {
-	Payload   interface{} `json:"payload" validate:"required"`
+	Payload   interface{} `json:"payload"`
 	Metadata  interface{} `json:"metadata"`
 	Directive string      `json:"directive" validate:"required"`
 }
