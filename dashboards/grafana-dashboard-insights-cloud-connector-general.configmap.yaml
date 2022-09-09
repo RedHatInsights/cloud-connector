@@ -1845,7 +1845,7 @@ data:
       "timezone": "",
       "title": "Cloud-Connector",
       "uid": "c91dcda039618ded",
-      "version": 1,
+      "version": 2,
       "weekStart": ""
     }
 kind: ConfigMap
