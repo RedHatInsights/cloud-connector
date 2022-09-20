@@ -7,7 +7,6 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -35,7 +34,7 @@ const (
 type MockClientProxyFactory struct {
 }
 
-func (MockClientProxyFactory) CreateProxy(context.Context, domain.AccountID, domain.ClientID, domain.Dispatchers) (controller.ConnectorClient, error) {
+func (MockClientProxyFactory) CreateProxy(context.Context, domain.OrgID, domain.AccountID, domain.ClientID, domain.Dispatchers) (controller.ConnectorClient, error) {
 	return MockClient{}, nil
 }
 
@@ -141,7 +140,6 @@ var _ = Describe("MessageReceiver", func() {
 	var (
 		jr                  *MessageReceiver
 		validIdentityHeader string
-		sqliteDbFileName    string
 	)
 
 	BeforeEach(func() {
@@ -157,10 +155,6 @@ var _ = Describe("MessageReceiver", func() {
 		jr.Routes()
 
 		validIdentityHeader = buildIdentityHeader(account, "Associate")
-	})
-
-	AfterEach(func() {
-		os.Remove(sqliteDbFileName)
 	})
 
 	Describe("Connecting to the job receiver", func() {
@@ -344,6 +338,21 @@ var _ = Describe("MessageReceiver", func() {
 				verifyErrorResponse(rr.Body, emptyDirectictiveErrorMsg)
 			})
 
+			It("Should allow sending a job without the payload field", func() {
+
+				postBody := "{\"account\": \"1234\", \"recipient\": \"345\", \"directive\": \"fred:flintstone\"}"
+
+				req, err := http.NewRequest("POST", MESSAGE_ENDPOINT, strings.NewReader(postBody))
+				Expect(err).NotTo(HaveOccurred())
+
+				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
+
+				rr := httptest.NewRecorder()
+
+				jr.router.ServeHTTP(rr, req)
+
+				Expect(rr.Code).To(Equal(http.StatusCreated))
+			})
 		})
 
 		Context("Without an identity header or pre shared key", func() {

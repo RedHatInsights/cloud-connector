@@ -19,13 +19,12 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/klauspost/compress v1.14.2 // indirect
 	github.com/lib/pq v1.9.0
-	github.com/mattn/go-sqlite3 v1.10.0
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.18.1
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/prometheus/client_golang v1.12.1
 	github.com/redhatinsights/app-common-go v1.6.2
-	github.com/redhatinsights/platform-go-middlewares v0.12.0
+	github.com/redhatinsights/platform-go-middlewares v0.20.0
 	github.com/segmentio/kafka-go v0.4.27
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/afero v1.8.0 // indirect
