@@ -6,6 +6,7 @@ import (
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
+	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
@@ -26,17 +27,21 @@ const (
 
 type ManagementServer struct {
 	connectionMgr connection_repository.ConnectionLocator
+	getConnectionByClientID connection_repository.GetConnectionByClientID
 	router        *mux.Router
 	config        *config.Config
 	urlPrefix     string
+	proxyFactory            controller.ConnectorClientProxyFactory
 }
 
-func NewManagementServer(cm connection_repository.ConnectionLocator, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
+func NewManagementServer(cm connection_repository.ConnectionLocator, byClientID connection_repository.GetConnectionByClientID, proxyFactory controller.ConnectorClientProxyFactory, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
 	return &ManagementServer{
 		connectionMgr: cm,
+		getConnectionByClientID: byClientID,
 		router:        r,
 		config:        cfg,
 		urlPrefix:     urlPrefix,
+		proxyFactory:  proxyFactory,
 	}
 }
 
@@ -116,13 +121,25 @@ func (s *ManagementServer) handleDisconnect() http.HandlerFunc {
 
 		orgID := principal.GetOrgID()
 
-		client := s.connectionMgr.GetConnection(req.Context(), domain.AccountID(disconnectReq.Account), domain.OrgID(orgID), domain.ClientID(disconnectReq.NodeID))
-		if client == nil {
+		clientState, err := s.getConnectionByClientID(req.Context(), logger, domain.OrgID(orgID), domain.ClientID(disconnectReq.NodeID))
+		if err != nil {
+			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to locate connection")
 			errMsg := fmt.Sprintf("No connection found for node (%s:%s)", disconnectReq.Account, disconnectReq.NodeID)
 			logger.Info(errMsg)
 			errorResponse := errorResponse{Title: errMsg,
 				Status: http.StatusBadRequest,
 				Detail: errMsg}
+			writeJSONResponse(w, errorResponse.Status, errorResponse)
+			return
+		}
+
+		client, err := s.proxyFactory.CreateProxy(req.Context(), clientState.OrgID, clientState.Account, clientState.ClientID, clientState.Dispatchers)
+		if err != nil {
+			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to create proxy for connection")
+			// writeJSONResponse(w, http.StatusOK, pingResponse)
+			errorResponse := errorResponse{Title: "Unable to create proxy for connection",
+				Status: http.StatusBadRequest,
+				Detail: "Unable to create proxy for connection"}
 			writeJSONResponse(w, errorResponse.Status, errorResponse)
 			return
 		}
@@ -178,14 +195,22 @@ func (s *ManagementServer) handleReconnect() http.HandlerFunc {
 
 		orgID := principal.GetOrgID()
 
-		client := s.connectionMgr.GetConnection(req.Context(), reconnectReq.Account, domain.OrgID(orgID), reconnectReq.NodeID)
-		if client == nil {
+		clientState, err := s.getConnectionByClientID(req.Context(), logger, domain.OrgID(orgID), reconnectReq.NodeID)
+		if err != nil {
+			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to locate connection")
 			errMsg := fmt.Sprintf("No connection found for node (%s:%s)", reconnectReq.Account, reconnectReq.NodeID)
 			logger.Info(errMsg)
 			errorResponse := errorResponse{Title: errMsg,
 				Status: http.StatusBadRequest,
 				Detail: errMsg}
 			writeJSONResponse(w, errorResponse.Status, errorResponse)
+			return
+		}
+
+		client, err := s.proxyFactory.CreateProxy(req.Context(), clientState.OrgID, clientState.Account, clientState.ClientID, clientState.Dispatchers)
+		if err != nil {
+			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to create proxy for connection")
+			// writeJSONResponse(w, http.StatusOK, pingResponse)
 			return
 		}
 
@@ -374,20 +399,36 @@ func (s *ManagementServer) handleConnectionPing() http.HandlerFunc {
 		orgID := principal.GetOrgID()
 
 		pingResponse := connectionPingResponse{Status: DISCONNECTED_STATUS}
-		client := s.connectionMgr.GetConnection(req.Context(), domain.AccountID(connID.Account), domain.OrgID(orgID), domain.ClientID(connID.NodeID))
-		if client == nil {
+
+		clientState, err := s.getConnectionByClientID(req.Context(), logger, domain.OrgID(orgID), domain.ClientID(connID.NodeID))
+		if err != nil {
+
+			if err == connection_repository.NotFoundError {
+				writeJSONResponse(w, http.StatusOK, pingResponse)
+				return
+			}
+
+			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to locate connection")
+
+			writeJSONResponse(w, http.StatusOK, pingResponse)
+			return
+		}
+
+		client, err := s.proxyFactory.CreateProxy(req.Context(), clientState.OrgID, clientState.Account, clientState.ClientID, clientState.Dispatchers)
+		if err != nil {
+			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to create proxy for connection")
 			writeJSONResponse(w, http.StatusOK, pingResponse)
 			return
 		}
 
 		pingResponse.Status = CONNECTED_STATUS
 
-		err := client.Ping(req.Context())
+		pingErr := client.Ping(req.Context())
 
-		if err != nil {
+		if pingErr != nil {
 			errorResponse := errorResponse{Title: PING_ERROR,
 				Status: http.StatusBadRequest,
-				Detail: err.Error()}
+				Detail: pingErr.Error()}
 			writeJSONResponse(w, errorResponse.Status, errorResponse)
 			return
 		}

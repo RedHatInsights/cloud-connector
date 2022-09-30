@@ -50,6 +50,7 @@ var _ = Describe("Management", func() {
 	var (
 		ms                  *ManagementServer
 		validIdentityHeader string
+		accountNumber       domain.AccountID
 	)
 
 	BeforeEach(func() {
@@ -59,7 +60,15 @@ var _ = Describe("Management", func() {
 		connectionManager := NewMockConnectionManager()
 		connectorClient := domain.ConnectorClientState{Account: CONNECTED_ACCOUNT_NUMBER, ClientID: CONNECTED_NODE_ID}
 		connectionManager.Register(context.TODO(), connectorClient)
-		ms = NewManagementServer(connectionManager, apiMux, URL_BASE_PATH, cfg)
+
+		accountNumber = "1234"
+		orgID := domain.OrgID("1979710")
+		clientID := domain.ClientID("345")
+
+		getConnByClientID := mockedGetConnectionByClientID(orgID, accountNumber, clientID)
+		proxyFactory := &MockClientProxyFactory{}
+
+		ms = NewManagementServer(connectionManager, getConnByClientID, proxyFactory, apiMux, URL_BASE_PATH, cfg)
 		ms.Routes()
 
 		validIdentityHeader = buildIdentityHeader("540155", "Associate")
@@ -218,6 +227,7 @@ var _ = Describe("Management", func() {
 
 				ms.router.ServeHTTP(rr, req)
 
+				fmt.Println("rr.body...", rr.Body)
 				Expect(rr.Code).To(Equal(http.StatusBadRequest))
 			})
 

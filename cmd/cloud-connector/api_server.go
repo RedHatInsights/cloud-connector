@@ -172,9 +172,6 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 	monitoringServer := api.NewMonitoringServer(apiMux, cfg)
 	monitoringServer.Routes()
 
-	mgmtServer := api.NewManagementServer(sqlConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
-	mgmtServer.Routes()
-
 	var v1ConnectionLocator connection_repository.ConnectionLocator
 	var getConnectionFunction connection_repository.GetConnectionByClientID
 
@@ -187,6 +184,9 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 	if err != nil {
 		logger.LogFatalError("Unable to create connection_repository.GetConnectionsByOrgID() function", err)
 	}
+
+	mgmtServer := api.NewManagementServer(sqlConnectionLocator, getConnectionFunction, proxyFactory, apiMux, cfg.UrlBasePath, cfg)
+	mgmtServer.Routes()
 
 	connectionMediator := api.NewConnectionMediatorV2(getConnectionFunction, getConnectionListByOrgIDFunction, proxyFactory, apiMux, cfg.UrlBasePath, cfg)
 	connectionMediator.Routes()

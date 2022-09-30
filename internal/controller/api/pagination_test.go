@@ -195,7 +195,14 @@ func testSetup(connectionCount int) (*ManagementServer, string) {
 		i++
 	}
 
-	managementServer := NewManagementServer(connectionManager, apiMux, URL_BASE_PATH, cfg)
+	accountNumber := domain.AccountID("1234")
+	orgID := domain.OrgID("1979710")
+	clientID := domain.ClientID("345")
+
+	getConnByClientID := mockedGetConnectionByClientID(orgID, accountNumber, clientID)
+	proxyFactory := &MockClientProxyFactory{}
+
+	managementServer := NewManagementServer(connectionManager, getConnByClientID, proxyFactory, apiMux, URL_BASE_PATH, cfg)
 	managementServer.Routes()
 
 	return managementServer, buildIdentityHeader("540155", "Associate")
