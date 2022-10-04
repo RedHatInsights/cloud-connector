@@ -59,7 +59,7 @@ func (jr *MessageReceiver) Routes() {
 type messageRequest struct {
 	Account   string      `json:"account" validate:"required"`
 	Recipient string      `json:"recipient" validate:"required"`
-	Payload   interface{} `json:"payload" validate:"required"`
+	Payload   interface{} `json:"payload"`
 	Metadata  interface{} `json:"metadata"`
 	Directive string      `json:"directive" validate:"required"`
 }

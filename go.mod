@@ -18,20 +18,17 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/klauspost/compress v1.14.2 // indirect
 	github.com/lib/pq v1.9.0
-	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.18.1
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/prometheus/client_golang v1.12.1
 	github.com/redhatinsights/app-common-go v1.6.2
-	github.com/redhatinsights/platform-go-middlewares v0.12.0
+	github.com/redhatinsights/platform-go-middlewares v0.20.0
 	github.com/segmentio/kafka-go v0.4.27
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/afero v1.8.0 // indirect
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/viper v1.10.1
-	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616 // indirect
 	golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27 // indirect
-	golang.org/x/tools v0.1.11 // indirect
 	gopkg.in/ini.v1 v1.66.3 // indirect
 )
