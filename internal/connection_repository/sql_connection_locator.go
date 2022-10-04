@@ -91,7 +91,7 @@ func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, ac
 	connectionsPerAccount := make(map[domain.ClientID]controller.ConnectorClient)
 
 	statement, err := scm.database.Prepare(
-		`SELECT client_id, org_id, canonical_facts, dispatchers, tags COUNT(*) OVER() FROM connections
+		`SELECT client_id, org_id, canonical_facts, dispatchers, tags, COUNT(*) OVER() FROM connections
             WHERE account = $1
             ORDER BY client_id
             OFFSET $2
