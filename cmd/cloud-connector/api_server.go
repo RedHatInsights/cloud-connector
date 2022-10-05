@@ -185,7 +185,12 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 		logger.LogFatalError("Unable to create connection_repository.GetConnectionsByOrgID() function", err)
 	}
 
-	mgmtServer := api.NewManagementServer(sqlConnectionLocator, getConnectionFunction, proxyFactory, apiMux, cfg.UrlBasePath, cfg)
+	tenantTranslator, err := buildTenantTranslatorInstance(cfg)
+	if err != nil {
+		logger.LogFatalError("Unable to create tenant translator", err)
+	}
+
+	mgmtServer := api.NewManagementServer(sqlConnectionLocator, getConnectionFunction, tenantTranslator, proxyFactory, apiMux, cfg.UrlBasePath, cfg)
 	mgmtServer.Routes()
 
 	connectionMediator := api.NewConnectionMediatorV2(getConnectionFunction, getConnectionListByOrgIDFunction, proxyFactory, apiMux, cfg.UrlBasePath, cfg)

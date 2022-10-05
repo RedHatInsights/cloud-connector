@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/RedHatInsights/tenant-utils/pkg/tenantid"
 	"github.com/redhatinsights/platform-go-middlewares/identity"
 	"github.com/redhatinsights/platform-go-middlewares/request_id"
 
@@ -26,22 +28,25 @@ const (
 )
 
 type ManagementServer struct {
-	connectionMgr connection_repository.ConnectionLocator
+	connectionMgr           connection_repository.ConnectionLocator
 	getConnectionByClientID connection_repository.GetConnectionByClientID
-	router        *mux.Router
-	config        *config.Config
-	urlPrefix     string
+	router                  *mux.Router
+	config                  *config.Config
+	urlPrefix               string
 	proxyFactory            controller.ConnectorClientProxyFactory
+	tenantTranslator        tenantid.Translator
 }
 
-func NewManagementServer(cm connection_repository.ConnectionLocator, byClientID connection_repository.GetConnectionByClientID, proxyFactory controller.ConnectorClientProxyFactory, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
+func NewManagementServer(cm connection_repository.ConnectionLocator, byClientID connection_repository.GetConnectionByClientID, tenantTranslator tenantid.Translator, proxyFactory controller.ConnectorClientProxyFactory, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
+
 	return &ManagementServer{
-		connectionMgr: cm,
+		connectionMgr:           cm,
 		getConnectionByClientID: byClientID,
-		router:        r,
-		config:        cfg,
-		urlPrefix:     urlPrefix,
-		proxyFactory:  proxyFactory,
+		router:                  r,
+		config:                  cfg,
+		urlPrefix:               urlPrefix,
+		proxyFactory:            proxyFactory,
+		tenantTranslator:        tenantTranslator,
 	}
 }
 
@@ -119,27 +124,13 @@ func (s *ManagementServer) handleDisconnect() http.HandlerFunc {
 			return
 		}
 
-		orgID := principal.GetOrgID()
-
-		clientState, err := s.getConnectionByClientID(req.Context(), logger, domain.OrgID(orgID), domain.ClientID(disconnectReq.NodeID))
+		client, err := s.createConnectorClient(req.Context(), logger, disconnectReq.Account, disconnectReq.NodeID)
 		if err != nil {
-			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to locate connection")
 			errMsg := fmt.Sprintf("No connection found for node (%s:%s)", disconnectReq.Account, disconnectReq.NodeID)
 			logger.Info(errMsg)
 			errorResponse := errorResponse{Title: errMsg,
 				Status: http.StatusBadRequest,
 				Detail: errMsg}
-			writeJSONResponse(w, errorResponse.Status, errorResponse)
-			return
-		}
-
-		client, err := s.proxyFactory.CreateProxy(req.Context(), clientState.OrgID, clientState.Account, clientState.ClientID, clientState.Dispatchers)
-		if err != nil {
-			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to create proxy for connection")
-			// writeJSONResponse(w, http.StatusOK, pingResponse)
-			errorResponse := errorResponse{Title: "Unable to create proxy for connection",
-				Status: http.StatusBadRequest,
-				Detail: "Unable to create proxy for connection"}
 			writeJSONResponse(w, errorResponse.Status, errorResponse)
 			return
 		}
@@ -193,24 +184,14 @@ func (s *ManagementServer) handleReconnect() http.HandlerFunc {
 			return
 		}
 
-		orgID := principal.GetOrgID()
-
-		clientState, err := s.getConnectionByClientID(req.Context(), logger, domain.OrgID(orgID), reconnectReq.NodeID)
+		client, err := s.createConnectorClient(req.Context(), logger, reconnectReq.Account, reconnectReq.NodeID)
 		if err != nil {
-			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to locate connection")
 			errMsg := fmt.Sprintf("No connection found for node (%s:%s)", reconnectReq.Account, reconnectReq.NodeID)
 			logger.Info(errMsg)
 			errorResponse := errorResponse{Title: errMsg,
 				Status: http.StatusBadRequest,
 				Detail: errMsg}
 			writeJSONResponse(w, errorResponse.Status, errorResponse)
-			return
-		}
-
-		client, err := s.proxyFactory.CreateProxy(req.Context(), clientState.OrgID, clientState.Account, clientState.ClientID, clientState.Dispatchers)
-		if err != nil {
-			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to create proxy for connection")
-			// writeJSONResponse(w, http.StatusOK, pingResponse)
 			return
 		}
 
@@ -435,4 +416,29 @@ func (s *ManagementServer) handleConnectionPing() http.HandlerFunc {
 
 		writeJSONResponse(w, http.StatusOK, pingResponse)
 	}
+}
+
+func (s *ManagementServer) createConnectorClient(ctx context.Context, log *logrus.Entry, account domain.AccountID, clientId domain.ClientID) (controller.ConnectorClient, error) {
+
+	resolvedOrgId, err := s.tenantTranslator.EANToOrgID(ctx, string(account))
+	if err != nil {
+		log.WithFields(logrus.Fields{"error": err}).Errorf("Unable to translate account (%s) to org_id", account)
+		return nil, err
+	}
+
+	log.Infof("Translated account %s to org_id %s", account, resolvedOrgId)
+
+	clientState, err := s.getConnectionByClientID(ctx, log, domain.OrgID(resolvedOrgId), clientId)
+	if err != nil {
+		log.WithFields(logrus.Fields{"error": err}).Errorf("Unable to locate connection (%s:%s)", resolvedOrgId, clientId)
+		return nil, err
+	}
+
+	proxy, err := s.proxyFactory.CreateProxy(ctx, clientState.OrgID, clientState.Account, clientState.ClientID, clientState.Dispatchers)
+	if err != nil {
+		log.WithFields(logrus.Fields{"error": err}).Errorf("Unable to create proxy for connection (%s:%s)", resolvedOrgId, clientId)
+		return nil, err
+	}
+
+	return proxy, nil
 }

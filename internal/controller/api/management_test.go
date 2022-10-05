@@ -16,6 +16,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/RedHatInsights/tenant-utils/pkg/tenantid"
 
 	"github.com/gorilla/mux"
 )
@@ -68,7 +69,15 @@ var _ = Describe("Management", func() {
 		getConnByClientID := mockedGetConnectionByClientID(orgID, accountNumber, clientID)
 		proxyFactory := &MockClientProxyFactory{}
 
-		ms = NewManagementServer(connectionManager, getConnByClientID, proxyFactory, apiMux, URL_BASE_PATH, cfg)
+		accountNumberStr := CONNECTED_ACCOUNT_NUMBER
+
+		mapping := map[string]*string{
+			string(orgID): &accountNumberStr,
+		}
+
+		tenantTranslator := tenantid.NewTranslatorMockWithMapping(mapping)
+
+		ms = NewManagementServer(connectionManager, getConnByClientID, tenantTranslator, proxyFactory, apiMux, URL_BASE_PATH, cfg)
 		ms.Routes()
 
 		validIdentityHeader = buildIdentityHeader("540155", "Associate")
