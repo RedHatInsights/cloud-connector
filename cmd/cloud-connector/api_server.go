@@ -189,7 +189,7 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 	jr := api.NewMessageReceiver(v1ConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
 	jr.Routes()
 
-	getConnectionListByOrgIDFunction, err := connection_repository.NewSqlGetConnectionsByOrgID(cfg, database)
+	getConnectionListByOrgIDFunction, err := connection_repository.NewSqlGetConnectionsByOrgID(cfg, gormDatabase)
 	if err != nil {
 		logger.LogFatalError("Unable to create connection_repository.GetConnectionsByOrgID() function", err)
 	}
@@ -225,12 +225,12 @@ func buildConnectionLookupInstances(cfg *config.Config, database *sql.DB, gormDa
 	if cfg.ApiServerConnectionLookupImpl == "relaxed" {
 		logger.Log.Info("Using \"relaxed\" connection lookup mechanism")
 
-		v1ConnectionLocator, err = connection_repository.NewPermittedTenantConnectionLocator(cfg, database, proxyFactory)
+		v1ConnectionLocator, err = connection_repository.NewPermittedTenantConnectionLocator(cfg, gormDatabase, proxyFactory)
 		if err != nil {
 			logger.LogFatalError("Failed to create Permitted Account Connection Locator", err)
 		}
 
-		getConnectionFunction, err = connection_repository.NewPermittedTenantSqlGetConnectionByClientID(cfg, database)
+		getConnectionFunction, err = connection_repository.NewPermittedTenantSqlGetConnectionByClientID(cfg, gormDatabase)
 		if err != nil {
 			logger.LogFatalError("Unable to create connection_repository.GetConnection() function", err)
 		}
@@ -243,7 +243,7 @@ func buildConnectionLookupInstances(cfg *config.Config, database *sql.DB, gormDa
 			logger.LogFatalError("Failed to create Permitted Account Connection Locator", err)
 		}
 
-		getConnectionFunction, err = connection_repository.NewSqlGetConnectionByClientID(cfg, database)
+		getConnectionFunction, err = connection_repository.NewSqlGetConnectionByClientID(cfg, gormDatabase)
 		if err != nil {
 			logger.LogFatalError("Unable to create connection_repository.GetConnection() function", err)
 		}

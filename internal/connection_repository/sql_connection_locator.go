@@ -45,7 +45,7 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account doma
 		Row()
 
 	if rows.Err() != nil {
-		logger.LogError("SQL Prepare failed", err)
+		logger.LogError("SQL Prepare failed", rows.Err())
 		return nil
 	}
 

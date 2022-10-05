@@ -2,8 +2,8 @@ package connection_repository
 
 import (
 	"context"
-	"database/sql"
 	"errors"
+	"gorm.io/gorm"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
@@ -18,8 +18,7 @@ type PermittedTenantConnectionLocator struct {
 	getConnectionByClientID GetConnectionByClientID
 }
 
-func NewPermittedTenantConnectionLocator(cfg *config.Config, database *sql.DB, proxyFactory controller.ConnectorClientProxyFactory) (*PermittedTenantConnectionLocator, error) {
-
+func NewPermittedTenantConnectionLocator(cfg *config.Config, database *gorm.DB, proxyFactory controller.ConnectorClientProxyFactory) (*PermittedTenantConnectionLocator, error) {
 	getConnectionByClientID, err := NewPermittedTenantSqlGetConnectionByClientID(cfg, database)
 
 	if err != nil {

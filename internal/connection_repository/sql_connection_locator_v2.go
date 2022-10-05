@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"gorm.io/datatypes"
+	"gorm.io/gorm"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -13,25 +15,28 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type QueryType string
+
 const (
-	satelliteWorker              = "foreman_rh_cloud"
-	connectionQueryPrefix        = "SELECT  account, org_id, dispatchers, canonical_facts, tags FROM connections "
-	strictConnectionLookupQuery  = connectionQueryPrefix + "WHERE org_id = $1 AND client_id = $2"
-	relaxedConnectionLookupQuery = connectionQueryPrefix + "WHERE (org_id = $1 OR dispatchers ? '" + satelliteWorker + "') AND client_id = $2"
+	strictQuery  QueryType = "strict"
+	relaxedQuery QueryType = "relaxed"
 )
 
-func NewSqlGetConnectionByClientID(cfg *config.Config, database *sql.DB) (GetConnectionByClientID, error) {
+const (
+	satelliteWorker = "foreman_rh_cloud"
+)
 
-	return createGetConnectionByClientIDImpl(cfg, database, strictConnectionLookupQuery)
+func NewSqlGetConnectionByClientID(cfg *config.Config, database *gorm.DB) (GetConnectionByClientID, error) {
+	return createGetConnectionByClientIDImpl(cfg, database, strictQuery)
 }
 
-func NewPermittedTenantSqlGetConnectionByClientID(cfg *config.Config, database *sql.DB) (GetConnectionByClientID, error) {
+func NewPermittedTenantSqlGetConnectionByClientID(cfg *config.Config, database *gorm.DB) (GetConnectionByClientID, error) {
 
 	// The "relaxed" / "permitted" tenant logic is basically contained here.
 	// This allows us to reuse a big chunk of the logic required to read the
 	// connection state from the database.
 
-	lookupFunc, err := createGetConnectionByClientIDImpl(cfg, database, relaxedConnectionLookupQuery)
+	lookupFunc, err := createGetConnectionByClientIDImpl(cfg, database, relaxedQuery)
 	if err != nil {
 		return lookupFunc, err
 	}
@@ -56,7 +61,7 @@ func NewPermittedTenantSqlGetConnectionByClientID(cfg *config.Config, database *
 	}, nil
 }
 
-func createGetConnectionByClientIDImpl(cfg *config.Config, database *sql.DB, sqlQuery string) (GetConnectionByClientID, error) {
+func createGetConnectionByClientIDImpl(cfg *config.Config, database *gorm.DB, queryType QueryType) (GetConnectionByClientID, error) {
 
 	return func(ctx context.Context, log *logrus.Entry, orgId domain.OrgID, clientId domain.ClientID) (domain.ConnectorClientState, error) {
 		var clientState domain.ConnectorClientState
@@ -79,12 +84,23 @@ func createGetConnectionByClientIDImpl(cfg *config.Config, database *sql.DB, sql
 		ctx, cancel := context.WithTimeout(ctx, cfg.ConnectionDatabaseQueryTimeout)
 		defer cancel()
 
-		statement, err := database.Prepare(sqlQuery)
-		if err != nil {
-			logger.LogWithError(log, "SQL Prepare failed", err)
+		query := database.Table("connections").Select("account", "org_id", "dispatchers", "canonical_facts", "tags")
+
+		switch queryType {
+		case strictQuery:
+			query = query.Where("org_id = ?", orgId).Where("client_id = ?", clientId)
+		case relaxedQuery:
+			query = query.
+				Where("client_id = ?", clientId).
+				Where(query.Where("org_id = ?", orgId).Or(datatypes.JSONQuery("dispatchers").HasKey(satelliteWorker)))
+		}
+
+		statement := query.Row()
+
+		if statement.Err() != nil {
+			logger.LogWithError(log, "SQL Prepare failed", statement.Err())
 			return clientState, nil
 		}
-		defer statement.Close()
 
 		var accountString sql.NullString
 		var orgID string
@@ -92,7 +108,7 @@ func createGetConnectionByClientIDImpl(cfg *config.Config, database *sql.DB, sql
 		var canonicalFactsString sql.NullString
 		var tagsString sql.NullString
 
-		err = statement.QueryRowContext(ctx, orgId, clientId).Scan(&accountString, &orgID, &dispatchersString, &canonicalFactsString, &tagsString)
+		err = statement.Scan(&accountString, &orgID, &dispatchersString, &canonicalFactsString, &tagsString)
 
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -135,7 +151,7 @@ func createGetConnectionByClientIDImpl(cfg *config.Config, database *sql.DB, sql
 	}, nil
 }
 
-func NewSqlGetConnectionsByOrgID(cfg *config.Config, database *sql.DB) (GetConnectionsByOrgID, error) {
+func NewSqlGetConnectionsByOrgID(cfg *config.Config, database *gorm.DB) (GetConnectionsByOrgID, error) {
 
 	return func(ctx context.Context, log *logrus.Entry, orgId domain.OrgID, offset int, limit int) (map[domain.ClientID]domain.ConnectorClientState, int, error) {
 
@@ -149,21 +165,17 @@ func NewSqlGetConnectionsByOrgID(cfg *config.Config, database *sql.DB) (GetConne
 
 		connectionsPerAccount := make(map[domain.ClientID]domain.ConnectorClientState)
 
-		statement, err := database.Prepare(
-			`SELECT client_id, org_id, account, dispatchers, canonical_facts, tags, COUNT(*) OVER() FROM connections
-                WHERE org_id = $1
-                ORDER BY client_id
-                OFFSET $2
-                LIMIT $3`)
-		if err != nil {
-			logger.LogWithError(log, "SQL Prepare failed", err)
-			return nil, totalConnections, err
-		}
-		defer statement.Close()
+		rows, err := database.
+			Table("connections").
+			Select("client_id", "org_id", "account", "dispatchers", "canonical_facts", "tags", "COUNT(*) OVER()").
+			Where("org_id = ?", orgId).
+			Order("client_id").
+			Offset(offset).
+			Limit(limit).
+			Rows()
 
-		rows, err := statement.QueryContext(ctx, orgId, offset, limit)
 		if err != nil {
-			logger.LogWithError(log, "SQL query failed", err)
+			logger.LogWithError(log, "SQL Query failed", err)
 			return nil, totalConnections, err
 		}
 		defer rows.Close()
