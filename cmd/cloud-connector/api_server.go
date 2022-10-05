@@ -163,6 +163,16 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 		logger.LogFatalError("Failed to create SQL Connection Locator", err)
 	}
 
+	tenantTranslator, err := buildTenantTranslatorInstance(cfg)
+	if err != nil {
+		logger.LogFatalError("Unable to create tenant translator", err)
+	}
+
+	managementGetConnectionByOrgID, err := connection_repository.NewSqlGetConnectionByClientID(cfg, database)
+	if err != nil {
+		logger.LogFatalError("Unable to create getConnectionByClientID impl", err)
+	}
+
 	apiMux := mux.NewRouter()
 	apiMux.Use(request_id.ConfiguredRequestID("x-rh-insights-request-id"))
 
@@ -177,7 +187,7 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 
 	v1ConnectionLocator, getConnectionFunction = buildConnectionLookupInstances(cfg, database, proxyFactory)
 
-	jr := api.NewMessageReceiver(v1ConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
+	jr := api.NewMessageReceiver(v1ConnectionLocator, getConnectionFunction, tenantTranslator, apiMux, cfg.UrlBasePath, cfg)
 	jr.Routes()
 
 	getConnectionListByOrgIDFunction, err := connection_repository.NewSqlGetConnectionsByOrgID(cfg, database)
@@ -185,12 +195,7 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 		logger.LogFatalError("Unable to create connection_repository.GetConnectionsByOrgID() function", err)
 	}
 
-	tenantTranslator, err := buildTenantTranslatorInstance(cfg)
-	if err != nil {
-		logger.LogFatalError("Unable to create tenant translator", err)
-	}
-
-	mgmtServer := api.NewManagementServer(sqlConnectionLocator, getConnectionFunction, tenantTranslator, proxyFactory, apiMux, cfg.UrlBasePath, cfg)
+	mgmtServer := api.NewManagementServer(sqlConnectionLocator, managementGetConnectionByOrgID, tenantTranslator, proxyFactory, apiMux, cfg.UrlBasePath, cfg)
 	mgmtServer.Routes()
 
 	connectionMediator := api.NewConnectionMediatorV2(getConnectionFunction, getConnectionListByOrgIDFunction, proxyFactory, apiMux, cfg.UrlBasePath, cfg)

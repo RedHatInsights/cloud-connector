@@ -18,6 +18,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/RedHatInsights/tenant-utils/pkg/tenantid"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -189,7 +190,21 @@ var _ = Describe("MessageReceiver", func() {
 		connectionManager.Register(context.TODO(), connectorClient)
 		errorConnectorClient := domain.ConnectorClientState{Account: account, ClientID: "error-client"}
 		connectionManager.Register(context.TODO(), errorConnectorClient)
-		jr = NewMessageReceiver(connectionManager, apiMux, URL_BASE_PATH, cfg)
+
+		orgID := domain.OrgID("1979710")
+		clientID := domain.ClientID("345")
+
+		getConnByClientID := mockedGetConnectionByClientID(orgID, account, clientID)
+
+		accountNumberStr := string(account)
+
+		mapping := map[string]*string{
+			string(orgID): &accountNumberStr,
+		}
+
+		tenantTranslator := tenantid.NewTranslatorMockWithMapping(mapping)
+
+		jr = NewMessageReceiver(connectionManager, getConnByClientID, tenantTranslator, apiMux, URL_BASE_PATH, cfg)
 		jr.Routes()
 
 		validIdentityHeader = buildIdentityHeader(account, "Associate")

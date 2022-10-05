@@ -30,11 +30,11 @@ const (
 type ManagementServer struct {
 	connectionMgr           connection_repository.ConnectionLocator
 	getConnectionByClientID connection_repository.GetConnectionByClientID
+	tenantTranslator        tenantid.Translator
 	router                  *mux.Router
 	config                  *config.Config
 	urlPrefix               string
 	proxyFactory            controller.ConnectorClientProxyFactory
-	tenantTranslator        tenantid.Translator
 }
 
 func NewManagementServer(cm connection_repository.ConnectionLocator, byClientID connection_repository.GetConnectionByClientID, tenantTranslator tenantid.Translator, proxyFactory controller.ConnectorClientProxyFactory, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
@@ -42,11 +42,11 @@ func NewManagementServer(cm connection_repository.ConnectionLocator, byClientID 
 	return &ManagementServer{
 		connectionMgr:           cm,
 		getConnectionByClientID: byClientID,
+		tenantTranslator:        tenantTranslator,
 		router:                  r,
 		config:                  cfg,
 		urlPrefix:               urlPrefix,
 		proxyFactory:            proxyFactory,
-		tenantTranslator:        tenantTranslator,
 	}
 }
 
@@ -213,7 +213,7 @@ func (s *ManagementServer) handleConnectionStatus() http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, req *http.Request) {
-		getConnectionStatus(w, req, s.connectionMgr, inputVerifier)
+		getConnectionStatus(w, req, s.tenantTranslator, s.getConnectionByClientID, inputVerifier)
 	}
 }
 
@@ -377,28 +377,16 @@ func (s *ManagementServer) handleConnectionPing() http.HandlerFunc {
 		logger.Infof("Submitting ping for account:%s - node id:%s",
 			connID.Account, connID.NodeID)
 
-		orgID := principal.GetOrgID()
-
 		pingResponse := connectionPingResponse{Status: DISCONNECTED_STATUS}
 
-		clientState, err := s.getConnectionByClientID(req.Context(), logger, domain.OrgID(orgID), domain.ClientID(connID.NodeID))
+		client, err := s.createConnectorClient(req.Context(), logger, domain.AccountID(connID.Account), domain.ClientID(connID.NodeID))
 		if err != nil {
-
-			if err == connection_repository.NotFoundError {
-				writeJSONResponse(w, http.StatusOK, pingResponse)
-				return
-			}
-
-			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to locate connection")
-
-			writeJSONResponse(w, http.StatusOK, pingResponse)
-			return
-		}
-
-		client, err := s.proxyFactory.CreateProxy(req.Context(), clientState.OrgID, clientState.Account, clientState.ClientID, clientState.Dispatchers)
-		if err != nil {
-			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to create proxy for connection")
-			writeJSONResponse(w, http.StatusOK, pingResponse)
+			errMsg := fmt.Sprintf("No connection found for node (%s:%s)", connID.Account, connID.NodeID)
+			logger.Info(errMsg)
+			errorResponse := errorResponse{Title: errMsg,
+				Status: http.StatusBadRequest,
+				Detail: errMsg}
+			writeJSONResponse(w, errorResponse.Status, errorResponse)
 			return
 		}
 

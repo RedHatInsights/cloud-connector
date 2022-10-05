@@ -107,7 +107,7 @@ var _ = Describe("Management", func() {
 
 			It("Should be able to get the status of a disconnected customer", func() {
 
-				postBody := createConnectionStatusPostBody("1234-not-here", CONNECTED_NODE_ID)
+				postBody := createConnectionStatusPostBody(CONNECTED_ACCOUNT_NUMBER, "1234-not-here")
 
 				req, err := http.NewRequest("POST", CONNECTION_STATUS_ENDPOINT, postBody)
 				Expect(err).NotTo(HaveOccurred())

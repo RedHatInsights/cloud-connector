@@ -11,6 +11,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/RedHatInsights/tenant-utils/pkg/tenantid"
 	"github.com/redhatinsights/platform-go-middlewares/identity"
 	"github.com/redhatinsights/platform-go-middlewares/request_id"
 
@@ -24,18 +25,22 @@ const (
 )
 
 type MessageReceiver struct {
-	connectionMgr connection_repository.ConnectionLocator
-	router        *mux.Router
-	config        *config.Config
-	urlPrefix     string
+	connectionMgr           connection_repository.ConnectionLocator
+	getConnectionByClientID connection_repository.GetConnectionByClientID
+	tenantTranslator        tenantid.Translator
+	router                  *mux.Router
+	config                  *config.Config
+	urlPrefix               string
 }
 
-func NewMessageReceiver(cm connection_repository.ConnectionLocator, r *mux.Router, urlPrefix string, cfg *config.Config) *MessageReceiver {
+func NewMessageReceiver(cm connection_repository.ConnectionLocator, byClientID connection_repository.GetConnectionByClientID, tenantTranslator tenantid.Translator, r *mux.Router, urlPrefix string, cfg *config.Config) *MessageReceiver {
 	return &MessageReceiver{
-		connectionMgr: cm,
-		router:        r,
-		config:        cfg,
-		urlPrefix:     urlPrefix,
+		connectionMgr:           cm,
+		getConnectionByClientID: byClientID,
+		tenantTranslator:        tenantTranslator,
+		router:                  r,
+		config:                  cfg,
+		urlPrefix:               urlPrefix,
 	}
 }
 
@@ -164,11 +169,12 @@ func (jr *MessageReceiver) handleConnectionStatus() http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, req *http.Request) {
-		getConnectionStatus(w, req, jr.connectionMgr, inputVerifier)
+		getConnectionStatus(w, req, jr.tenantTranslator, jr.getConnectionByClientID, inputVerifier)
 	}
 }
 
-func getConnectionStatus(w http.ResponseWriter, req *http.Request, connectionLocator connection_repository.ConnectionLocator, verifyInput verifyConnectionIDMessage) {
+func getConnectionStatus(w http.ResponseWriter, req *http.Request, tenantTranslator tenantid.Translator, getConnectionByClientID connection_repository.GetConnectionByClientID, verifyInput verifyConnectionIDMessage) {
+
 	principal, _ := middlewares.GetPrincipal(req.Context())
 	requestId := request_id.GetReqID(req.Context())
 	logger := logger.Log.WithFields(logrus.Fields{
@@ -201,12 +207,20 @@ func getConnectionStatus(w http.ResponseWriter, req *http.Request, connectionLoc
 
 	connectionStatus := connectionStatusResponse{Status: DISCONNECTED_STATUS}
 
-	orgID := principal.GetOrgID()
+	resolvedOrgId, err := tenantTranslator.EANToOrgID(req.Context(), string(connID.Account))
+	if err != nil {
+		logger.WithFields(logrus.Fields{"error": err}).Errorf("Unable to translate account (%s) to org_id", connID.Account)
+		errorResponse := errorResponse{Title: "Unable to translate account to org_id",
+			Status: http.StatusBadRequest,
+			Detail: err.Error()}
+		writeJSONResponse(w, errorResponse.Status, errorResponse)
+		return
+	}
 
-	client := connectionLocator.GetConnection(req.Context(), domain.AccountID(connID.Account), domain.OrgID(orgID), domain.ClientID(connID.NodeID))
-	if client != nil {
+	clientState, err := getConnectionByClientID(req.Context(), logger, domain.OrgID(resolvedOrgId), domain.ClientID(connID.NodeID))
+	if err == nil {
 		connectionStatus.Status = CONNECTED_STATUS
-		connectionStatus.Dispatchers, _ = client.GetDispatchers(req.Context())
+		connectionStatus.Dispatchers = clientState.Dispatchers
 		connectionStatus.CanonicalFacts, _ = client.GetCanonicalFacts(req.Context())
 		connectionStatus.Tags, _ = client.GetTags(req.Context())
 	}
