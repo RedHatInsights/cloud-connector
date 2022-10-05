@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"crypto/tls"
-	"database/sql"
 	"errors"
 	"fmt"
 	"gorm.io/gorm"
@@ -109,12 +108,7 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 	cfg := config.GetConfig()
 	logger.Log.Info("Cloud-Connector configuration:\n", cfg)
 
-	gormDatabase, err := db.InitializeGormDatabaseConnection(cfg)
-	if err != nil {
-		logger.LogFatalError("Unable to connect to database: ", err)
-	}
-
-	database, err := db.InitializeDatabaseConnection(cfg)
+	database, err := db.InitializeGormDatabaseConnection(cfg)
 	if err != nil {
 		logger.LogFatalError("Unable to connect to database: ", err)
 	}
@@ -164,7 +158,7 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 		logger.LogFatalError("Unable to create proxy factory", err)
 	}
 
-	sqlConnectionLocator, err := connection_repository.NewSqlConnectionLocator(cfg, gormDatabase, proxyFactory)
+	sqlConnectionLocator, err := connection_repository.NewSqlConnectionLocator(cfg, database, proxyFactory)
 	if err != nil {
 		logger.LogFatalError("Failed to create SQL Connection Locator", err)
 	}
@@ -184,12 +178,12 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 	var v1ConnectionLocator connection_repository.ConnectionLocator
 	var getConnectionFunction connection_repository.GetConnectionByClientID
 
-	v1ConnectionLocator, getConnectionFunction = buildConnectionLookupInstances(cfg, database, gormDatabase, proxyFactory)
+	v1ConnectionLocator, getConnectionFunction = buildConnectionLookupInstances(cfg, database, proxyFactory)
 
 	jr := api.NewMessageReceiver(v1ConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
 	jr.Routes()
 
-	getConnectionListByOrgIDFunction, err := connection_repository.NewSqlGetConnectionsByOrgID(cfg, gormDatabase)
+	getConnectionListByOrgIDFunction, err := connection_repository.NewSqlGetConnectionsByOrgID(cfg, database)
 	if err != nil {
 		logger.LogFatalError("Unable to create connection_repository.GetConnectionsByOrgID() function", err)
 	}
@@ -216,7 +210,7 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 	logger.Log.Info("Cloud-Connector shutting down")
 }
 
-func buildConnectionLookupInstances(cfg *config.Config, database *sql.DB, gormDatabase *gorm.DB, proxyFactory controller.ConnectorClientProxyFactory) (connection_repository.ConnectionLocator, connection_repository.GetConnectionByClientID) {
+func buildConnectionLookupInstances(cfg *config.Config, gormDatabase *gorm.DB, proxyFactory controller.ConnectorClientProxyFactory) (connection_repository.ConnectionLocator, connection_repository.GetConnectionByClientID) {
 
 	var v1ConnectionLocator connection_repository.ConnectionLocator
 	var getConnectionFunction connection_repository.GetConnectionByClientID
