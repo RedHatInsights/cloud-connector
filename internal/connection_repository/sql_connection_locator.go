@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"gorm.io/gorm"
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -15,12 +16,12 @@ import (
 )
 
 type SqlConnectionLocator struct {
-	database     *sql.DB
+	database     *gorm.DB
 	queryTimeout time.Duration
 	proxyFactory controller.ConnectorClientProxyFactory
 }
 
-func NewSqlConnectionLocator(cfg *config.Config, database *sql.DB, proxyFactory controller.ConnectorClientProxyFactory) (*SqlConnectionLocator, error) {
+func NewSqlConnectionLocator(cfg *config.Config, database *gorm.DB, proxyFactory controller.ConnectorClientProxyFactory) (*SqlConnectionLocator, error) {
 	return &SqlConnectionLocator{
 		database:     database,
 		queryTimeout: cfg.ConnectionDatabaseQueryTimeout,
@@ -38,16 +39,19 @@ func (scm *SqlConnectionLocator) GetConnection(ctx context.Context, account doma
 	ctx, cancel := context.WithTimeout(ctx, scm.queryTimeout)
 	defer cancel()
 
-	statement, err := scm.database.Prepare("SELECT client_id, dispatchers FROM connections WHERE account = $1 AND client_id = $2")
-	if err != nil {
+	rows := scm.database.Table("connections").
+		Select("client_id", "dispatchers").
+		Where("account = ? AND client_id = ?", account, client_id).
+		Row()
+
+	if rows.Err() != nil {
 		logger.LogError("SQL Prepare failed", err)
 		return nil
 	}
-	defer statement.Close()
 
 	var name string
 	var dispatchersString sql.NullString
-	err = statement.QueryRowContext(ctx, account, client_id).Scan(&name, &dispatchersString)
+	err = rows.Scan(&name, &dispatchersString)
 
 	if err != nil {
 		if err != sql.ErrNoRows {
@@ -85,21 +89,17 @@ func (scm *SqlConnectionLocator) GetConnectionsByAccount(ctx context.Context, ac
 
 	connectionsPerAccount := make(map[domain.ClientID]controller.ConnectorClient)
 
-	statement, err := scm.database.Prepare(
-		`SELECT client_id, org_id, dispatchers, COUNT(*) OVER() FROM connections
-            WHERE account = $1
-            ORDER BY client_id
-            OFFSET $2
-            LIMIT $3`)
-	if err != nil {
-		logger.LogError("SQL Prepare failed", err)
-		return nil, totalConnections, err
-	}
-	defer statement.Close()
+	rows, err := scm.database.
+		Table("connections").
+		Select("client_id", "org_id", "dispatchers", "COUNT(*) OVER()").
+		Where("account = ?", account).
+		Order("client_id").
+		Offset(offset).
+		Limit(limit).
+		Rows()
 
-	rows, err := statement.QueryContext(ctx, account, offset, limit)
 	if err != nil {
-		logger.LogError("SQL query failed", err)
+		logger.LogError("SQL Query failed", err)
 		return nil, totalConnections, err
 	}
 	defer rows.Close()
@@ -145,18 +145,14 @@ func (scm *SqlConnectionLocator) GetAllConnections(ctx context.Context, offset i
 
 	connectionMap := make(map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient)
 
-	statement, err := scm.database.Prepare(
-		`SELECT account, org_id, client_id, dispatchers, COUNT(*) OVER() FROM connections
-            ORDER BY account, client_id
-            OFFSET $1
-            LIMIT $2`)
-	if err != nil {
-		logger.LogError("SQL Prepare failed", err)
-		return nil, totalConnections, err
-	}
-	defer statement.Close()
+	rows, err := scm.database.
+		Table("connections").
+		Select("account", "org_id", "client_id", "dispatchers", "COUNT(*) OVER()").
+		Order("account, client_id").
+		Offset(offset).
+		Limit(limit).
+		Rows()
 
-	rows, err := statement.QueryContext(ctx, offset, limit)
 	if err != nil {
 		logger.LogError("SQL query failed", err)
 		return nil, totalConnections, err

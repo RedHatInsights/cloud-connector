@@ -18,7 +18,7 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/klauspost/compress v1.14.2 // indirect
-	github.com/lib/pq v1.9.0
+	github.com/lib/pq v1.10.2
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.18.1
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
@@ -32,5 +32,6 @@ require (
 	github.com/spf13/viper v1.10.1
 	golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27 // indirect
 	gopkg.in/ini.v1 v1.66.3 // indirect
-	gorm.io/gorm v1.23.8 // indirect
+	gorm.io/driver/postgres v1.3.10
+	gorm.io/gorm v1.23.8
 )

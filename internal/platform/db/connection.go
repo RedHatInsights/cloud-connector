@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 
@@ -45,6 +47,26 @@ func InitializeDatabaseConnection(cfg *config.Config) (*sql.DB, error) {
 
 	if cfg.ConnectionDatabaseImpl == "postgres" {
 		database, err = initializePostgresConnection(cfg)
+	} else {
+		return nil, errors.New("Invalid SQL database impl requested")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return database, nil
+}
+
+func InitializeGormDatabaseConnection(cfg *config.Config) (*gorm.DB, error) {
+
+	var database *gorm.DB
+	var sqlDatabase *sql.DB
+	var err error
+
+	if cfg.ConnectionDatabaseImpl == "postgres" {
+		sqlDatabase, err = initializePostgresConnection(cfg)
+		database, err = gorm.Open(postgres.New(postgres.Config{Conn: sqlDatabase}), &gorm.Config{})
 	} else {
 		return nil, errors.New("Invalid SQL database impl requested")
 	}
