@@ -79,18 +79,6 @@ func mockedPaginatedGetAllConnections(connNum int, expectedAccount domain.Accoun
 	}
 }
 
-func (m *PaginatedMockConnectionManager) GetAllConnections(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient, int, error) {
-	ret := make(map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient)
-
-	i := offset
-	ret["540155"] = make(map[domain.ClientID]controller.ConnectorClient)
-	for i < len(m.connections) && len(ret["540155"]) < limit {
-		ret["540155"][domain.ClientID(strconv.Itoa(i))] = m.connections[i]
-		i++
-	}
-
-	return ret, len(m.connections), nil
-}
 
 var _ = Describe("Managment API Pagination - 11 connections total", func() {
 

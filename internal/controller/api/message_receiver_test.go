@@ -156,9 +156,6 @@ func (m *MockConnectionManager) GetConnectionsByAccount(ctx context.Context, acc
 	return m.AccountIndex[account], len(m.AccountIndex[account]), nil
 }
 
-func (m *MockConnectionManager) GetAllConnections(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient, int, error) {
-	return m.AccountIndex, len(m.AccountIndex), nil
-}
 
 func init() {
 	logger.InitLogger()
