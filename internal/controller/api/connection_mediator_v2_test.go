@@ -13,6 +13,7 @@ import (
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
+	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 
 	"github.com/gorilla/mux"
@@ -40,6 +41,13 @@ func mockedGetConnectionsByOrgID(expectedOrgId domain.OrgID, expectedAccount dom
 		}
 
 		return map[domain.ClientID]domain.ConnectorClientState{expectedClientId: {Account: expectedAccount, ClientID: expectedClientId}}, 1, nil
+	}
+}
+
+func mockedGetAllConnections(expectedAccount domain.AccountID, expectedClientId domain.ClientID) connection_repository.GetAllConnections {
+	return func(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient, int, error) {
+		allConnections := map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient{expectedAccount: {expectedClientId: controller.ConnectorClient(nil)}}
+		return allConnections, len(allConnections), nil
 	}
 }
 

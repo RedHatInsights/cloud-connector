@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
+	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
@@ -215,5 +216,74 @@ func NewSqlGetConnectionsByOrgID(cfg *config.Config, database *sql.DB) (GetConne
 		}
 
 		return connectionsPerAccount, totalConnections, nil
+	}, nil
+}
+
+func NewGetAllConnections(cfg *config.Config, database *sql.DB, proxyFactory controller.ConnectorClientProxyFactory) (GetAllConnections, error) {
+	return func(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient, int, error) {
+
+		var totalConnections int
+
+		callDurationTimer := prometheus.NewTimer(metrics.sqlLookupAllConnectionsDuration)
+		defer callDurationTimer.ObserveDuration()
+
+		ctx, cancel := context.WithTimeout(ctx, cfg.ConnectionDatabaseQueryTimeout)
+		defer cancel()
+
+		connectionMap := make(map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient)
+
+		statement, err := database.Prepare(
+			`SELECT account, org_id, client_id, dispatchers, COUNT(*) OVER() FROM connections
+				ORDER BY account, client_id
+				OFFSET $1
+				LIMIT $2`)
+		if err != nil {
+			logger.LogError("SQL Prepare failed", err)
+			return nil, totalConnections, err
+		}
+		defer statement.Close()
+
+		rows, err := statement.QueryContext(ctx, offset, limit)
+		if err != nil {
+			logger.LogError("SQL query failed", err)
+			return nil, totalConnections, err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var account domain.AccountID
+			var orgIdString sql.NullString
+			var clientId domain.ClientID
+			var dispatchersString sql.NullString
+
+			if err := rows.Scan(&account, &orgIdString, &clientId, &dispatchersString, &totalConnections); err != nil {
+				logger.LogError("SQL scan failed.  Skipping row.", err)
+				continue
+			}
+
+			orgId := domain.OrgID(orgIdString.String)
+
+			var dispatchers domain.Dispatchers
+			if dispatchersString.Valid {
+				err = json.Unmarshal([]byte(dispatchersString.String), &dispatchers)
+				if err != nil {
+					logger.LogErrorWithAccountAndClientId("Unable to unmarshal dispatchers from database", err, account, orgId, clientId)
+				}
+			}
+
+			proxy, err := proxyFactory.CreateProxy(ctx, orgId, domain.AccountID(account), domain.ClientID(clientId), dispatchers)
+			if err != nil {
+				logger.LogErrorWithAccountAndClientId("Unable to create the proxy.  Skipping row.", err, account, orgId, clientId)
+				continue
+			}
+
+			if _, exists := connectionMap[account]; !exists {
+				connectionMap[account] = make(map[domain.ClientID]controller.ConnectorClient)
+			}
+
+			connectionMap[account][clientId] = proxy
+		}
+
+		return connectionMap, totalConnections, err
 	}, nil
 }

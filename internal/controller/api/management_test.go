@@ -67,6 +67,7 @@ var _ = Describe("Management", func() {
 		clientID := domain.ClientID("345")
 
 		getConnByClientID := mockedGetConnectionByClientID(orgID, accountNumber, clientID)
+		getAllConnections := mockedGetAllConnections(accountNumber, clientID)
 		proxyFactory := &MockClientProxyFactory{}
 
 		accountNumberStr := CONNECTED_ACCOUNT_NUMBER
@@ -77,7 +78,7 @@ var _ = Describe("Management", func() {
 
 		tenantTranslator := tenantid.NewTranslatorMockWithMapping(mapping)
 
-		ms = NewManagementServer(connectionManager, getConnByClientID, tenantTranslator, proxyFactory, apiMux, URL_BASE_PATH, cfg)
+		ms = NewManagementServer(connectionManager, getConnByClientID, getAllConnections, tenantTranslator, proxyFactory, apiMux, URL_BASE_PATH, cfg)
 		ms.Routes()
 
 		validIdentityHeader = buildIdentityHeader("540155", "Associate")

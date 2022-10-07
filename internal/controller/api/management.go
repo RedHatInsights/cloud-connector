@@ -30,6 +30,7 @@ const (
 type ManagementServer struct {
 	connectionMgr           connection_repository.ConnectionLocator
 	getConnectionByClientID connection_repository.GetConnectionByClientID
+	getAllConnections       connection_repository.GetAllConnections
 	tenantTranslator        tenantid.Translator
 	router                  *mux.Router
 	config                  *config.Config
@@ -37,11 +38,12 @@ type ManagementServer struct {
 	proxyFactory            controller.ConnectorClientProxyFactory
 }
 
-func NewManagementServer(cm connection_repository.ConnectionLocator, byClientID connection_repository.GetConnectionByClientID, tenantTranslator tenantid.Translator, proxyFactory controller.ConnectorClientProxyFactory, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
+func NewManagementServer(cm connection_repository.ConnectionLocator, byClientID connection_repository.GetConnectionByClientID, allConnections connection_repository.GetAllConnections, tenantTranslator tenantid.Translator, proxyFactory controller.ConnectorClientProxyFactory, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
 
 	return &ManagementServer{
 		connectionMgr:           cm,
 		getConnectionByClientID: byClientID,
+		getAllConnections:       allConnections,
 		tenantTranslator:        tenantTranslator,
 		router:                  r,
 		config:                  cfg,
@@ -262,7 +264,7 @@ func (s *ManagementServer) handleConnectionListing() http.HandlerFunc {
 			return
 		}
 
-		allReceptorConnections, totalConnections, _ := s.connectionMgr.GetAllConnections(req.Context(), requestParams.offset, requestParams.limit)
+		allReceptorConnections, totalConnections, _ := s.getAllConnections(req.Context(), requestParams.offset, requestParams.limit)
 
 		logger.Debugf("*** totalConnections: %d", totalConnections)
 

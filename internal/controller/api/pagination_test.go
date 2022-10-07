@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
+	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/tenant-utils/pkg/tenantid"
@@ -56,6 +57,26 @@ func (m *PaginatedMockConnectionManager) GetConnectionsByAccount(ctx context.Con
 	}
 
 	return ret, len(m.connections), nil
+}
+
+func mockedPaginatedGetAllConnections(connNum int, expectedAccount domain.AccountID, expectedClientId domain.ClientID) connection_repository.GetAllConnections {
+	var connections []MockClient
+	for i := 1; i <= connNum; i++ {
+		connections = append(connections, MockClient{})
+	}
+
+	return func(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient, int, error) {
+		ret := make(map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient)
+
+		i := offset
+		ret["540155"] = make(map[domain.ClientID]controller.ConnectorClient)
+		for i < len(connections) && len(ret["540155"]) < limit {
+			ret["540155"][domain.ClientID(strconv.Itoa(i))] = connections[i]
+			i++
+		}
+
+		return ret, len(connections), nil
+	}
 }
 
 func (m *PaginatedMockConnectionManager) GetAllConnections(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient, int, error) {
@@ -201,6 +222,7 @@ func testSetup(connectionCount int) (*ManagementServer, string) {
 	clientID := domain.ClientID("345")
 
 	getConnByClientID := mockedGetConnectionByClientID(orgID, accountNumber, clientID)
+	getAllConnections := mockedPaginatedGetAllConnections(connectionCount, accountNumber, clientID)
 	proxyFactory := &MockClientProxyFactory{}
 
 	orgIdStr := "1978710"
@@ -211,7 +233,7 @@ func testSetup(connectionCount int) (*ManagementServer, string) {
 
 	tenantTranslator := tenantid.NewTranslatorMockWithMapping(mapping)
 
-	managementServer := NewManagementServer(connectionManager, getConnByClientID, tenantTranslator, proxyFactory, apiMux, URL_BASE_PATH, cfg)
+	managementServer := NewManagementServer(connectionManager, getConnByClientID, getAllConnections, tenantTranslator, proxyFactory, apiMux, URL_BASE_PATH, cfg)
 	managementServer.Routes()
 
 	return managementServer, buildIdentityHeader("540155", "Associate")
