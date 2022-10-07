@@ -569,7 +569,7 @@ parameters:
   value: bop
 - name: AUTH_GATEWAY_URL
   required: true
-  value: "http://gateway.3scale-dev.svc.cluster.local:8890/internal/certauth"
+  value: "http://gateway.3scale-stage.svc.cluster.local:8890/internal/certauth"
 
 - name: SOURCES_RECORDER_IMPL
   required: true
