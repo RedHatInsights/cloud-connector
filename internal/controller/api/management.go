@@ -28,7 +28,6 @@ const (
 )
 
 type ManagementServer struct {
-	connectionMgr           connection_repository.ConnectionLocator
 	getConnectionByClientID connection_repository.GetConnectionByClientID
 	getConnectionsByOrgID   connection_repository.GetConnectionsByOrgID
 	getAllConnections       connection_repository.GetAllConnections
@@ -39,10 +38,9 @@ type ManagementServer struct {
 	proxyFactory            controller.ConnectorClientProxyFactory
 }
 
-func NewManagementServer(cm connection_repository.ConnectionLocator, byClientID connection_repository.GetConnectionByClientID, byOrgID connection_repository.GetConnectionsByOrgID, allConnections connection_repository.GetAllConnections, tenantTranslator tenantid.Translator, proxyFactory controller.ConnectorClientProxyFactory, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
+func NewManagementServer(byClientID connection_repository.GetConnectionByClientID, byOrgID connection_repository.GetConnectionsByOrgID, allConnections connection_repository.GetAllConnections, tenantTranslator tenantid.Translator, proxyFactory controller.ConnectorClientProxyFactory, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
 
 	return &ManagementServer{
-		connectionMgr:           cm,
 		getConnectionByClientID: byClientID,
 		getConnectionsByOrgID:   byOrgID,
 		getAllConnections:       allConnections,

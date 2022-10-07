@@ -28,7 +28,6 @@ type ConnectionRegistrar interface {
 
 type ConnectionLocator interface {
 	GetConnection(context.Context, domain.AccountID, domain.OrgID, domain.ClientID) controller.ConnectorClient
-	GetConnectionsByAccount(context.Context, domain.AccountID, int, int) (map[domain.ClientID]controller.ConnectorClient, int, error)
 }
 
 type GetConnectionByClientID func(context.Context, *logrus.Entry, domain.OrgID, domain.ClientID) (domain.ConnectorClientState, error)

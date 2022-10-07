@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -58,9 +57,6 @@ var _ = Describe("Management", func() {
 		apiMux := mux.NewRouter()
 		cfg := config.GetConfig()
 		cfg.ServiceToServiceCredentials["test_client_1"] = "12345"
-		connectionManager := NewMockConnectionManager()
-		connectorClient := domain.ConnectorClientState{Account: CONNECTED_ACCOUNT_NUMBER, ClientID: CONNECTED_NODE_ID}
-		connectionManager.Register(context.TODO(), connectorClient)
 
 		accountNumber = "1234"
 		orgID := domain.OrgID("1979710")
@@ -79,7 +75,7 @@ var _ = Describe("Management", func() {
 
 		tenantTranslator := tenantid.NewTranslatorMockWithMapping(mapping)
 
-		ms = NewManagementServer(connectionManager, getConnByClientID, getConnByOrgID, getAllConnections, tenantTranslator, proxyFactory, apiMux, URL_BASE_PATH, cfg)
+		ms = NewManagementServer(getConnByClientID, getConnByOrgID, getAllConnections, tenantTranslator, proxyFactory, apiMux, URL_BASE_PATH, cfg)
 		ms.Routes()
 
 		validIdentityHeader = buildIdentityHeader("540155", "Associate")
