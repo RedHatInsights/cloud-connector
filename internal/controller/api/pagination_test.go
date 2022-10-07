@@ -17,6 +17,7 @@ import (
 	"github.com/RedHatInsights/tenant-utils/pkg/tenantid"
 
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 )
 
 type PaginatedMockConnectionManager struct {
@@ -59,9 +60,25 @@ func (m *PaginatedMockConnectionManager) GetConnectionsByAccount(ctx context.Con
 	return ret, len(m.connections), nil
 }
 
-func mockedPaginatedGetAllConnections(connNum int, expectedAccount domain.AccountID, expectedClientId domain.ClientID) connection_repository.GetAllConnections {
+func mockedPaginatedGetConnectionsByAccount(connectionCount int, expectedOrgId domain.OrgID, expectedAccount domain.AccountID, expectedClientId domain.ClientID) connection_repository.GetConnectionsByOrgID {
+
+	return func(ctx context.Context, log *logrus.Entry, actualOrgId domain.OrgID, offset int, limit int) (map[domain.ClientID]domain.ConnectorClientState, int, error) {
+
+		ret := make(map[domain.ClientID]domain.ConnectorClientState)
+
+		i := offset
+		for i < connectionCount && len(ret) < limit {
+			ret[domain.ClientID(strconv.Itoa(i))] = domain.ConnectorClientState{Account: expectedAccount, OrgID: expectedOrgId, ClientID: expectedClientId}
+			i++
+		}
+
+		return ret, connectionCount, nil
+	}
+}
+
+func mockedPaginatedGetAllConnections(connectionCount int, expectedAccount domain.AccountID, expectedClientId domain.ClientID) connection_repository.GetAllConnections {
 	var connections []MockClient
-	for i := 1; i <= connNum; i++ {
+	for i := 1; i <= connectionCount; i++ {
 		connections = append(connections, MockClient{})
 	}
 
@@ -78,7 +95,6 @@ func mockedPaginatedGetAllConnections(connNum int, expectedAccount domain.Accoun
 		return ret, len(connections), nil
 	}
 }
-
 
 var _ = Describe("Managment API Pagination - 11 connections total", func() {
 
@@ -124,7 +140,7 @@ var _ = Describe("Managment API Pagination - 11 connections total", func() {
 	Describe("Connections per account endpoint - returning 5 results", func() {
 		It("Meta count should be 11, links should be populated", func() {
 
-			baseEndpointUrl := CONNECTION_LIST_ENDPOINT + "/540155"
+			baseEndpointUrl := CONNECTION_LIST_ENDPOINT + "/1234"
 
 			var expectedResponse = paginatedResponse{
 				Meta: meta{Count: 11},
@@ -186,7 +202,7 @@ var _ = Describe("Managment API Pagination - 0 connections total", func() {
 				Data:  []interface{}{},
 			}
 
-			runTest(CONNECTION_LIST_ENDPOINT+"/540155"+"?offset=0&limit=5", ms, validIdentityHeader, expectedResponse)
+			runTest(CONNECTION_LIST_ENDPOINT+"/1234"+"?offset=0&limit=5", ms, validIdentityHeader, expectedResponse)
 		})
 	})
 
@@ -197,31 +213,24 @@ func testSetup(connectionCount int) (*ManagementServer, string) {
 	cfg := config.GetConfig()
 	connectionManager := NewPaginatedMockConnectionManager()
 
-	i := 0
-	for i < connectionCount {
-		clientID := domain.ClientID(strconv.Itoa(i))
-		clientState := domain.ConnectorClientState{Account: CONNECTED_ACCOUNT_NUMBER, ClientID: clientID}
-		connectionManager.Register(context.TODO(), clientState)
-		i++
-	}
-
 	accountNumber := domain.AccountID("1234")
-	orgID := domain.OrgID("1979710")
+	orgID := domain.OrgID("1978710")
 	clientID := domain.ClientID("345")
 
 	getConnByClientID := mockedGetConnectionByClientID(orgID, accountNumber, clientID)
+	getConnByOrgID := mockedPaginatedGetConnectionsByAccount(connectionCount, orgID, accountNumber, clientID)
 	getAllConnections := mockedPaginatedGetAllConnections(connectionCount, accountNumber, clientID)
 	proxyFactory := &MockClientProxyFactory{}
 
-	orgIdStr := "1978710"
+	accountNumberStr := string(accountNumber)
 
 	mapping := map[string]*string{
-		"1234": &orgIdStr,
+		string(orgID): &accountNumberStr,
 	}
 
 	tenantTranslator := tenantid.NewTranslatorMockWithMapping(mapping)
 
-	managementServer := NewManagementServer(connectionManager, getConnByClientID, getAllConnections, tenantTranslator, proxyFactory, apiMux, URL_BASE_PATH, cfg)
+	managementServer := NewManagementServer(connectionManager, getConnByClientID, getConnByOrgID, getAllConnections, tenantTranslator, proxyFactory, apiMux, URL_BASE_PATH, cfg)
 	managementServer.Routes()
 
 	return managementServer, buildIdentityHeader("540155", "Associate")

@@ -336,11 +336,6 @@ func (s *ManagementServer) handleConnectionListingByAccount() http.HandlerFunc {
 		ctx := req.Context()
 		account := domain.AccountID(requestParams.accountId)
 
-		// accountConnections, totalConnections, _ := s.connectionMgr.GetConnectionsByAccount(
-		// 	req.Context(),
-		// 	domain.AccountID(requestParams.accountId),
-		// 	requestParams.offset,
-		// 	requestParams.limit)
 		resolvedOrgId, err := s.tenantTranslator.EANToOrgID(ctx, string(account))
 		if err != nil {
 			logger.WithFields(logrus.Fields{"error": err}).Errorf("Unable to translate account (%s) to org_id", account)
