@@ -5,6 +5,7 @@ package connection_repository
 
 import (
 	"context"
+	"gorm.io/gorm"
 	"testing"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -13,7 +14,6 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/db"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
-	"database/sql"
 	"encoding/json"
 )
 
@@ -21,37 +21,36 @@ func init() {
 	logger.InitLogger()
 }
 
-func insertTestData(database *sql.DB, account domain.AccountID, org_id domain.OrgID, client_id domain.ClientID, dispatchers domain.Dispatchers) (func(), error) {
-	insert := "INSERT INTO connections (account, org_id, client_id, dispatchers) VALUES ($1, $2, $3, $4)"
+type connection struct {
+	account     string
+	org_id      string
+	client_id   string
+	dispatchers string
+}
+
+func insertTestData(database *gorm.DB, account domain.AccountID, org_id domain.OrgID, client_id domain.ClientID, dispatchers domain.Dispatchers) (func(), error) {
 	delete := "DELETE FROM connections WHERE org_id = $1 AND client_id = $2"
 
 	noOpFunc := func() {}
-
-	statement, err := database.Prepare(insert)
-	if err != nil {
-		return noOpFunc, err
-	}
-	defer statement.Close()
 
 	dispatchersJson, err := json.Marshal(dispatchers)
 	if err != nil {
 		return noOpFunc, err
 	}
 
-	_, err = statement.Exec(account, org_id, client_id, dispatchersJson)
-	if err != nil {
-		return noOpFunc, err
+	result := database.Table("connections").Select("account", "org_id", "client_id", "dispatchers").Create(connection{
+		account:     account,
+		org_id:      org_id,
+		client_id:   client_id,
+		dispatchers: dispatchersJson,
+	})
+	if result.Error != nil {
+		return noOpFunc, result.Error
 	}
 
 	cleanUpTestDataFunc := func() {
-		statement, err := database.Prepare(delete)
-		if err != nil {
-			return
-		}
-		defer statement.Close()
-
-		_, err = statement.Exec(account, client_id)
-		if err != nil {
+		result := database.Table("connections").Where("org_id = ?", org_id).Where("client_id = ?", client_id).Delete()
+		if result.Error != nil {
 			return
 		}
 	}
@@ -78,7 +77,7 @@ func TestPermittedTenantConnectionLocator(t *testing.T) {
 
 	cfg := config.GetConfig()
 
-	database, err := db.InitializeDatabaseConnection(cfg)
+	database, err := db.InitializeGormDatabaseConnection(cfg)
 	if err != nil {
 		t.Fatal("Unable to connect to database: ", err)
 	}
