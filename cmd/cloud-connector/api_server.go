@@ -200,7 +200,7 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 		logger.LogFatalError("Unable to create connection_repository.GetAllConnections() function", err)
 	}
 
-	mgmtServer := api.NewManagementServer(sqlConnectionLocator, managementGetConnectionByOrgID, getAllConnections, tenantTranslator, proxyFactory, apiMux, cfg.UrlBasePath, cfg)
+	mgmtServer := api.NewManagementServer(sqlConnectionLocator, managementGetConnectionByOrgID, getConnectionListByOrgIDFunction, getAllConnections, tenantTranslator, proxyFactory, apiMux, cfg.UrlBasePath, cfg)
 	mgmtServer.Routes()
 
 	connectionMediator := api.NewConnectionMediatorV2(getConnectionFunction, getConnectionListByOrgIDFunction, proxyFactory, apiMux, cfg.UrlBasePath, cfg)

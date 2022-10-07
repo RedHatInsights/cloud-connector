@@ -56,7 +56,3 @@ func (pacl *PermittedTenantConnectionLocator) GetConnection(ctx context.Context,
 func (pacl *PermittedTenantConnectionLocator) GetConnectionsByAccount(ctx context.Context, account domain.AccountID, offset int, limit int) (map[domain.ClientID]controller.ConnectorClient, int, error) {
 	return nil, 0, errors.New("Not implemented!")
 }
-
-func (pacl *PermittedTenantConnectionLocator) GetAllConnections(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient, int, error) {
-	return nil, 0, errors.New("Not implemented!")
-}

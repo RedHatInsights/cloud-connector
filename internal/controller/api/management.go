@@ -30,6 +30,7 @@ const (
 type ManagementServer struct {
 	connectionMgr           connection_repository.ConnectionLocator
 	getConnectionByClientID connection_repository.GetConnectionByClientID
+	getConnectionsByOrgID   connection_repository.GetConnectionsByOrgID
 	getAllConnections       connection_repository.GetAllConnections
 	tenantTranslator        tenantid.Translator
 	router                  *mux.Router
@@ -38,11 +39,12 @@ type ManagementServer struct {
 	proxyFactory            controller.ConnectorClientProxyFactory
 }
 
-func NewManagementServer(cm connection_repository.ConnectionLocator, byClientID connection_repository.GetConnectionByClientID, allConnections connection_repository.GetAllConnections, tenantTranslator tenantid.Translator, proxyFactory controller.ConnectorClientProxyFactory, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
+func NewManagementServer(cm connection_repository.ConnectionLocator, byClientID connection_repository.GetConnectionByClientID, byOrgID connection_repository.GetConnectionsByOrgID, allConnections connection_repository.GetAllConnections, tenantTranslator tenantid.Translator, proxyFactory controller.ConnectorClientProxyFactory, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
 
 	return &ManagementServer{
 		connectionMgr:           cm,
 		getConnectionByClientID: byClientID,
+		getConnectionsByOrgID:   byOrgID,
 		getAllConnections:       allConnections,
 		tenantTranslator:        tenantTranslator,
 		router:                  r,
@@ -331,9 +333,26 @@ func (s *ManagementServer) handleConnectionListingByAccount() http.HandlerFunc {
 
 		logger.Debug("Getting connections for ", requestParams.accountId)
 
-		accountConnections, totalConnections, _ := s.connectionMgr.GetConnectionsByAccount(
-			req.Context(),
-			domain.AccountID(requestParams.accountId),
+		ctx := req.Context()
+		account := domain.AccountID(requestParams.accountId)
+
+		// accountConnections, totalConnections, _ := s.connectionMgr.GetConnectionsByAccount(
+		// 	req.Context(),
+		// 	domain.AccountID(requestParams.accountId),
+		// 	requestParams.offset,
+		// 	requestParams.limit)
+		resolvedOrgId, err := s.tenantTranslator.EANToOrgID(ctx, string(account))
+		if err != nil {
+			logger.WithFields(logrus.Fields{"error": err}).Errorf("Unable to translate account (%s) to org_id", account)
+			writeInvalidInputResponse(logger, w, err)
+			return
+		}
+		logger.Infof("Translated account %s to org_id %s", account, resolvedOrgId)
+
+		accountConnections, totalConnections, _ := s.getConnectionsByOrgID(
+			ctx,
+			logger,
+			domain.OrgID(resolvedOrgId),
 			requestParams.offset,
 			requestParams.limit)
 
