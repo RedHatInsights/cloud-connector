@@ -284,5 +284,5 @@ func NewGetAllConnections(cfg *config.Config, database *sql.DB, proxyFactory con
 		}
 	
 		return connectionMap, totalConnections, err
-	}
+	}, nil
 }
