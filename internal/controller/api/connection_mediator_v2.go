@@ -119,7 +119,7 @@ func (this *ConnectionMediatorV2) handleSendMessage() http.HandlerFunc {
 			return
 		}
 
-		client, err := this.proxyFactory.CreateProxy(req.Context(), clientState.OrgID, clientState.Account, clientState.ClientID, clientState.Dispatchers)
+		client, err := this.proxyFactory.CreateProxy(req.Context(), clientState.OrgID, clientState.Account, clientState.ClientID, clientState.CanonicalFacts, clientState.Dispatchers, clientState.Tags)
 		if err != nil {
 			logging.LogWithError(logger, "Unable to create proxy for connection", err)
 			writeConnectionFailureResponse(logger, w)

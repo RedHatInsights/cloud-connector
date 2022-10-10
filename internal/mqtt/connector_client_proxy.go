@@ -19,14 +19,16 @@ var (
 )
 
 type ConnectorClientMQTTProxy struct {
-	Logger       *logrus.Entry
-	Config       *config.Config
-	OrgID        domain.OrgID
-	AccountID    domain.AccountID
-	ClientID     domain.ClientID
-	Client       MQTT.Client
-	TopicBuilder *TopicBuilder
-	Dispatchers  domain.Dispatchers
+	Logger         *logrus.Entry
+	Config         *config.Config
+	OrgID          domain.OrgID
+	AccountID      domain.AccountID
+	ClientID       domain.ClientID
+	Client         MQTT.Client
+	TopicBuilder   *TopicBuilder
+	Dispatchers    domain.Dispatchers
+	CanonicalFacts domain.CanonicalFacts
+	Tags           domain.Tags
 }
 
 func (cc *ConnectorClientMQTTProxy) SendMessage(ctx context.Context, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
@@ -68,6 +70,14 @@ func (cc *ConnectorClientMQTTProxy) Reconnect(ctx context.Context, message strin
 
 func (cc *ConnectorClientMQTTProxy) GetDispatchers(ctx context.Context) (domain.Dispatchers, error) {
 	return cc.Dispatchers, nil
+}
+
+func (cc *ConnectorClientMQTTProxy) GetCanonicalFacts(ctx context.Context) (domain.CanonicalFacts, error) {
+	return cc.CanonicalFacts, nil
+}
+
+func (cc *ConnectorClientMQTTProxy) GetTags(ctx context.Context) (domain.Tags, error) {
+	return cc.Tags, nil
 }
 
 func (cc *ConnectorClientMQTTProxy) Disconnect(ctx context.Context, message string) error {

@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -34,12 +35,18 @@ const (
 type MockClientProxyFactory struct {
 }
 
-func (MockClientProxyFactory) CreateProxy(context.Context, domain.OrgID, domain.AccountID, domain.ClientID, domain.Dispatchers) (controller.ConnectorClient, error) {
+func (MockClientProxyFactory) CreateProxy(context.Context, domain.OrgID, domain.AccountID, domain.ClientID, domain.CanonicalFacts, domain.Dispatchers, domain.Tags) (controller.ConnectorClient, error) {
 	return MockClient{}, nil
 }
 
 type MockClient struct {
-	returnAnError bool
+	orgID          domain.OrgID
+	accountID      domain.AccountID
+	clientID       domain.ClientID
+	dispatchers    domain.Dispatchers
+	canonicalFacts domain.CanonicalFacts
+	tags           domain.Tags
+	returnAnError  bool
 }
 
 func (mc MockClient) SendMessage(ctx context.Context, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
@@ -65,11 +72,24 @@ func (mc MockClient) Reconnect(ctx context.Context, message string, delay int) e
 }
 
 func (mc MockClient) GetDispatchers(ctx context.Context) (domain.Dispatchers, error) {
-	var dispatchers domain.Dispatchers
 	if mc.returnAnError {
-		return dispatchers, errors.New("ImaError")
+		return mc.dispatchers, errors.New("ImaError")
 	}
-	return dispatchers, nil
+	return mc.dispatchers, nil
+}
+
+func (mc MockClient) GetCanonicalFacts(ctx context.Context) (domain.CanonicalFacts, error) {
+	if mc.returnAnError {
+		return mc.canonicalFacts, errors.New("ImaError")
+	}
+	return mc.canonicalFacts, nil
+}
+
+func (mc MockClient) GetTags(ctx context.Context) (domain.Tags, error) {
+	if mc.returnAnError {
+		return mc.tags, errors.New("ImaError")
+	}
+	return mc.tags, nil
 }
 
 func (mc MockClient) Disconnect(context.Context, string) error {
@@ -93,13 +113,21 @@ func (m *MockConnectionManager) Register(ctx context.Context, rhcClient domain.C
 		m.AccountIndex[rhcClient.Account] = make(map[domain.ClientID]controller.ConnectorClient)
 	}
 
-	mockClient := MockClient{}
+	mockClient := MockClient{
+		orgID:          rhcClient.OrgID,
+		accountID:      rhcClient.Account,
+		clientID:       rhcClient.ClientID,
+		canonicalFacts: rhcClient.CanonicalFacts,
+		dispatchers:    rhcClient.Dispatchers,
+		tags:           rhcClient.Tags,
+	}
 
 	if rhcClient.ClientID == "error-client" { // FIXME: this is kinda gross
 		mockClient.returnAnError = true
 	}
 
 	m.AccountIndex[rhcClient.Account][rhcClient.ClientID] = mockClient
+
 	m.ClientIndex[rhcClient.ClientID] = rhcClient.Account
 
 	return nil
@@ -147,7 +175,17 @@ var _ = Describe("MessageReceiver", func() {
 		apiMux := mux.NewRouter()
 		cfg := config.GetConfig()
 		connectionManager := NewMockConnectionManager()
-		connectorClient := domain.ConnectorClientState{Account: account, ClientID: "345"}
+		connectorClient := domain.ConnectorClientState{
+			Account:  account,
+			ClientID: "345",
+			CanonicalFacts: map[string]string{
+				"foo": "bar",
+			},
+			Tags: map[string]string{
+				"tag1": "value1",
+				"tag2": "value2",
+			},
+		}
 		connectionManager.Register(context.TODO(), connectorClient)
 		errorConnectorClient := domain.ConnectorClientState{Account: account, ClientID: "error-client"}
 		connectionManager.Register(context.TODO(), errorConnectorClient)
@@ -485,6 +523,34 @@ var _ = Describe("MessageReceiver", func() {
 				Expect(rr.Code).To(Equal(http.StatusForbidden))
 
 				verifyErrorResponse(rr.Body, accountMismatchErrorMsg)
+			})
+
+			It("Should return the canonical facts and tags", func() {
+				postBody := createConnectionStatusPostBody(CONNECTED_ACCOUNT_NUMBER, CONNECTED_NODE_ID)
+
+				req, err := http.NewRequest("POST", URL_BASE_PATH+"/v1/connection_status", postBody)
+				Expect(err).NotTo(HaveOccurred())
+
+				req.Header.Add(IDENTITY_HEADER_NAME, validIdentityHeader)
+
+				rr := httptest.NewRecorder()
+
+				fmt.Println("*************** HERE *************")
+				jr.router.ServeHTTP(rr, req)
+
+				Expect(rr.Code).To(Equal(http.StatusOK))
+
+				connectionStatusResponse := &connectionStatusResponse{}
+				err = json.Unmarshal(rr.Body.Bytes(), connectionStatusResponse)
+				Expect(err).NotTo(HaveOccurred())
+
+				canonicalFacts := connectionStatusResponse.CanonicalFacts.(map[string]interface{})
+				fact := canonicalFacts["foo"].(string)
+				Expect(fact).Should(Equal("bar"))
+
+				tags := connectionStatusResponse.Tags.(map[string]interface{})
+				valueOfTag1 := tags["tag1"].(string)
+				Expect(valueOfTag1).Should(Equal("value1"))
 			})
 		})
 

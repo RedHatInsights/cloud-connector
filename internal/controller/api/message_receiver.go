@@ -207,6 +207,8 @@ func getConnectionStatus(w http.ResponseWriter, req *http.Request, connectionLoc
 	if client != nil {
 		connectionStatus.Status = CONNECTED_STATUS
 		connectionStatus.Dispatchers, _ = client.GetDispatchers(req.Context())
+		connectionStatus.CanonicalFacts, _ = client.GetCanonicalFacts(req.Context())
+		connectionStatus.Tags, _ = client.GetTags(req.Context())
 	}
 
 	logger.Infof("Connection status for account:%s - node id:%s => %s\n",

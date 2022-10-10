@@ -19,9 +19,11 @@ type ConnectorClient interface {
 	Ping(context.Context) error
 	Reconnect(context.Context, string, int) error
 	GetDispatchers(context.Context) (domain.Dispatchers, error)
+	GetCanonicalFacts(context.Context) (domain.CanonicalFacts, error)
+	GetTags(context.Context) (domain.Tags, error)
 	Disconnect(context.Context, string) error
 }
 
 type ConnectorClientProxyFactory interface {
-	CreateProxy(context.Context, domain.OrgID, domain.AccountID, domain.ClientID, domain.Dispatchers) (ConnectorClient, error)
+	CreateProxy(context.Context, domain.OrgID, domain.AccountID, domain.ClientID, domain.CanonicalFacts, domain.Dispatchers, domain.Tags) (ConnectorClient, error)
 }

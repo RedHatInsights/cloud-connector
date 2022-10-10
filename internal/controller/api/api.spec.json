@@ -733,6 +733,12 @@
           },
           "dispatchers": {
             "type": "object"
+          },
+          "canonical_facts": {
+            "type": "object"
+          },
+          "tags": {
+            "type": "object"
           }
         }
       },
