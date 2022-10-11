@@ -174,19 +174,21 @@ func testSetup(connectionCount int) (*ManagementServer, string) {
 	apiMux := mux.NewRouter()
 	cfg := config.GetConfig()
 
-	accountNumber := domain.AccountID("1234")
-	orgID := domain.OrgID("1978710")
-	clientID := domain.ClientID("345")
+	accountNumber := "1234"
 
-	getConnByClientID := mockedGetConnectionByClientID(orgID, accountNumber, clientID)
-	getConnByOrgID := mockedPaginatedGetConnectionsByAccount(connectionCount, orgID, accountNumber, clientID)
-	getAllConnections := mockedPaginatedGetAllConnections(connectionCount, accountNumber, clientID)
+	connectorClient := domain.ConnectorClientState{
+		Account:  domain.AccountID(accountNumber),
+		OrgID:    domain.OrgID("1979710"),
+		ClientID: domain.ClientID("345"),
+	}
+
+	getConnByClientID := mockedGetConnectionByClientID(connectorClient)
+	getConnByOrgID := mockedPaginatedGetConnectionsByAccount(connectionCount, connectorClient.OrgID, connectorClient.Account, connectorClient.ClientID)
+	getAllConnections := mockedPaginatedGetAllConnections(connectionCount, connectorClient.Account, connectorClient.ClientID)
 	proxyFactory := &MockClientProxyFactory{}
 
-	accountNumberStr := string(accountNumber)
-
 	mapping := map[string]*string{
-		string(orgID): &accountNumberStr,
+		string(connectorClient.OrgID): &accountNumber,
 	}
 
 	tenantTranslator := tenantid.NewTranslatorMockWithMapping(mapping)
