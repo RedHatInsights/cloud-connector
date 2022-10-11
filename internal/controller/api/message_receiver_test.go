@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -173,12 +172,13 @@ var _ = Describe("MessageReceiver", func() {
 		cfg := config.GetConfig()
 		connectionManager := NewMockConnectionManager()
 		connectorClient := domain.ConnectorClientState{
+			OrgID:    domain.OrgID("1979710"),
 			Account:  account,
 			ClientID: "345",
-			CanonicalFacts: map[string]string{
+			CanonicalFacts: map[string]interface{}{
 				"foo": "bar",
 			},
-			Tags: map[string]string{
+			Tags: map[string]interface{}{
 				"tag1": "value1",
 				"tag2": "value2",
 			},
@@ -187,15 +187,12 @@ var _ = Describe("MessageReceiver", func() {
 		errorConnectorClient := domain.ConnectorClientState{Account: account, ClientID: "error-client"}
 		connectionManager.Register(context.TODO(), errorConnectorClient)
 
-		orgID := domain.OrgID("1979710")
-		clientID := domain.ClientID("345")
-
-		getConnByClientID := mockedGetConnectionByClientID(orgID, account, clientID)
+		getConnByClientID := mockedGetConnectionByClientID(connectorClient)
 
 		accountNumberStr := string(account)
 
 		mapping := map[string]*string{
-			string(orgID): &accountNumberStr,
+			string(connectorClient.OrgID): &accountNumberStr,
 		}
 
 		tenantTranslator := tenantid.NewTranslatorMockWithMapping(mapping)
@@ -546,7 +543,6 @@ var _ = Describe("MessageReceiver", func() {
 
 				rr := httptest.NewRecorder()
 
-				fmt.Println("*************** HERE *************")
 				jr.router.ServeHTTP(rr, req)
 
 				Expect(rr.Code).To(Equal(http.StatusOK))
@@ -555,13 +551,11 @@ var _ = Describe("MessageReceiver", func() {
 				err = json.Unmarshal(rr.Body.Bytes(), connectionStatusResponse)
 				Expect(err).NotTo(HaveOccurred())
 
-				canonicalFacts := connectionStatusResponse.CanonicalFacts
-				fact := canonicalFacts.(string)
-				Expect(fact).Should(Equal("bar"))
+				canonicalFacts := connectionStatusResponse.CanonicalFacts.(map[string]interface{})
+				Expect(canonicalFacts["foo"]).Should(Equal("bar"))
 
-				tags := connectionStatusResponse.Tags
-				valueOfTag1 := tags.(string)
-				Expect(valueOfTag1).Should(Equal("value1"))
+				tags := connectionStatusResponse.Tags.(map[string]interface{})
+				Expect(tags["tag1"]).Should(Equal("value1"))
 			})
 		})
 

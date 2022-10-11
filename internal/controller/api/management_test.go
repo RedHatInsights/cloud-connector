@@ -50,7 +50,6 @@ var _ = Describe("Management", func() {
 	var (
 		ms                  *ManagementServer
 		validIdentityHeader string
-		accountNumber       domain.AccountID
 	)
 
 	BeforeEach(func() {
@@ -58,19 +57,21 @@ var _ = Describe("Management", func() {
 		cfg := config.GetConfig()
 		cfg.ServiceToServiceCredentials["test_client_1"] = "12345"
 
-		accountNumber = "1234"
-		orgID := domain.OrgID("1979710")
-		clientID := domain.ClientID("345")
+		accountNumber := "1234"
 
-		getConnByClientID := mockedGetConnectionByClientID(orgID, accountNumber, clientID)
-		getConnByOrgID := mockedGetConnectionsByOrgID(orgID, accountNumber, clientID)
-		getAllConnections := mockedGetAllConnections(accountNumber, clientID)
+		connectorClient := domain.ConnectorClientState{
+			Account:  domain.AccountID(accountNumber),
+			OrgID:    domain.OrgID("1979710"),
+			ClientID: domain.ClientID("345"),
+		}
+
+		getConnByClientID := mockedGetConnectionByClientID(connectorClient)
+		getConnByOrgID := mockedGetConnectionsByOrgID(connectorClient)
+		getAllConnections := mockedGetAllConnections(domain.AccountID(accountNumber), connectorClient.ClientID)
 		proxyFactory := &MockClientProxyFactory{}
 
-		accountNumberStr := CONNECTED_ACCOUNT_NUMBER
-
 		mapping := map[string]*string{
-			string(orgID): &accountNumberStr,
+			string(connectorClient.OrgID): &accountNumber,
 		}
 
 		tenantTranslator := tenantid.NewTranslatorMockWithMapping(mapping)
