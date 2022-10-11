@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
-	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
@@ -219,18 +218,18 @@ func NewSqlGetConnectionsByOrgID(cfg *config.Config, database *sql.DB) (GetConne
 	}, nil
 }
 
-func NewGetAllConnections(cfg *config.Config, database *sql.DB, proxyFactory controller.ConnectorClientProxyFactory) (GetAllConnections, error) {
-	return func(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient, int, error) {
+func NewGetAllConnections(cfg *config.Config, database *sql.DB) (GetAllConnections, error) {
+	return func(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]domain.ConnectorClientState, int, error) {
 		var totalConnections int
 
 		callDurationTimer := prometheus.NewTimer(metrics.sqlLookupAllConnectionsDuration)
 		defer callDurationTimer.ObserveDuration()
-	
+
 		ctx, cancel := context.WithTimeout(ctx, cfg.ConnectionDatabaseQueryTimeout)
 		defer cancel()
-	
-		connectionMap := make(map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient)
-	
+
+		connectionMap := make(map[domain.AccountID]map[domain.ClientID]domain.ConnectorClientState)
+
 		statement, err := database.Prepare(
 			`SELECT account, org_id, client_id, canonical_facts, dispatchers, tags, COUNT(*) OVER() FROM connections
 				ORDER BY account, client_id
@@ -241,14 +240,14 @@ func NewGetAllConnections(cfg *config.Config, database *sql.DB, proxyFactory con
 			return nil, totalConnections, err
 		}
 		defer statement.Close()
-	
+
 		rows, err := statement.QueryContext(ctx, offset, limit)
 		if err != nil {
 			logger.LogError("SQL query failed", err)
 			return nil, totalConnections, err
 		}
 		defer rows.Close()
-	
+
 		for rows.Next() {
 			var account domain.AccountID
 			var orgIdString sql.NullString
@@ -256,33 +255,36 @@ func NewGetAllConnections(cfg *config.Config, database *sql.DB, proxyFactory con
 			var serializedCanonicalFacts sql.NullString
 			var serializedDispatchers sql.NullString
 			var serializedTags sql.NullString
-	
+
 			if err := rows.Scan(&account, &orgIdString, &clientId, &serializedCanonicalFacts, &serializedDispatchers, &serializedTags, &totalConnections); err != nil {
 				logger.LogError("SQL scan failed.  Skipping row.", err)
 				continue
 			}
-	
+
 			orgId := domain.OrgID(orgIdString.String)
-	
+
 			log := logger.Log.WithFields(logrus.Fields{"account": account, "org_id": orgId, "client_id": clientId})
-	
+
 			canonicalFacts := deserializeCanonicalFacts(log, serializedCanonicalFacts)
 			dispatchers := deserializeDispatchers(log, serializedDispatchers)
 			tags := deserializeTags(log, serializedTags)
-	
-			proxy, err := proxyFactory.CreateProxy(ctx, orgId, domain.AccountID(account), domain.ClientID(clientId), canonicalFacts, dispatchers, tags)
-			if err != nil {
-				logger.LogErrorWithAccountAndClientId("Unable to create the proxy.  Skipping row.", err, account, orgId, clientId)
-				continue
+
+			connectorClientState := domain.ConnectorClientState{
+				Account:        domain.AccountID(account),
+				OrgID:          orgId,
+				ClientID:       domain.ClientID(clientId),
+				CanonicalFacts: canonicalFacts,
+				Dispatchers:    dispatchers,
+				Tags:           tags,
 			}
-	
+
 			if _, exists := connectionMap[account]; !exists {
-				connectionMap[account] = make(map[domain.ClientID]controller.ConnectorClient)
+				connectionMap[account] = make(map[domain.ClientID]domain.ConnectorClientState)
 			}
-	
-			connectionMap[account][clientId] = proxy
+
+			connectionMap[account][clientId] = connectorClientState
 		}
-	
+
 		return connectionMap, totalConnections, err
 	}, nil
 }

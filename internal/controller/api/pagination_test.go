@@ -12,7 +12,6 @@ import (
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
-	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/tenant-utils/pkg/tenantid"
 
@@ -37,18 +36,21 @@ func mockedPaginatedGetConnectionsByAccount(connectionCount int, expectedOrgId d
 }
 
 func mockedPaginatedGetAllConnections(connectionCount int, expectedAccount domain.AccountID, expectedClientId domain.ClientID) connection_repository.GetAllConnections {
-	var connections []MockClient
+	var connections []domain.ConnectorClientState
 	for i := 1; i <= connectionCount; i++ {
-		connections = append(connections, MockClient{})
+		connections = append(connections, domain.ConnectorClientState{})
 	}
 
-	return func(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient, int, error) {
-		ret := make(map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient)
+	return func(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]domain.ConnectorClientState, int, error) {
+		ret := make(map[domain.AccountID]map[domain.ClientID]domain.ConnectorClientState)
 
 		i := offset
-		ret["540155"] = make(map[domain.ClientID]controller.ConnectorClient)
+		ret["540155"] = make(map[domain.ClientID]domain.ConnectorClientState)
 		for i < len(connections) && len(ret["540155"]) < limit {
 			ret["540155"][domain.ClientID(strconv.Itoa(i))] = connections[i]
+			// ret["540155"][domain.ClientID](strconv.Itoa(i)) = domain.ConnectorClientState{
+			// 	Account: connections[i]
+			// }
 			i++
 		}
 

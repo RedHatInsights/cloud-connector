@@ -436,7 +436,7 @@ func (s *ManagementServer) createConnectorClient(ctx context.Context, log *logru
 		return nil, err
 	}
 
-	proxy, err := s.proxyFactory.CreateProxy(ctx, clientState.OrgID, clientState.Account, clientState.ClientID, clientState.Dispatchers)
+	proxy, err := s.proxyFactory.CreateProxy(ctx, clientState.OrgID, clientState.Account, clientState.ClientID, clientState.CanonicalFacts, clientState.Dispatchers, clientState.Tags)
 	if err != nil {
 		log.WithFields(logrus.Fields{"error": err}).Errorf("Unable to create proxy for connection (%s:%s)", resolvedOrgId, clientId)
 		return nil, err

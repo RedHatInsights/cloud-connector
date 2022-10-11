@@ -156,7 +156,6 @@ func (m *MockConnectionManager) GetConnectionsByAccount(ctx context.Context, acc
 	return m.AccountIndex[account], len(m.AccountIndex[account]), nil
 }
 
-
 func init() {
 	logger.InitLogger()
 }
@@ -556,12 +555,12 @@ var _ = Describe("MessageReceiver", func() {
 				err = json.Unmarshal(rr.Body.Bytes(), connectionStatusResponse)
 				Expect(err).NotTo(HaveOccurred())
 
-				canonicalFacts := connectionStatusResponse.CanonicalFacts.(map[string]interface{})
-				fact := canonicalFacts["foo"].(string)
+				canonicalFacts := connectionStatusResponse.CanonicalFacts
+				fact := canonicalFacts.(string)
 				Expect(fact).Should(Equal("bar"))
 
-				tags := connectionStatusResponse.Tags.(map[string]interface{})
-				valueOfTag1 := tags["tag1"].(string)
+				tags := connectionStatusResponse.Tags
+				valueOfTag1 := tags.(string)
 				Expect(valueOfTag1).Should(Equal("value1"))
 			})
 		})

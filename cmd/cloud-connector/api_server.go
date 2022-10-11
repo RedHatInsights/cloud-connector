@@ -190,7 +190,7 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 		logger.LogFatalError("Unable to create connection_repository.GetConnectionsByOrgID() function", err)
 	}
 
-	getAllConnections, err := connection_repository.NewGetAllConnections(cfg, database, proxyFactory)
+	getAllConnections, err := connection_repository.NewGetAllConnections(cfg, database)
 	if err != nil {
 		logger.LogFatalError("Unable to create connection_repository.GetAllConnections() function", err)
 	}
