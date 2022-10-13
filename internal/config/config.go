@@ -297,7 +297,7 @@ func GetConfig() *Config {
 	options.SetDefault(PENDO_REQUEST_SIZE, 100)
 	options.SetDefault(API_SERVER_CONNECTION_LOOKUP_IMPL, "relaxed")
 	options.SetDefault(TENANT_TRANSLATOR_IMPL, "mock")
-	options.SetDefault(TENANT_TRANSLATOR_MOCK_MAPPING, map[string]string{"10001": "010101", "10000": "000000", "0002": "111000", "10002": "010102", "10003": "010103"})
+	options.SetDefault(TENANT_TRANSLATOR_MOCK_MAPPING, map[string]string{"10001": "010101", "10000": "000000", "0002": "111000", "10002": "010102", "10003": "010103", "10004": "010104"})
 	options.SetDefault(TENANT_TRANSLATOR_URL, "http://gateway.3scale-dev.svc.cluster.local:8892")
 	options.SetDefault(TENANT_TRANSLATOR_TIMEOUT, 5)
 

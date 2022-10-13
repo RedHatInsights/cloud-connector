@@ -395,12 +395,8 @@ func (s *ManagementServer) handleConnectionPing() http.HandlerFunc {
 
 		client, err := s.createConnectorClient(req.Context(), logger, domain.AccountID(connID.Account), domain.ClientID(connID.NodeID))
 		if err != nil {
-			errMsg := fmt.Sprintf("No connection found for node (%s:%s)", connID.Account, connID.NodeID)
-			logger.Info(errMsg)
-			errorResponse := errorResponse{Title: errMsg,
-				Status: http.StatusBadRequest,
-				Detail: errMsg}
-			writeJSONResponse(w, errorResponse.Status, errorResponse)
+			logger.Infof("No connection found for node (%s:%s)", connID.Account, connID.NodeID)
+			writeJSONResponse(w, http.StatusOK, pingResponse)
 			return
 		}
 
