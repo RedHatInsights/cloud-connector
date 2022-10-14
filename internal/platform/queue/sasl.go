@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -48,6 +49,8 @@ func createTLSConfig(pathToCert string) (*tls.Config, error) {
 	tlsConfig := tls.Config{
 		MinVersion: tls.VersionTLS12,
 	}
+
+	pathToCert = filepath.Clean(pathToCert)
 
 	if pathToCert == "" {
 		return &tlsConfig, nil
