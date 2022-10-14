@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"io/ioutil"
+	"path/filepath"
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
@@ -41,7 +42,7 @@ func createRsaToken(client string, group string, exp time.Time, signKey *rsa.Pri
 type JwtGenerator func(c context.Context) (string, error)
 
 func NewFileBasedJwtGenerator(jwtFilename string) (JwtGenerator, error) {
-	filename := jwtFilename
+	filename := filepath.Clean(jwtFilename)
 	logger.Log.Debug("Loading JWT from a file: ", filename)
 
 	jwtBytes, err := ioutil.ReadFile(filename)
@@ -58,6 +59,7 @@ func NewFileBasedJwtGenerator(jwtFilename string) (JwtGenerator, error) {
 }
 
 func NewRSABasedJwtGenerator(privateKeyFile string, clientId string, tokenExpiry int) (JwtGenerator, error) {
+	privateKeyFile = filepath.Clean(privateKeyFile)
 	signBytes, err := ioutil.ReadFile(privateKeyFile)
 	if err != nil {
 		return nil, err

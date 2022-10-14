@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"io/ioutil"
+	"path/filepath"
 
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 )
@@ -29,11 +30,14 @@ func WithCACerts(caCertFilePath string) TlsConfigFunc {
 	return func(tlsConfig *tls.Config) error {
 		logger.Log.Trace("TLS config - setting ca certs")
 
-		certpool := x509.NewCertPool()
+		caCertFilePath = filepath.Clean(caCertFilePath)
+
 		pemCerts, err := ioutil.ReadFile(caCertFilePath)
 		if err != nil {
 			return err
 		}
+
+		certpool := x509.NewCertPool()
 
 		certpool.AppendCertsFromPEM(pemCerts)
 
