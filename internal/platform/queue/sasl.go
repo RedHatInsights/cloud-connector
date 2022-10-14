@@ -47,7 +47,7 @@ func createDialer(cfg *SaslConfig) (*kafka.Dialer, error) {
 func createTLSConfig(pathToCert string) (*tls.Config, error) {
 
 	tlsConfig := tls.Config{
-		MinVersion: tls.VersionTLS12,
+		MinVersion: tls.VersionTLS13,
 	}
 
 	pathToCert = filepath.Clean(pathToCert)
