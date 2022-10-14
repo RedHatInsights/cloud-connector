@@ -15,7 +15,6 @@ import (
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
-	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/controller/api"
 	"github.com/RedHatInsights/cloud-connector/internal/mqtt"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/db"
@@ -177,12 +176,10 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 	monitoringServer := api.NewMonitoringServer(apiMux, cfg)
 	monitoringServer.Routes()
 
-	var v1ConnectionLocator connection_repository.ConnectionLocator
 	var getConnectionFunction connection_repository.GetConnectionByClientID
+	getConnectionFunction = buildConnectionLookupInstances(cfg, database)
 
-	v1ConnectionLocator, getConnectionFunction = buildConnectionLookupInstances(cfg, database, proxyFactory)
-
-	jr := api.NewMessageReceiver(v1ConnectionLocator, getConnectionFunction, tenantTranslator, apiMux, cfg.UrlBasePath, cfg)
+	jr := api.NewMessageReceiver(getConnectionFunction, tenantTranslator, proxyFactory, apiMux, cfg.UrlBasePath, cfg)
 	jr.Routes()
 
 	getConnectionListByOrgIDFunction, err := connection_repository.NewSqlGetConnectionsByOrgID(cfg, database)
@@ -220,19 +217,13 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 	logger.Log.Info("Cloud-Connector shutting down")
 }
 
-func buildConnectionLookupInstances(cfg *config.Config, database *sql.DB, proxyFactory controller.ConnectorClientProxyFactory) (connection_repository.ConnectionLocator, connection_repository.GetConnectionByClientID) {
+func buildConnectionLookupInstances(cfg *config.Config, database *sql.DB) connection_repository.GetConnectionByClientID {
 
-	var v1ConnectionLocator connection_repository.ConnectionLocator
 	var getConnectionFunction connection_repository.GetConnectionByClientID
 	var err error
 
 	if cfg.ApiServerConnectionLookupImpl == "relaxed" {
 		logger.Log.Info("Using \"relaxed\" connection lookup mechanism")
-
-		v1ConnectionLocator, err = connection_repository.NewPermittedTenantConnectionLocator(cfg, database, proxyFactory)
-		if err != nil {
-			logger.LogFatalError("Failed to create Permitted Account Connection Locator", err)
-		}
 
 		getConnectionFunction, err = connection_repository.NewPermittedTenantSqlGetConnectionByClientID(cfg, database)
 		if err != nil {
@@ -242,28 +233,13 @@ func buildConnectionLookupInstances(cfg *config.Config, database *sql.DB, proxyF
 
 		logger.Log.Info("Using \"strict\" connection lookup mechanism")
 
-		v1ConnectionLocator, err = connection_repository.NewSqlConnectionLocator(cfg, database, proxyFactory)
-		if err != nil {
-			logger.LogFatalError("Failed to create Permitted Account Connection Locator", err)
-		}
-
 		getConnectionFunction, err = connection_repository.NewSqlGetConnectionByClientID(cfg, database)
 		if err != nil {
 			logger.LogFatalError("Unable to create connection_repository.GetConnection() function", err)
 		}
 	}
 
-	tenantTranslator, err := buildTenantTranslatorInstance(cfg)
-	if err != nil {
-		logger.LogFatalError("Unable to create tenant translator", err)
-	}
-
-	v1ConnectionLocator, err = connection_repository.NewTenantTranslatorDecorator(cfg, tenantTranslator, v1ConnectionLocator)
-	if err != nil {
-		logger.LogFatalError("Unable to create tenant translator decorator", err)
-	}
-
-	return v1ConnectionLocator, getConnectionFunction
+	return getConnectionFunction
 }
 
 func buildTenantTranslatorInstance(cfg *config.Config) (tenantid.Translator, error) {

@@ -72,6 +72,8 @@ func createGetConnectionByClientIDImpl(cfg *config.Config, database *sql.DB, sql
 			return clientState, err
 		}
 
+		log.Infof("Searching for connection - org id: %s, client id: %s", orgId, clientId)
+
 		// We should probably use different timer for different look ups.
 		callDurationTimer := prometheus.NewTimer(metrics.sqlLookupConnectionByAccountAndClientIDDuration)
 		defer callDurationTimer.ObserveDuration()

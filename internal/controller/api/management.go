@@ -28,13 +28,13 @@ const (
 )
 
 type ManagementServer struct {
-	getConnectionByClientID connection_repository.GetConnectionByClientID
-	getConnectionsByOrgID   connection_repository.GetConnectionsByOrgID
-	getAllConnections       connection_repository.GetAllConnections
-	tenantTranslator        tenantid.Translator
 	router                  *mux.Router
 	config                  *config.Config
 	urlPrefix               string
+	tenantTranslator        tenantid.Translator
+	getConnectionByClientID connection_repository.GetConnectionByClientID
+	getConnectionsByOrgID   connection_repository.GetConnectionsByOrgID
+	getAllConnections       connection_repository.GetAllConnections
 	proxyFactory            controller.ConnectorClientProxyFactory
 }
 
@@ -417,26 +417,5 @@ func (s *ManagementServer) handleConnectionPing() http.HandlerFunc {
 }
 
 func (s *ManagementServer) createConnectorClient(ctx context.Context, log *logrus.Entry, account domain.AccountID, clientId domain.ClientID) (controller.ConnectorClient, error) {
-
-	resolvedOrgId, err := s.tenantTranslator.EANToOrgID(ctx, string(account))
-	if err != nil {
-		log.WithFields(logrus.Fields{"error": err}).Errorf("Unable to translate account (%s) to org_id", account)
-		return nil, err
-	}
-
-	log.Infof("Translated account %s to org_id %s", account, resolvedOrgId)
-
-	clientState, err := s.getConnectionByClientID(ctx, log, domain.OrgID(resolvedOrgId), clientId)
-	if err != nil {
-		log.WithFields(logrus.Fields{"error": err}).Errorf("Unable to locate connection (%s:%s)", resolvedOrgId, clientId)
-		return nil, err
-	}
-
-	proxy, err := s.proxyFactory.CreateProxy(ctx, clientState.OrgID, clientState.Account, clientState.ClientID, clientState.CanonicalFacts, clientState.Dispatchers, clientState.Tags)
-	if err != nil {
-		log.WithFields(logrus.Fields{"error": err}).Errorf("Unable to create proxy for connection (%s:%s)", resolvedOrgId, clientId)
-		return nil, err
-	}
-
-	return proxy, nil
+	return createConnectorClientProxy(ctx, log, s.tenantTranslator, s.getConnectionByClientID, s.proxyFactory, account, clientId)
 }
