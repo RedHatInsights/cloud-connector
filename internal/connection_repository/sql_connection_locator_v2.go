@@ -3,7 +3,6 @@ package connection_repository
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -90,11 +89,11 @@ func createGetConnectionByClientIDImpl(cfg *config.Config, database *sql.DB, sql
 
 		var accountString sql.NullString
 		var orgID string
-		var dispatchersString sql.NullString
-		var canonicalFactsString sql.NullString
-		var tagsString sql.NullString
+		var serializedCanonicalFacts sql.NullString
+		var serializedDispatchers sql.NullString
+		var serializedTags sql.NullString
 
-		err = statement.QueryRowContext(ctx, orgId, clientId).Scan(&accountString, &orgID, &dispatchersString, &canonicalFactsString, &tagsString)
+		err = statement.QueryRowContext(ctx, orgId, clientId).Scan(&accountString, &orgID, &serializedDispatchers, &serializedCanonicalFacts, &serializedTags)
 
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -107,30 +106,12 @@ func createGetConnectionByClientIDImpl(cfg *config.Config, database *sql.DB, sql
 
 		clientState.OrgID = domain.OrgID(orgID)
 		clientState.ClientID = clientId
+		clientState.CanonicalFacts = deserializeCanonicalFacts(log, serializedCanonicalFacts)
+		clientState.Dispatchers = deserializeDispatchers(log, serializedDispatchers)
+		clientState.Tags = deserializeTags(log, serializedTags)
 
 		if accountString.Valid {
 			clientState.Account = domain.AccountID(accountString.String)
-		}
-
-		if dispatchersString.Valid {
-			err = json.Unmarshal([]byte(dispatchersString.String), &clientState.Dispatchers)
-			if err != nil {
-				logger.LogErrorWithAccountAndClientId("Unable to parse dispatchers from database.", err, clientState.Account, clientState.OrgID, clientState.ClientID)
-			}
-		}
-
-		if canonicalFactsString.Valid {
-			err = json.Unmarshal([]byte(canonicalFactsString.String), &clientState.CanonicalFacts)
-			if err != nil {
-				logger.LogErrorWithAccountAndClientId("Unable to parse canonical facts from database.", err, clientState.Account, clientState.OrgID, clientState.ClientID)
-			}
-		}
-
-		if tagsString.Valid {
-			err = json.Unmarshal([]byte(tagsString.String), &clientState.Tags)
-			if err != nil {
-				logger.LogErrorWithAccountAndClientId("Unable to parse tags from database.", err, clientState.Account, clientState.OrgID, clientState.ClientID)
-			}
 		}
 
 		return clientState, nil
@@ -174,43 +155,29 @@ func NewSqlGetConnectionsByOrgID(cfg *config.Config, database *sql.DB) (GetConne
 			var clientId domain.ClientID
 			var orgId string
 			var accountString sql.NullString
-			var dispatchersString sql.NullString
-			var canonicalFactsString sql.NullString
-			var tagsString sql.NullString
+			var serializedCanonicalFacts sql.NullString
+			var serializedDispatchers sql.NullString
+			var serializedTags sql.NullString
 
-			if err := rows.Scan(&clientId, &orgId, &accountString, &dispatchersString, &canonicalFactsString, &tagsString, &totalConnections); err != nil {
+			if err := rows.Scan(&clientId, &orgId, &accountString, &serializedDispatchers, &serializedCanonicalFacts, &serializedTags, &totalConnections); err != nil {
 				logger.LogWithError(log, "SQL scan failed.  Skipping row.", err)
 				continue
 			}
 
+			canonicalFacts := deserializeCanonicalFacts(log, serializedCanonicalFacts)
+			dispatchers := deserializeDispatchers(log, serializedDispatchers)
+			tags := deserializeTags(log, serializedTags)
+
 			clientState := domain.ConnectorClientState{
-				OrgID:    domain.OrgID(orgId),
-				ClientID: clientId,
+				OrgID:          domain.OrgID(orgId),
+				ClientID:       domain.ClientID(clientId),
+				CanonicalFacts: canonicalFacts,
+				Dispatchers:    dispatchers,
+				Tags:           tags,
 			}
 
 			if accountString.Valid {
 				clientState.Account = domain.AccountID(accountString.String)
-			}
-
-			if dispatchersString.Valid {
-				err = json.Unmarshal([]byte(dispatchersString.String), &clientState.Dispatchers)
-				if err != nil {
-					logger.LogErrorWithAccountAndClientId("Unable to parse dispatchers from database.", err, clientState.Account, clientState.OrgID, clientState.ClientID)
-				}
-			}
-
-			if canonicalFactsString.Valid {
-				err = json.Unmarshal([]byte(canonicalFactsString.String), &clientState.CanonicalFacts)
-				if err != nil {
-					logger.LogErrorWithAccountAndClientId("Unable to parse canonical facts from database.", err, clientState.Account, clientState.OrgID, clientState.ClientID)
-				}
-			}
-
-			if tagsString.Valid {
-				err = json.Unmarshal([]byte(tagsString.String), &clientState.Tags)
-				if err != nil {
-					logger.LogErrorWithAccountAndClientId("Unable to parse tags from database.", err, clientState.Account, clientState.OrgID, clientState.ClientID)
-				}
 			}
 
 			connectionsPerAccount[clientId] = clientState

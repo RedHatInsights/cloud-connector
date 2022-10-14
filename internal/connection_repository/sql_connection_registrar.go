@@ -128,19 +128,19 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 	}
 	defer statement.Close()
 
-	var account domain.AccountID
-	var orgID sql.NullString
-	var dispatchersString sql.NullString
-	var canonicalFactsString sql.NullString
-	var tagsString sql.NullString
+	var account sql.NullString
+	var orgID domain.OrgID
+	var serializedCanonicalFacts sql.NullString
+	var serializedDispatchers sql.NullString
+	var serializedTags sql.NullString
 	var latestMessageID sql.NullString
 
 	err = statement.QueryRowContext(ctx, client_id).Scan(&account,
 		&orgID,
 		&connectorClient.ClientID,
-		&dispatchersString,
-		&canonicalFactsString,
-		&tagsString,
+		&serializedDispatchers,
+		&serializedCanonicalFacts,
+		&serializedTags,
 		&latestMessageID,
 		&connectorClient.MessageMetadata.LatestTimestamp)
 
@@ -156,34 +156,17 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 		return connectorClient, err
 	}
 
-	connectorClient.Account = account
+	connectorClient.OrgID = domain.OrgID(orgID)
 
-	if orgID.Valid {
-		connectorClient.OrgID = domain.OrgID(orgID.String)
+	if account.Valid {
+		connectorClient.Account = domain.AccountID(account.String)
 	}
 
-	logger = logger.WithFields(logrus.Fields{"account": account, "org_id": connectorClient.OrgID})
+	logger = logger.WithFields(logrus.Fields{"account": connectorClient.Account, "org_id": connectorClient.OrgID})
 
-	if dispatchersString.Valid {
-		err = json.Unmarshal([]byte(dispatchersString.String), &connectorClient.Dispatchers)
-		if err != nil {
-			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to unmarshal dispatchers from database")
-		}
-	}
-
-	if canonicalFactsString.Valid {
-		err = json.Unmarshal([]byte(canonicalFactsString.String), &connectorClient.CanonicalFacts)
-		if err != nil {
-			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to unmarshal canonical facts from database")
-		}
-	}
-
-	if tagsString.Valid {
-		err = json.Unmarshal([]byte(tagsString.String), &connectorClient.Tags)
-		if err != nil {
-			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to unmarshal tags from database")
-		}
-	}
+	connectorClient.CanonicalFacts = deserializeCanonicalFacts(logger, serializedCanonicalFacts)
+	connectorClient.Dispatchers = deserializeDispatchers(logger, serializedDispatchers)
+	connectorClient.Tags = deserializeTags(logger, serializedTags)
 
 	if latestMessageID.Valid {
 		connectorClient.MessageMetadata.LatestMessageID = latestMessageID.String
