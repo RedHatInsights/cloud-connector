@@ -11,63 +11,51 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
-	"github.com/RedHatInsights/cloud-connector/internal/controller"
+	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
+	"github.com/RedHatInsights/tenant-utils/pkg/tenantid"
 
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 )
 
-type PaginatedMockConnectionManager struct {
-	connections []controller.ConnectorClient
+func mockedPaginatedGetConnectionsByAccount(connectionCount int, expectedOrgId domain.OrgID, expectedAccount domain.AccountID, expectedClientId domain.ClientID) connection_repository.GetConnectionsByOrgID {
+
+	return func(ctx context.Context, log *logrus.Entry, actualOrgId domain.OrgID, offset int, limit int) (map[domain.ClientID]domain.ConnectorClientState, int, error) {
+
+		ret := make(map[domain.ClientID]domain.ConnectorClientState)
+
+		i := offset
+		for i < connectionCount && len(ret) < limit {
+			ret[domain.ClientID(strconv.Itoa(i))] = domain.ConnectorClientState{Account: expectedAccount, OrgID: expectedOrgId, ClientID: expectedClientId}
+			i++
+		}
+
+		return ret, connectionCount, nil
+	}
 }
 
-func NewPaginatedMockConnectionManager() *PaginatedMockConnectionManager {
-	mcm := PaginatedMockConnectionManager{connections: make([]controller.ConnectorClient, 0)}
-	return &mcm
-}
-
-func (m *PaginatedMockConnectionManager) Register(ctx context.Context, rhcClient domain.ConnectorClientState) error {
-	mockClient := MockClient{}
-	m.connections = append(m.connections, mockClient)
-	return nil
-}
-
-func (m *PaginatedMockConnectionManager) Unregister(ctx context.Context, clientID domain.ClientID) {
-	return
-}
-
-func (m *PaginatedMockConnectionManager) FindConnectionByClientID(ctx context.Context, clientID domain.ClientID) (domain.ConnectorClientState, error) {
-	return domain.ConnectorClientState{}, nil
-}
-
-func (m *PaginatedMockConnectionManager) GetConnection(ctx context.Context, account domain.AccountID, orgID domain.OrgID, clientID domain.ClientID) controller.ConnectorClient {
-	return nil
-}
-
-func (m *PaginatedMockConnectionManager) GetConnectionsByAccount(ctx context.Context, account domain.AccountID, offset int, limit int) (map[domain.ClientID]controller.ConnectorClient, int, error) {
-
-	ret := make(map[domain.ClientID]controller.ConnectorClient)
-
-	i := offset
-	for i < len(m.connections) && len(ret) < limit {
-		ret[domain.ClientID(strconv.Itoa(i))] = m.connections[i]
-		i++
+func mockedPaginatedGetAllConnections(connectionCount int, expectedAccount domain.AccountID, expectedClientId domain.ClientID) connection_repository.GetAllConnections {
+	var connections []domain.ConnectorClientState
+	for i := 1; i <= connectionCount; i++ {
+		connections = append(connections, domain.ConnectorClientState{})
 	}
 
-	return ret, len(m.connections), nil
-}
+	return func(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]domain.ConnectorClientState, int, error) {
+		ret := make(map[domain.AccountID]map[domain.ClientID]domain.ConnectorClientState)
 
-func (m *PaginatedMockConnectionManager) GetAllConnections(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient, int, error) {
-	ret := make(map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient)
+		i := offset
+		ret["540155"] = make(map[domain.ClientID]domain.ConnectorClientState)
+		for i < len(connections) && len(ret["540155"]) < limit {
+			ret["540155"][domain.ClientID(strconv.Itoa(i))] = connections[i]
+			// ret["540155"][domain.ClientID](strconv.Itoa(i)) = domain.ConnectorClientState{
+			// 	Account: connections[i]
+			// }
+			i++
+		}
 
-	i := offset
-	ret["540155"] = make(map[domain.ClientID]controller.ConnectorClient)
-	for i < len(m.connections) && len(ret["540155"]) < limit {
-		ret["540155"][domain.ClientID(strconv.Itoa(i))] = m.connections[i]
-		i++
+		return ret, len(connections), nil
 	}
-
-	return ret, len(m.connections), nil
 }
 
 var _ = Describe("Managment API Pagination - 11 connections total", func() {
@@ -114,7 +102,7 @@ var _ = Describe("Managment API Pagination - 11 connections total", func() {
 	Describe("Connections per account endpoint - returning 5 results", func() {
 		It("Meta count should be 11, links should be populated", func() {
 
-			baseEndpointUrl := CONNECTION_LIST_ENDPOINT + "/540155"
+			baseEndpointUrl := CONNECTION_LIST_ENDPOINT + "/1234"
 
 			var expectedResponse = paginatedResponse{
 				Meta: meta{Count: 11},
@@ -176,7 +164,7 @@ var _ = Describe("Managment API Pagination - 0 connections total", func() {
 				Data:  []interface{}{},
 			}
 
-			runTest(CONNECTION_LIST_ENDPOINT+"/540155"+"?offset=0&limit=5", ms, validIdentityHeader, expectedResponse)
+			runTest(CONNECTION_LIST_ENDPOINT+"/1234"+"?offset=0&limit=5", ms, validIdentityHeader, expectedResponse)
 		})
 	})
 
@@ -185,17 +173,27 @@ var _ = Describe("Managment API Pagination - 0 connections total", func() {
 func testSetup(connectionCount int) (*ManagementServer, string) {
 	apiMux := mux.NewRouter()
 	cfg := config.GetConfig()
-	connectionManager := NewPaginatedMockConnectionManager()
 
-	i := 0
-	for i < connectionCount {
-		clientID := domain.ClientID(strconv.Itoa(i))
-		clientState := domain.ConnectorClientState{Account: CONNECTED_ACCOUNT_NUMBER, ClientID: clientID}
-		connectionManager.Register(context.TODO(), clientState)
-		i++
+	accountNumber := "1234"
+
+	connectorClient := domain.ConnectorClientState{
+		Account:  domain.AccountID(accountNumber),
+		OrgID:    domain.OrgID("1979710"),
+		ClientID: domain.ClientID("345"),
 	}
 
-	managementServer := NewManagementServer(connectionManager, apiMux, URL_BASE_PATH, cfg)
+	getConnByClientID := mockedGetConnectionByClientID(connectorClient)
+	getConnByOrgID := mockedPaginatedGetConnectionsByAccount(connectionCount, connectorClient.OrgID, connectorClient.Account, connectorClient.ClientID)
+	getAllConnections := mockedPaginatedGetAllConnections(connectionCount, connectorClient.Account, connectorClient.ClientID)
+	proxyFactory := &MockClientProxyFactory{}
+
+	mapping := map[string]*string{
+		string(connectorClient.OrgID): &accountNumber,
+	}
+
+	tenantTranslator := tenantid.NewTranslatorMockWithMapping(mapping)
+
+	managementServer := NewManagementServer(getConnByClientID, getConnByOrgID, getAllConnections, tenantTranslator, proxyFactory, apiMux, URL_BASE_PATH, cfg)
 	managementServer.Routes()
 
 	return managementServer, buildIdentityHeader("540155", "Associate")

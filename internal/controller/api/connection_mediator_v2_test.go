@@ -19,27 +19,34 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func mockedGetConnectionByClientID(expectedOrgId domain.OrgID, expectedAccount domain.AccountID, expectedClientId domain.ClientID) connection_repository.GetConnectionByClientID {
+func mockedGetConnectionByClientID(expectedClientState domain.ConnectorClientState) connection_repository.GetConnectionByClientID {
 	return func(ctx context.Context, log *logrus.Entry, actualOrgId domain.OrgID, actualClientId domain.ClientID) (domain.ConnectorClientState, error) {
-		if actualOrgId != expectedOrgId {
+		if actualOrgId != expectedClientState.OrgID {
 			return domain.ConnectorClientState{}, fmt.Errorf("Actual org id does not match expected org id")
 		}
 
-		if actualClientId != expectedClientId {
+		if actualClientId != expectedClientState.ClientID {
 			return domain.ConnectorClientState{}, fmt.Errorf("Actual client id does not match expected client id")
 		}
 
-		return domain.ConnectorClientState{OrgID: actualOrgId, Account: expectedAccount, ClientID: actualClientId}, nil
+		return expectedClientState, nil
 	}
 }
 
-func mockedGetConnectionsByOrgID(expectedOrgId domain.OrgID, expectedAccount domain.AccountID, expectedClientId domain.ClientID) connection_repository.GetConnectionsByOrgID {
+func mockedGetConnectionsByOrgID(expectedClientState domain.ConnectorClientState) connection_repository.GetConnectionsByOrgID {
 	return func(ctx context.Context, log *logrus.Entry, actualOrgId domain.OrgID, offset int, limit int) (map[domain.ClientID]domain.ConnectorClientState, int, error) {
-		if actualOrgId != expectedOrgId {
+		if actualOrgId != expectedClientState.OrgID {
 			return map[domain.ClientID]domain.ConnectorClientState{}, 0, fmt.Errorf("Actual org id does not match expected org id")
 		}
 
-		return map[domain.ClientID]domain.ConnectorClientState{expectedClientId: {Account: expectedAccount, ClientID: expectedClientId}}, 1, nil
+		return map[domain.ClientID]domain.ConnectorClientState{expectedClientState.ClientID: expectedClientState}, 1, nil
+	}
+}
+
+func mockedGetAllConnections(expectedAccount domain.AccountID, expectedClientId domain.ClientID) connection_repository.GetAllConnections {
+	return func(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]domain.ConnectorClientState, int, error) {
+		allConnections := map[domain.AccountID]map[domain.ClientID]domain.ConnectorClientState{expectedAccount: {expectedClientId: {Account: expectedAccount, ClientID: expectedClientId}}}
+		return allConnections, len(allConnections), nil
 	}
 }
 
@@ -48,7 +55,6 @@ var _ = Describe("ConnectionMediatorV2", func() {
 	var (
 		cm                  *ConnectionMediatorV2
 		messageEndpointV2   string
-		accountNumber       domain.AccountID
 		validIdentityHeader string
 	)
 
@@ -59,14 +65,17 @@ var _ = Describe("ConnectionMediatorV2", func() {
 		proxyFactory := &MockClientProxyFactory{}
 
 		messageEndpointV2 = URL_BASE_PATH + "/v2/connections/345/message"
-		accountNumber = "1234"
+		accountNumber := domain.AccountID("1234")
 		validIdentityHeader = buildIdentityHeader(accountNumber, "Associate")
 
-		orgID := domain.OrgID("1979710")
-		clientID := domain.ClientID("345")
+		connectorClient := domain.ConnectorClientState{
+			Account:  accountNumber,
+			OrgID:    domain.OrgID("1979710"),
+			ClientID: domain.ClientID("345"),
+		}
 
-		getConnByClientID := mockedGetConnectionByClientID(orgID, accountNumber, clientID)
-		getConnByOrgID := mockedGetConnectionsByOrgID(orgID, accountNumber, clientID)
+		getConnByClientID := mockedGetConnectionByClientID(connectorClient)
+		getConnByOrgID := mockedGetConnectionsByOrgID(connectorClient)
 
 		cm = NewConnectionMediatorV2(getConnByClientID, getConnByOrgID, proxyFactory, apiMux, URL_BASE_PATH, cfg)
 		cm.Routes()

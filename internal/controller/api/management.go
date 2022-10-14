@@ -1,14 +1,17 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
+	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/RedHatInsights/tenant-utils/pkg/tenantid"
 	"github.com/redhatinsights/platform-go-middlewares/identity"
 	"github.com/redhatinsights/platform-go-middlewares/request_id"
 
@@ -25,18 +28,27 @@ const (
 )
 
 type ManagementServer struct {
-	connectionMgr connection_repository.ConnectionLocator
-	router        *mux.Router
-	config        *config.Config
-	urlPrefix     string
+	getConnectionByClientID connection_repository.GetConnectionByClientID
+	getConnectionsByOrgID   connection_repository.GetConnectionsByOrgID
+	getAllConnections       connection_repository.GetAllConnections
+	tenantTranslator        tenantid.Translator
+	router                  *mux.Router
+	config                  *config.Config
+	urlPrefix               string
+	proxyFactory            controller.ConnectorClientProxyFactory
 }
 
-func NewManagementServer(cm connection_repository.ConnectionLocator, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
+func NewManagementServer(byClientID connection_repository.GetConnectionByClientID, byOrgID connection_repository.GetConnectionsByOrgID, allConnections connection_repository.GetAllConnections, tenantTranslator tenantid.Translator, proxyFactory controller.ConnectorClientProxyFactory, r *mux.Router, urlPrefix string, cfg *config.Config) *ManagementServer {
+
 	return &ManagementServer{
-		connectionMgr: cm,
-		router:        r,
-		config:        cfg,
-		urlPrefix:     urlPrefix,
+		getConnectionByClientID: byClientID,
+		getConnectionsByOrgID:   byOrgID,
+		getAllConnections:       allConnections,
+		tenantTranslator:        tenantTranslator,
+		router:                  r,
+		config:                  cfg,
+		urlPrefix:               urlPrefix,
+		proxyFactory:            proxyFactory,
 	}
 }
 
@@ -114,10 +126,8 @@ func (s *ManagementServer) handleDisconnect() http.HandlerFunc {
 			return
 		}
 
-		orgID := principal.GetOrgID()
-
-		client := s.connectionMgr.GetConnection(req.Context(), domain.AccountID(disconnectReq.Account), domain.OrgID(orgID), domain.ClientID(disconnectReq.NodeID))
-		if client == nil {
+		client, err := s.createConnectorClient(req.Context(), logger, disconnectReq.Account, disconnectReq.NodeID)
+		if err != nil {
 			errMsg := fmt.Sprintf("No connection found for node (%s:%s)", disconnectReq.Account, disconnectReq.NodeID)
 			logger.Info(errMsg)
 			errorResponse := errorResponse{Title: errMsg,
@@ -176,10 +186,8 @@ func (s *ManagementServer) handleReconnect() http.HandlerFunc {
 			return
 		}
 
-		orgID := principal.GetOrgID()
-
-		client := s.connectionMgr.GetConnection(req.Context(), reconnectReq.Account, domain.OrgID(orgID), reconnectReq.NodeID)
-		if client == nil {
+		client, err := s.createConnectorClient(req.Context(), logger, reconnectReq.Account, reconnectReq.NodeID)
+		if err != nil {
 			errMsg := fmt.Sprintf("No connection found for node (%s:%s)", reconnectReq.Account, reconnectReq.NodeID)
 			logger.Info(errMsg)
 			errorResponse := errorResponse{Title: errMsg,
@@ -207,7 +215,7 @@ func (s *ManagementServer) handleConnectionStatus() http.HandlerFunc {
 	}
 
 	return func(w http.ResponseWriter, req *http.Request) {
-		getConnectionStatus(w, req, s.connectionMgr, inputVerifier)
+		getConnectionStatus(w, req, s.tenantTranslator, s.getConnectionByClientID, inputVerifier)
 	}
 }
 
@@ -256,7 +264,7 @@ func (s *ManagementServer) handleConnectionListing() http.HandlerFunc {
 			return
 		}
 
-		allReceptorConnections, totalConnections, _ := s.connectionMgr.GetAllConnections(req.Context(), requestParams.offset, requestParams.limit)
+		allReceptorConnections, totalConnections, _ := s.getAllConnections(req.Context(), requestParams.offset, requestParams.limit)
 
 		logger.Debugf("*** totalConnections: %d", totalConnections)
 
@@ -323,9 +331,21 @@ func (s *ManagementServer) handleConnectionListingByAccount() http.HandlerFunc {
 
 		logger.Debug("Getting connections for ", requestParams.accountId)
 
-		accountConnections, totalConnections, _ := s.connectionMgr.GetConnectionsByAccount(
-			req.Context(),
-			domain.AccountID(requestParams.accountId),
+		ctx := req.Context()
+		account := domain.AccountID(requestParams.accountId)
+
+		resolvedOrgId, err := s.tenantTranslator.EANToOrgID(ctx, string(account))
+		if err != nil {
+			logger.WithFields(logrus.Fields{"error": err}).Errorf("Unable to translate account (%s) to org_id", account)
+			writeInvalidInputResponse(logger, w, err)
+			return
+		}
+		logger.Infof("Translated account %s to org_id %s", account, resolvedOrgId)
+
+		accountConnections, totalConnections, _ := s.getConnectionsByOrgID(
+			ctx,
+			logger,
+			domain.OrgID(resolvedOrgId),
 			requestParams.offset,
 			requestParams.limit)
 
@@ -371,27 +391,52 @@ func (s *ManagementServer) handleConnectionPing() http.HandlerFunc {
 		logger.Infof("Submitting ping for account:%s - node id:%s",
 			connID.Account, connID.NodeID)
 
-		orgID := principal.GetOrgID()
-
 		pingResponse := connectionPingResponse{Status: DISCONNECTED_STATUS}
-		client := s.connectionMgr.GetConnection(req.Context(), domain.AccountID(connID.Account), domain.OrgID(orgID), domain.ClientID(connID.NodeID))
-		if client == nil {
+
+		client, err := s.createConnectorClient(req.Context(), logger, domain.AccountID(connID.Account), domain.ClientID(connID.NodeID))
+		if err != nil {
+			logger.Infof("No connection found for node (%s:%s)", connID.Account, connID.NodeID)
 			writeJSONResponse(w, http.StatusOK, pingResponse)
 			return
 		}
 
 		pingResponse.Status = CONNECTED_STATUS
 
-		err := client.Ping(req.Context())
+		pingErr := client.Ping(req.Context())
 
-		if err != nil {
+		if pingErr != nil {
 			errorResponse := errorResponse{Title: PING_ERROR,
 				Status: http.StatusBadRequest,
-				Detail: err.Error()}
+				Detail: pingErr.Error()}
 			writeJSONResponse(w, errorResponse.Status, errorResponse)
 			return
 		}
 
 		writeJSONResponse(w, http.StatusOK, pingResponse)
 	}
+}
+
+func (s *ManagementServer) createConnectorClient(ctx context.Context, log *logrus.Entry, account domain.AccountID, clientId domain.ClientID) (controller.ConnectorClient, error) {
+
+	resolvedOrgId, err := s.tenantTranslator.EANToOrgID(ctx, string(account))
+	if err != nil {
+		log.WithFields(logrus.Fields{"error": err}).Errorf("Unable to translate account (%s) to org_id", account)
+		return nil, err
+	}
+
+	log.Infof("Translated account %s to org_id %s", account, resolvedOrgId)
+
+	clientState, err := s.getConnectionByClientID(ctx, log, domain.OrgID(resolvedOrgId), clientId)
+	if err != nil {
+		log.WithFields(logrus.Fields{"error": err}).Errorf("Unable to locate connection (%s:%s)", resolvedOrgId, clientId)
+		return nil, err
+	}
+
+	proxy, err := s.proxyFactory.CreateProxy(ctx, clientState.OrgID, clientState.Account, clientState.ClientID, clientState.CanonicalFacts, clientState.Dispatchers, clientState.Tags)
+	if err != nil {
+		log.WithFields(logrus.Fields{"error": err}).Errorf("Unable to create proxy for connection (%s:%s)", resolvedOrgId, clientId)
+		return nil, err
+	}
+
+	return proxy, nil
 }

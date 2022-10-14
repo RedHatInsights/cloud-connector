@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -18,6 +17,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/RedHatInsights/tenant-utils/pkg/tenantid"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -155,10 +155,6 @@ func (m *MockConnectionManager) GetConnectionsByAccount(ctx context.Context, acc
 	return m.AccountIndex[account], len(m.AccountIndex[account]), nil
 }
 
-func (m *MockConnectionManager) GetAllConnections(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient, int, error) {
-	return m.AccountIndex, len(m.AccountIndex), nil
-}
-
 func init() {
 	logger.InitLogger()
 }
@@ -176,12 +172,13 @@ var _ = Describe("MessageReceiver", func() {
 		cfg := config.GetConfig()
 		connectionManager := NewMockConnectionManager()
 		connectorClient := domain.ConnectorClientState{
+			OrgID:    domain.OrgID("1979710"),
 			Account:  account,
 			ClientID: "345",
-			CanonicalFacts: map[string]string{
+			CanonicalFacts: map[string]interface{}{
 				"foo": "bar",
 			},
-			Tags: map[string]string{
+			Tags: map[string]interface{}{
 				"tag1": "value1",
 				"tag2": "value2",
 			},
@@ -189,7 +186,18 @@ var _ = Describe("MessageReceiver", func() {
 		connectionManager.Register(context.TODO(), connectorClient)
 		errorConnectorClient := domain.ConnectorClientState{Account: account, ClientID: "error-client"}
 		connectionManager.Register(context.TODO(), errorConnectorClient)
-		jr = NewMessageReceiver(connectionManager, apiMux, URL_BASE_PATH, cfg)
+
+		getConnByClientID := mockedGetConnectionByClientID(connectorClient)
+
+		accountNumberStr := string(account)
+
+		mapping := map[string]*string{
+			string(connectorClient.OrgID): &accountNumberStr,
+		}
+
+		tenantTranslator := tenantid.NewTranslatorMockWithMapping(mapping)
+
+		jr = NewMessageReceiver(connectionManager, getConnByClientID, tenantTranslator, apiMux, URL_BASE_PATH, cfg)
 		jr.Routes()
 
 		validIdentityHeader = buildIdentityHeader(account, "Associate")
@@ -535,7 +543,6 @@ var _ = Describe("MessageReceiver", func() {
 
 				rr := httptest.NewRecorder()
 
-				fmt.Println("*************** HERE *************")
 				jr.router.ServeHTTP(rr, req)
 
 				Expect(rr.Code).To(Equal(http.StatusOK))
@@ -545,12 +552,10 @@ var _ = Describe("MessageReceiver", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				canonicalFacts := connectionStatusResponse.CanonicalFacts.(map[string]interface{})
-				fact := canonicalFacts["foo"].(string)
-				Expect(fact).Should(Equal("bar"))
+				Expect(canonicalFacts["foo"]).Should(Equal("bar"))
 
 				tags := connectionStatusResponse.Tags.(map[string]interface{})
-				valueOfTag1 := tags["tag1"].(string)
-				Expect(valueOfTag1).Should(Equal("value1"))
+				Expect(tags["tag1"]).Should(Equal("value1"))
 			})
 		})
 
