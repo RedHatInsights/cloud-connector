@@ -1,12 +1,18 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
+	"github.com/RedHatInsights/cloud-connector/internal/controller"
+	"github.com/RedHatInsights/cloud-connector/internal/domain"
+	"github.com/RedHatInsights/tenant-utils/pkg/tenantid"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
@@ -108,4 +114,29 @@ func getOffsetAndLimitFromQueryParams(req *http.Request) (offset int, limit int,
 	}
 
 	return offset, limit, nil
+}
+
+func createConnectorClientProxy(ctx context.Context, log *logrus.Entry, tenantTranslator tenantid.Translator, getConnectionByClientID connection_repository.GetConnectionByClientID, proxyFactory controller.ConnectorClientProxyFactory, account domain.AccountID, clientId domain.ClientID) (controller.ConnectorClient, error) {
+
+	resolvedOrgId, err := tenantTranslator.EANToOrgID(ctx, string(account))
+	if err != nil {
+		log.WithFields(logrus.Fields{"error": err}).Errorf("Unable to translate account (%s) to org_id", account)
+		return nil, err
+	}
+
+	log.Infof("Translated account %s to org_id %s", account, resolvedOrgId)
+
+	clientState, err := getConnectionByClientID(ctx, log, domain.OrgID(resolvedOrgId), clientId)
+	if err != nil {
+		log.WithFields(logrus.Fields{"error": err}).Errorf("Unable to locate connection (%s:%s)", resolvedOrgId, clientId)
+		return nil, err
+	}
+
+	proxy, err := proxyFactory.CreateProxy(ctx, clientState.OrgID, clientState.Account, clientState.ClientID, clientState.CanonicalFacts, clientState.Dispatchers, clientState.Tags)
+	if err != nil {
+		log.WithFields(logrus.Fields{"error": err}).Errorf("Unable to create proxy for connection (%s:%s)", resolvedOrgId, clientId)
+		return nil, err
+	}
+
+	return proxy, nil
 }

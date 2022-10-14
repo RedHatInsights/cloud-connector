@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -21,6 +22,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -170,7 +172,7 @@ var _ = Describe("MessageReceiver", func() {
 		var account domain.AccountID = "1234"
 		apiMux := mux.NewRouter()
 		cfg := config.GetConfig()
-		connectionManager := NewMockConnectionManager()
+
 		connectorClient := domain.ConnectorClientState{
 			OrgID:    domain.OrgID("1979710"),
 			Account:  account,
@@ -183,21 +185,30 @@ var _ = Describe("MessageReceiver", func() {
 				"tag2": "value2",
 			},
 		}
-		connectionManager.Register(context.TODO(), connectorClient)
-		errorConnectorClient := domain.ConnectorClientState{Account: account, ClientID: "error-client"}
-		connectionManager.Register(context.TODO(), errorConnectorClient)
 
-		getConnByClientID := mockedGetConnectionByClientID(connectorClient)
+		getConnByClientID := func(ctx context.Context, log *logrus.Entry, actualOrgId domain.OrgID, actualClientId domain.ClientID) (domain.ConnectorClientState, error) {
+			if actualOrgId == connectorClient.OrgID {
+				return connectorClient, nil
+			}
+
+			return domain.ConnectorClientState{}, fmt.Errorf("connection not found!!")
+		}
 
 		accountNumberStr := string(account)
+		// this account number is used in the "disconnected" tests
+		// it needs to exist in the mapping mock
+		nonMatchingAccoutNumberStr := "1234-not-here"
 
 		mapping := map[string]*string{
 			string(connectorClient.OrgID): &accountNumberStr,
+			"non-matching-org-id-1":       &nonMatchingAccoutNumberStr,
 		}
 
 		tenantTranslator := tenantid.NewTranslatorMockWithMapping(mapping)
 
-		jr = NewMessageReceiver(connectionManager, getConnByClientID, tenantTranslator, apiMux, URL_BASE_PATH, cfg)
+		proxyFactory := MockClientProxyFactory{}
+
+		jr = NewMessageReceiver(getConnByClientID, tenantTranslator, proxyFactory, apiMux, URL_BASE_PATH, cfg)
 		jr.Routes()
 
 		validIdentityHeader = buildIdentityHeader(account, "Associate")

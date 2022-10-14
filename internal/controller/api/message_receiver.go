@@ -25,22 +25,22 @@ const (
 )
 
 type MessageReceiver struct {
-	connectionMgr           connection_repository.ConnectionLocator
-	getConnectionByClientID connection_repository.GetConnectionByClientID
-	tenantTranslator        tenantid.Translator
 	router                  *mux.Router
 	config                  *config.Config
 	urlPrefix               string
+	tenantTranslator        tenantid.Translator
+	getConnectionByClientID connection_repository.GetConnectionByClientID
+	proxyFactory            controller.ConnectorClientProxyFactory
 }
 
-func NewMessageReceiver(cm connection_repository.ConnectionLocator, byClientID connection_repository.GetConnectionByClientID, tenantTranslator tenantid.Translator, r *mux.Router, urlPrefix string, cfg *config.Config) *MessageReceiver {
+func NewMessageReceiver(byClientID connection_repository.GetConnectionByClientID, tenantTranslator tenantid.Translator, proxyFactory controller.ConnectorClientProxyFactory, r *mux.Router, urlPrefix string, cfg *config.Config) *MessageReceiver {
 	return &MessageReceiver{
-		connectionMgr:           cm,
-		getConnectionByClientID: byClientID,
-		tenantTranslator:        tenantTranslator,
 		router:                  r,
 		config:                  cfg,
 		urlPrefix:               urlPrefix,
+		getConnectionByClientID: byClientID,
+		tenantTranslator:        tenantTranslator,
+		proxyFactory:            proxyFactory,
 	}
 }
 
@@ -116,17 +116,23 @@ func (jr *MessageReceiver) handleJob() http.HandlerFunc {
 			return
 		}
 
-		orgID := principal.GetOrgID()
+		logger = logger.WithFields(logrus.Fields{"recipient": msgRequest.Recipient,
+			"directive": msgRequest.Directive})
 
 		var client controller.ConnectorClient
-		client = jr.connectionMgr.GetConnection(req.Context(), domain.AccountID(msgRequest.Account), domain.OrgID(orgID), domain.ClientID(msgRequest.Recipient))
-		if client == nil {
+		client, err := createConnectorClientProxy(req.Context(),
+			logger,
+			jr.tenantTranslator,
+			jr.getConnectionByClientID,
+			jr.proxyFactory,
+			domain.AccountID(msgRequest.Account),
+			domain.ClientID(msgRequest.Recipient))
+		if err != nil {
+			logger.WithFields(logrus.Fields{"error": err}).Errorf("Unable to create proxy for connection (%s:%s)", msgRequest.Account, msgRequest.Recipient)
 			writeConnectionFailureResponse(logger, w)
 			return
 		}
 
-		logger = logger.WithFields(logrus.Fields{"recipient": msgRequest.Recipient,
-			"directive": msgRequest.Directive})
 		logger.Info("Sending a message")
 
 		jobID, err := client.SendMessage(req.Context(),
@@ -216,6 +222,8 @@ func getConnectionStatus(w http.ResponseWriter, req *http.Request, tenantTransla
 		writeJSONResponse(w, errorResponse.Status, errorResponse)
 		return
 	}
+
+	logger.Infof("Translated account %s to org_id %s", connID.Account, resolvedOrgId)
 
 	clientState, err := getConnectionByClientID(req.Context(), logger, domain.OrgID(resolvedOrgId), domain.ClientID(connID.NodeID))
 	if err == nil {
