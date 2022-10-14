@@ -2,14 +2,12 @@ package queue
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/tls_utils"
 
 	kafka "github.com/segmentio/kafka-go"
 	"github.com/segmentio/kafka-go/sasl"
@@ -46,26 +44,19 @@ func createDialer(cfg *SaslConfig) (*kafka.Dialer, error) {
 
 func createTLSConfig(pathToCert string) (*tls.Config, error) {
 
-	tlsConfig := tls.Config{
-		MinVersion: tls.VersionTLS13,
+	tlsConfigFuncs := []tls_utils.TlsConfigFunc{}
+
+	if pathToCert != "" {
+		tlsConfigFuncs = append(tlsConfigFuncs, tls_utils.WithCACerts(pathToCert))
 	}
 
-	pathToCert = filepath.Clean(pathToCert)
-
-	if pathToCert == "" {
-		return &tlsConfig, nil
-	}
-
-	caCert, err := ioutil.ReadFile(pathToCert)
+	tlsConfig, err := tls_utils.NewTlsConfig(tlsConfigFuncs...)
 	if err != nil {
-		return nil, fmt.Errorf("unable to open cert file (%s): %w", pathToCert, err)
+		logger.LogFatalError("Unable to configure TLS for Kafka Broker connection", err)
+		return nil, err
 	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(caCert)
 
-	tlsConfig.RootCAs = caCertPool
-
-	return &tlsConfig, nil
+	return tlsConfig, nil
 }
 
 func createSaslMechanism(saslMechanismName string, username string, password string) (sasl.Mechanism, error) {
