@@ -43,7 +43,7 @@ func (cc *ConnectorClientMQTTProxy) SendMessage(ctx context.Context, directive s
 
 	topic := cc.TopicBuilder.BuildOutgoingDataTopic(cc.ClientID)
 
-	err = sendMessage(cc.Client, logger, cc.ClientID, messageID, topic, cc.Config.MqttDataPublishQoS, message)
+	err = sendMessage(cc.Client, logger, cc.ClientID, messageID, topic, cc.Config.MqttDataPublishQoS, cc.Config.MqttPublishTimeout, message)
 
 	return messageID, err
 }
@@ -56,14 +56,14 @@ func (cc *ConnectorClientMQTTProxy) Ping(ctx context.Context) error {
 
 	qos := cc.Config.MqttControlPublishQoS
 
-	_, err := sendControlMessage(cc.Client, cc.Logger, topic, qos, cc.ClientID, "command", &commandMessageContent)
+	_, err := sendControlMessage(cc.Client, cc.Logger, topic, qos, cc.Config.MqttPublishTimeout, cc.ClientID, "command", &commandMessageContent)
 
 	return err
 }
 
 func (cc *ConnectorClientMQTTProxy) Reconnect(ctx context.Context, message string, delay int) error {
 
-	err := SendReconnectMessageToClient(cc.Client, cc.Logger, cc.TopicBuilder, cc.Config.MqttControlPublishQoS, cc.ClientID, delay)
+	err := SendReconnectMessageToClient(cc.Client, cc.Logger, cc.TopicBuilder, cc.Config.MqttControlPublishQoS, cc.Config.MqttPublishTimeout, cc.ClientID, delay)
 
 	return err
 }
@@ -88,7 +88,7 @@ func (cc *ConnectorClientMQTTProxy) Disconnect(ctx context.Context, message stri
 
 	qos := cc.Config.MqttControlPublishQoS
 
-	_, err := sendControlMessage(cc.Client, cc.Logger, topic, qos, cc.ClientID, "command", &commandMessageContent)
+	_, err := sendControlMessage(cc.Client, cc.Logger, topic, qos, cc.Config.MqttPublishTimeout, cc.ClientID, "command", &commandMessageContent)
 
 	return err
 }
