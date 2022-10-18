@@ -230,7 +230,7 @@ func NewSqlGetConnectionsByOrgID(cfg *config.Config, database *gorm.DB) (GetConn
 	}, nil
 }
 
-func NewGetAllConnections(cfg *config.Config, database *sql.DB) (GetAllConnections, error) {
+func NewGetAllConnections(cfg *config.Config, database *gorm.DB) (GetAllConnections, error) {
 	return func(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]domain.ConnectorClientState, int, error) {
 		var totalConnections int
 
@@ -242,18 +242,13 @@ func NewGetAllConnections(cfg *config.Config, database *sql.DB) (GetAllConnectio
 
 		connectionMap := make(map[domain.AccountID]map[domain.ClientID]domain.ConnectorClientState)
 
-		statement, err := database.Prepare(
-			`SELECT account, org_id, client_id, canonical_facts, dispatchers, tags, COUNT(*) OVER() FROM connections
-				ORDER BY account, client_id
-				OFFSET $1
-				LIMIT $2`)
-		if err != nil {
-			logger.LogError("SQL Prepare failed", err)
-			return nil, totalConnections, err
-		}
-		defer statement.Close()
+		rows, err := database.Table("connections").
+			Select("account", "org_id", "client_id", "canonical_facts", "dispatchers", "tags", "COUNT(*) OVER()").
+			Order("account, client_id").
+			Offset(offset).
+			Limit(limit).
+			Rows()
 
-		rows, err := statement.QueryContext(ctx, offset, limit)
 		if err != nil {
 			logger.LogError("SQL query failed", err)
 			return nil, totalConnections, err
