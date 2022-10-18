@@ -3,7 +3,6 @@ package connection_repository
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"gorm.io/gorm"
 	"time"
 
