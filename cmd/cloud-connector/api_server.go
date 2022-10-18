@@ -158,9 +158,14 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 		logger.LogFatalError("Unable to create proxy factory", err)
 	}
 
-	sqlConnectionLocator, err := connection_repository.NewSqlConnectionLocator(cfg, database, proxyFactory)
+	tenantTranslator, err := buildTenantTranslatorInstance(cfg)
 	if err != nil {
-		logger.LogFatalError("Failed to create SQL Connection Locator", err)
+		logger.LogFatalError("Unable to create tenant translator", err)
+	}
+
+	managementGetConnectionByOrgID, err := connection_repository.NewSqlGetConnectionByClientID(cfg, database)
+	if err != nil {
+		logger.LogFatalError("Unable to create getConnectionByClientID impl", err)
 	}
 
 	apiMux := mux.NewRouter()
@@ -172,21 +177,26 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 	monitoringServer := api.NewMonitoringServer(apiMux, cfg)
 	monitoringServer.Routes()
 
-	mgmtServer := api.NewManagementServer(sqlConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
-	mgmtServer.Routes()
-
 	var v1ConnectionLocator connection_repository.ConnectionLocator
 	var getConnectionFunction connection_repository.GetConnectionByClientID
 
 	v1ConnectionLocator, getConnectionFunction = buildConnectionLookupInstances(cfg, database, proxyFactory)
 
-	jr := api.NewMessageReceiver(v1ConnectionLocator, apiMux, cfg.UrlBasePath, cfg)
+	jr := api.NewMessageReceiver(v1ConnectionLocator, getConnectionFunction, tenantTranslator, apiMux, cfg.UrlBasePath, cfg)
 	jr.Routes()
 
 	getConnectionListByOrgIDFunction, err := connection_repository.NewSqlGetConnectionsByOrgID(cfg, database)
 	if err != nil {
 		logger.LogFatalError("Unable to create connection_repository.GetConnectionsByOrgID() function", err)
 	}
+
+	getAllConnections, err := connection_repository.NewGetAllConnections(cfg, database)
+	if err != nil {
+		logger.LogFatalError("Unable to create connection_repository.GetAllConnections() function", err)
+	}
+
+	mgmtServer := api.NewManagementServer(managementGetConnectionByOrgID, getConnectionListByOrgIDFunction, getAllConnections, tenantTranslator, proxyFactory, apiMux, cfg.UrlBasePath, cfg)
+	mgmtServer.Routes()
 
 	connectionMediator := api.NewConnectionMediatorV2(getConnectionFunction, getConnectionListByOrgIDFunction, proxyFactory, apiMux, cfg.UrlBasePath, cfg)
 	connectionMediator.Routes()

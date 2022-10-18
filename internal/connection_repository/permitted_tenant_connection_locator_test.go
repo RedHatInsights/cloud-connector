@@ -65,7 +65,7 @@ type mockConnectorClientProxyFactory struct {
 	clientID  domain.ClientID
 }
 
-func (m *mockConnectorClientProxyFactory) CreateProxy(ctx context.Context, orgID domain.OrgID, account domain.AccountID, clientID domain.ClientID, dispatchers domain.Dispatchers) (controller.ConnectorClient, error) {
+func (m *mockConnectorClientProxyFactory) CreateProxy(ctx context.Context, orgID domain.OrgID, account domain.AccountID, clientID domain.ClientID, canonical_facts domain.CanonicalFacts, dispatchers domain.Dispatchers, tags domain.Tags) (controller.ConnectorClient, error) {
 	m.callCount += 1
 	m.orgID = orgID
 	m.account = account

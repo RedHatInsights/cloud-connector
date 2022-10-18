@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,6 +15,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/RedHatInsights/tenant-utils/pkg/tenantid"
 
 	"github.com/gorilla/mux"
 )
@@ -56,10 +56,27 @@ var _ = Describe("Management", func() {
 		apiMux := mux.NewRouter()
 		cfg := config.GetConfig()
 		cfg.ServiceToServiceCredentials["test_client_1"] = "12345"
-		connectionManager := NewMockConnectionManager()
-		connectorClient := domain.ConnectorClientState{Account: CONNECTED_ACCOUNT_NUMBER, ClientID: CONNECTED_NODE_ID}
-		connectionManager.Register(context.TODO(), connectorClient)
-		ms = NewManagementServer(connectionManager, apiMux, URL_BASE_PATH, cfg)
+
+		accountNumber := "1234"
+
+		connectorClient := domain.ConnectorClientState{
+			Account:  domain.AccountID(accountNumber),
+			OrgID:    domain.OrgID("1979710"),
+			ClientID: domain.ClientID("345"),
+		}
+
+		getConnByClientID := mockedGetConnectionByClientID(connectorClient)
+		getConnByOrgID := mockedGetConnectionsByOrgID(connectorClient)
+		getAllConnections := mockedGetAllConnections(domain.AccountID(accountNumber), connectorClient.ClientID)
+		proxyFactory := &MockClientProxyFactory{}
+
+		mapping := map[string]*string{
+			string(connectorClient.OrgID): &accountNumber,
+		}
+
+		tenantTranslator := tenantid.NewTranslatorMockWithMapping(mapping)
+
+		ms = NewManagementServer(getConnByClientID, getConnByOrgID, getAllConnections, tenantTranslator, proxyFactory, apiMux, URL_BASE_PATH, cfg)
 		ms.Routes()
 
 		validIdentityHeader = buildIdentityHeader("540155", "Associate")
@@ -89,7 +106,7 @@ var _ = Describe("Management", func() {
 
 			It("Should be able to get the status of a disconnected customer", func() {
 
-				postBody := createConnectionStatusPostBody("1234-not-here", CONNECTED_NODE_ID)
+				postBody := createConnectionStatusPostBody(CONNECTED_ACCOUNT_NUMBER, "1234-not-here")
 
 				req, err := http.NewRequest("POST", CONNECTION_STATUS_ENDPOINT, postBody)
 				Expect(err).NotTo(HaveOccurred())
@@ -218,6 +235,7 @@ var _ = Describe("Management", func() {
 
 				ms.router.ServeHTTP(rr, req)
 
+				fmt.Println("rr.body...", rr.Body)
 				Expect(rr.Code).To(Equal(http.StatusBadRequest))
 			})
 

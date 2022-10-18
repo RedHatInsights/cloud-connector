@@ -621,30 +621,32 @@
           },
           {
             "$ref": "#/components/schemas/PaginatedResponseLinks"
-          }
-        ],
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "account": {
-                  "type": "string",
-                  "example": "0000001"
-                },
-                "connections": {
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "example": "node-a"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "account": {
+                      "type": "string",
+                      "example": "0000001"
+                    },
+                    "connections": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "example": "node-a"
+                      }
+                    }
                   }
                 }
               }
             }
           }
-        }
+        ]
       },
       "ConnectionListAccountResponse": {
         "allOf": [
@@ -653,18 +655,20 @@
           },
           {
             "$ref": "#/components/schemas/PaginatedResponseLinks"
-          }
-        ],
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "example": "node-a"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "example": "node-a"
+                }
+              }
             }
           }
-        }
+        ]
       },
       "ConnectionListByAccountResponseV2": {
         "allOf": [
@@ -673,17 +677,19 @@
           },
           {
             "$ref": "#/components/schemas/PaginatedResponseLinks"
-          }
-        ],
-        "type": "object",
-        "properties": {
-          "data": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ConnectionV2"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ConnectionV2"
+                }
+              }
             }
           }
-        }
+        ]
       },
       "ConnectionV2": {
         "type": "object",
@@ -727,6 +733,12 @@
           },
           "dispatchers": {
             "type": "object"
+          },
+          "canonical_facts": {
+            "type": "object"
+          },
+          "tags": {
+            "type": "object"
           }
         }
       },
@@ -734,14 +746,16 @@
         "allOf": [
           {
             "$ref": "#/components/schemas/ConnectionV2"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "status": {
+                "$ref": "#/components/schemas/ConnectionStatus"
+              }
+            }
           }
-        ],
-        "type": "object",
-        "properties": {
-          "status": {
-            "$ref": "#/components/schemas/ConnectionStatus"
-          }
-        }
+        ]
       },
       "ConnectionPingResponse": {
         "type": "object",

@@ -51,7 +51,3 @@ func (this *TenantTranslatorDecorator) GetConnection(ctx context.Context, accoun
 func (this *TenantTranslatorDecorator) GetConnectionsByAccount(ctx context.Context, account domain.AccountID, offset int, limit int) (map[domain.ClientID]controller.ConnectorClient, int, error) {
 	return nil, 0, errors.New("Not implemented!")
 }
-
-func (this *TenantTranslatorDecorator) GetAllConnections(ctx context.Context, offset int, limit int) (map[domain.AccountID]map[domain.ClientID]controller.ConnectorClient, int, error) {
-	return nil, 0, errors.New("Not implemented!")
-}
