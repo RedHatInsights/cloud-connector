@@ -58,13 +58,19 @@ func performDbMigration(direction string) error {
 	logger.Log.Info("Starting Cloud-Connector DB migration")
 	logger.Log.Info("Cloud-Connector configuration:\n", cfg)
 
-	db, err := db.InitializeDatabaseConnection(cfg)
+	db, err := db.InitializeGormDatabaseConnection(cfg)
 	if err != nil {
 		logger.LogError("Unable to initialize database connection", err)
 		return err
 	}
 
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	postgresDb, err := db.DB()
+	if err != nil {
+		logger.LogError("Unable to retrieve DB from gorm connection", err)
+		return err
+	}
+
+	driver, err := postgres.WithInstance(postgresDb, &postgres.Config{})
 	if err != nil {
 		logger.LogError("Unable to get postgres driver from database connection", err)
 		return err
@@ -72,7 +78,7 @@ func performDbMigration(direction string) error {
 
 	m, err := migrate.NewWithDatabaseInstance("file://db/migrations", "postgres", driver)
 	if err != nil {
-		logger.LogError("Unable to intialize database migration util", err)
+		logger.LogError("Unable to initialize database migration util", err)
 		return err
 	}
 

@@ -18,7 +18,7 @@ func StartConnectedAccountReport(accountsToExcludeCmdLineArg string, processorFu
 	cfg := config.GetConfig()
 	logger.Log.Info("Cloud-Connector configuration:\n", cfg)
 
-	databaseConn, err := db.InitializeDatabaseConnection(cfg)
+	databaseConn, err := db.InitializeGormDatabaseConnection(cfg)
 	if err != nil {
 		logger.LogFatalError("Failed to connect to the database", err)
 	}

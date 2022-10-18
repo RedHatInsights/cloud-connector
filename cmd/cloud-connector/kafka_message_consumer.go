@@ -36,7 +36,7 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	cfg := config.GetConfig()
 	logger.Log.Info("Cloud-Connector configuration:\n", cfg)
 
-	database, err := db.InitializeDatabaseConnection(cfg)
+	database, err := db.InitializeGormDatabaseConnection(cfg)
 	if err != nil {
 		logger.LogFatalError("Unable to connect to database: ", err)
 	}

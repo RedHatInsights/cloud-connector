@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"gorm.io/gorm"
 	"log"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -14,7 +15,7 @@ func main() {
 	log.Println("Starting Cloud-Connector DB migration")
 	log.Println("Cloud-Connector configuration:\n", cfg)
 
-	database, err := db.InitializeDatabaseConnection(cfg)
+	database, err := db.InitializeGormDatabaseConnection(cfg)
 	if err != nil {
 		log.Println("Unable to initialize database connection", err)
 		return
@@ -25,18 +26,13 @@ func main() {
 	dumpSchemaMigrationsTable(database)
 }
 
-func printConnectionsColumns(database *sql.DB) {
+func printConnectionsColumns(database *gorm.DB) {
 
-	statement, err := database.Prepare(
-		`SELECT column_name, data_type, column_default, is_nullable FROM information_schema.columns
-        WHERE table_name = 'connections'`)
-	if err != nil {
-		log.Println("SQL Prepare failed", err)
-		return
-	}
-	defer statement.Close()
+	rows, err := database.Table("information_schema.columns").
+		Select("column_name", "data_type", "column_default", "is_nullable").
+		Where("table_name = ?", "connections").
+		Rows()
 
-	rows, err := statement.Query()
 	if err != nil {
 		log.Println("SQL query failed", err)
 		return
@@ -66,17 +62,10 @@ func printConnectionsColumns(database *sql.DB) {
 	}
 }
 
-func dumpSchemaMigrationsTable(database *sql.DB) {
+func dumpSchemaMigrationsTable(database *gorm.DB) {
 
-	statement, err := database.Prepare(
-		`SELECT version, dirty FROM schema_migrations`)
-	if err != nil {
-		log.Println("SQL Prepare failed", err)
-		return
-	}
-	defer statement.Close()
+	rows, err := database.Table("schema_migrations").Select("version", "dirty").Rows()
 
-	rows, err := statement.Query()
 	if err != nil {
 		log.Println("SQL query failed", err)
 		return

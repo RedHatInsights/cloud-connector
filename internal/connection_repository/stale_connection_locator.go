@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"gorm.io/datatypes"
+	"gorm.io/gorm"
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -14,25 +16,21 @@ import (
 
 type ConnectionProcessor func(context.Context, domain.ConnectorClientState) error
 
-func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, staleTimeCutoff time.Time, chunkSize int, processConnection ConnectionProcessor) error {
+func ProcessStaleConnections(ctx context.Context, databaseConn *gorm.DB, sqlTimeout time.Duration, staleTimeCutoff time.Time, chunkSize int, processConnection ConnectionProcessor) error {
 
 	queryCtx, cancel := context.WithTimeout(ctx, sqlTimeout)
 	defer cancel()
 
-	statement, err := databaseConn.Prepare(
-		`SELECT account, org_id, client_id, canonical_facts, tags, dispatchers FROM connections
-           WHERE canonical_facts != '{}' AND
-           ( dispatchers ? 'rhc-worker-playbook' OR dispatchers ? 'package-manager' ) AND
-             stale_timestamp < $1
-             order by stale_timestamp asc
-             limit $2`)
-	if err != nil {
-		logger.LogFatalError("SQL Prepare failed", err)
-		return nil
-	}
-	defer statement.Close()
+	rows, err := databaseConn.WithContext(queryCtx).
+		Table("connections").
+		Select("account", "org_id", "client_id", "canonical_facts", "tags", "dispatchers").
+		Where("canonical_facts != '{}'").
+		Where(databaseConn.Where(datatypes.JSONQuery("dispatchers").HasKey("rhc-worker-playbook")).Or(datatypes.JSONQuery("dispatchers").HasKey("package-manager"))).
+		Where("stale_timestamp < ?", staleTimeCutoff).
+		Order("stale_timestamp asc").
+		Limit(chunkSize).
+		Rows()
 
-	rows, err := statement.QueryContext(queryCtx, staleTimeCutoff, chunkSize)
 	if err != nil {
 		logger.LogFatalError("SQL query failed", err)
 		return nil
@@ -86,30 +84,26 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 	return nil
 }
 
-func UpdateStaleTimestampInDB(log *logrus.Entry, ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, rhcClient domain.ConnectorClientState) {
+func UpdateStaleTimestampInDB(log *logrus.Entry, ctx context.Context, databaseConn *gorm.DB, sqlTimeout time.Duration, rhcClient domain.ConnectorClientState) {
 
 	log.Debug("Updating stale timestamp")
 
 	ctx, cancel := context.WithTimeout(ctx, sqlTimeout)
 	defer cancel()
 
-	update := "UPDATE connections SET stale_timestamp = NOW() WHERE account=$1 AND client_id=$2"
+	var now = time.Now()
 
-	statement, err := databaseConn.Prepare(update)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer statement.Close()
+	result := databaseConn.WithContext(ctx).
+		Table("connections").
+		Where("account = ?", rhcClient.Account).
+		Where("client_id = ?", rhcClient.ClientID).
+		Updates(&Connection{
+			StaleTimestamp: &now,
+		})
 
-	results, err := statement.ExecContext(ctx, rhcClient.Account, rhcClient.ClientID)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	rowsAffected, err := results.RowsAffected()
-	if err != nil {
-		log.Fatal(err)
+	if result.Error != nil {
+		log.Fatal(result.Error)
 	}
 
-	log.Debug("rowsAffected:", rowsAffected)
+	log.Debug("rowsAffected:", result.RowsAffected)
 }

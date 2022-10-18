@@ -31,7 +31,7 @@ require (
 	github.com/spf13/viper v1.10.1
 	golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27 // indirect
 	gopkg.in/ini.v1 v1.66.3 // indirect
-	gorm.io/datatypes v1.0.7 // indirect
+	gorm.io/datatypes v1.0.7
 	gorm.io/driver/postgres v1.3.10
 	gorm.io/gorm v1.23.8
 )

@@ -22,7 +22,7 @@ func TestSqlConnectionRegistrar(t *testing.T) {
 
 	cfg := config.GetConfig()
 
-	database, err := db.InitializeDatabaseConnection(cfg)
+	database, err := db.InitializeGormDatabaseConnection(cfg)
 	if err != nil {
 		t.Fatal("Unable to connect to database: ", err)
 	}

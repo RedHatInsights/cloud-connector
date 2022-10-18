@@ -3,12 +3,29 @@ package connection_repository
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/controller"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 
 	"github.com/sirupsen/logrus"
 )
+
+// Connection DAO for db operations on connections table
+type Connection struct {
+	Id             *int
+	Account        domain.AccountID
+	ClientId       domain.ClientID
+	Dispatchers    string
+	CreatedAt      *time.Time
+	UpdatedAt      *time.Time
+	CanonicalFacts string
+	StaleTimestamp *time.Time
+	Tags           string
+	MessageId      string
+	MessageSent    *time.Time
+	OrgId          domain.OrgID
+}
 
 type FatalError struct {
 	Err error

@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
+	"gorm.io/gorm"
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -17,11 +17,11 @@ import (
 )
 
 type SqlConnectionRegistrar struct {
-	database     *sql.DB
+	database     *gorm.DB
 	queryTimeout time.Duration
 }
 
-func NewSqlConnectionRegistrar(cfg *config.Config, database *sql.DB) (*SqlConnectionRegistrar, error) {
+func NewSqlConnectionRegistrar(cfg *config.Config, database *gorm.DB) (*SqlConnectionRegistrar, error) {
 	return &SqlConnectionRegistrar{
 		database:     database,
 		queryTimeout: cfg.ConnectionDatabaseQueryTimeout,
@@ -42,18 +42,6 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": account, "org_id": org_id, "client_id": client_id})
 
-	update := "UPDATE connections SET dispatchers=$1, tags = $2, updated_at = NOW(), message_id = $3, message_sent = $4 WHERE account=$5 AND client_id=$6"
-	insert := "INSERT INTO connections (account, org_id, client_id, dispatchers, canonical_facts, tags, message_id, message_sent) SELECT $7, $8, $9, $10, $11, $12, $13, $14"
-
-	insertOrUpdate := fmt.Sprintf("WITH upsert AS (%s RETURNING *) %s WHERE NOT EXISTS (SELECT * FROM upsert)", update, insert)
-
-	statement, err := scm.database.Prepare(insertOrUpdate)
-	if err != nil {
-		logger.WithFields(logrus.Fields{"error": err}).Error("Prepare failed")
-		return FatalError{err}
-	}
-	defer statement.Close()
-
 	dispatchersString, err := json.Marshal(rhcClient.Dispatchers)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err, "dispatchers": rhcClient.Dispatchers}).Error("Unable to marshal dispatchers")
@@ -62,7 +50,7 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 
 	canonicalFactsString, err := json.Marshal(rhcClient.CanonicalFacts)
 	if err != nil {
-		logger.WithFields(logrus.Fields{"error": err, "canonical_facts": rhcClient.CanonicalFacts}).Error("Unable to marshal canonicalfacts")
+		logger.WithFields(logrus.Fields{"error": err, "canonical_facts": rhcClient.CanonicalFacts}).Error("Unable to marshal canonical_facts")
 		return err
 	}
 
@@ -72,9 +60,30 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 		return err
 	}
 
-	_, err = statement.ExecContext(ctx, dispatchersString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp, account, client_id, account, org_id, client_id, dispatchersString, canonicalFactsString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp)
-	if err != nil {
-		logger.WithFields(logrus.Fields{"error": err}).Error("Insert/update failed")
+	// gorm does not seem to support INSERT INTO ... SELECT ... so we need to use raw sql here
+	query := scm.database.
+		Exec("WITH upsert AS (UPDATE connections SET dispatchers=?, tags = ?, updated_at = NOW(), message_id = ?, message_sent = ? WHERE account=? AND client_id=? RETURNING *) "+
+			"INSERT INTO connections (account, org_id, client_id, dispatchers, canonical_facts, tags, message_id, message_sent) "+
+			"SELECT ?, ?, ?, ?, ?, ?, ?, ? "+
+			"WHERE NOT EXISTS (SELECT * FROM upsert) RETURNING *",
+			dispatchersString,
+			tagsString,
+			rhcClient.MessageMetadata.LatestMessageID,
+			rhcClient.MessageMetadata.LatestTimestamp,
+			account,
+			client_id,
+			account,
+			org_id,
+			client_id,
+			dispatchersString,
+			canonicalFactsString,
+			tagsString,
+			rhcClient.MessageMetadata.LatestMessageID,
+			rhcClient.MessageMetadata.LatestTimestamp,
+		)
+
+	if query.Error != nil {
+		logger.WithFields(logrus.Fields{"error": query.Error}).Error("Insert/update failed")
 		return FatalError{err}
 	}
 
@@ -92,17 +101,10 @@ func (scm *SqlConnectionRegistrar) Unregister(ctx context.Context, client_id dom
 
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": client_id})
 
-	statement, err := scm.database.Prepare("DELETE FROM connections WHERE client_id = $1")
-	if err != nil {
-		logger.WithFields(logrus.Fields{"error": err}).Error("Prepare failed")
-		return FatalError{err}
-	}
-	defer statement.Close()
-
-	_, err = statement.ExecContext(ctx, client_id)
-	if err != nil {
-		logger.WithFields(logrus.Fields{"error": err}).Error("Delete failed")
-		return FatalError{err}
+	query := scm.database.Delete(&Connection{}, "client_id = ?", client_id)
+	if query.Error != nil {
+		logger.WithFields(logrus.Fields{"error": query.Error}).Error("Delete failed")
+		return FatalError{query.Error}
 	}
 
 	logger.Debug("Unregistered a connection")
@@ -121,12 +123,11 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 	ctx, cancel := context.WithTimeout(ctx, scm.queryTimeout)
 	defer cancel()
 
-	statement, err := scm.database.Prepare("SELECT account, org_id, client_id, dispatchers, canonical_facts, tags, message_id, message_sent FROM connections WHERE client_id = $1")
-	if err != nil {
-		logger.WithFields(logrus.Fields{"error": err}).Error("SQL prepare failed")
-		return connectorClient, FatalError{err}
-	}
-	defer statement.Close()
+	row := scm.database.
+		Table("connections").
+		Select("account", "org_id", "client_id", "dispatchers", "canonical_facts", "tags", "message_id", "message_sent").
+		Where("client_id = ?", client_id).
+		Row()
 
 	var account domain.AccountID
 	var orgID sql.NullString
@@ -135,7 +136,7 @@ func (scm *SqlConnectionRegistrar) FindConnectionByClientID(ctx context.Context,
 	var tagsString sql.NullString
 	var latestMessageID sql.NullString
 
-	err = statement.QueryRowContext(ctx, client_id).Scan(&account,
+	err = row.Scan(&account,
 		&orgID,
 		&connectorClient.ClientID,
 		&dispatchersString,

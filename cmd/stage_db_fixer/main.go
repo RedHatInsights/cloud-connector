@@ -13,22 +13,16 @@ func main() {
 	log.Println("Starting Cloud-Connector DB migration")
 	log.Println("Cloud-Connector configuration:\n", cfg)
 
-	database, err := db.InitializeDatabaseConnection(cfg)
+	database, err := db.InitializeGormDatabaseConnection(cfg)
 	if err != nil {
 		log.Println("Unable to initialize database connection", err)
 		return
 	}
 
-	statement, err := database.Prepare(`update schema_migrations set version = 4, dirty = 'f'`)
-	if err != nil {
-		log.Println("SQL Prepare failed", err)
-		return
-	}
-	defer statement.Close()
+	statement := database.Table("schema_migrations").Updates(map[string]interface{}{"version": 4, "dirty": "f"})
 
-	_, err = statement.Exec()
-	if err != nil {
-		log.Print("Insert/update failed: ", err)
+	if statement.Error != nil {
+		log.Print("Insert/update failed: ", statement.Error)
 		return
 	}
 }

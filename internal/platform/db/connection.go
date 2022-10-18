@@ -40,24 +40,6 @@ func buildPostgresSslConfigString(cfg *config.Config) (string, error) {
 	}
 }
 
-func InitializeDatabaseConnection(cfg *config.Config) (*sql.DB, error) {
-
-	var database *sql.DB
-	var err error
-
-	if cfg.ConnectionDatabaseImpl == "postgres" {
-		database, err = initializePostgresConnection(cfg)
-	} else {
-		return nil, errors.New("Invalid SQL database impl requested")
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return database, nil
-}
-
 func InitializeGormDatabaseConnection(cfg *config.Config) (*gorm.DB, error) {
 
 	var database *gorm.DB
