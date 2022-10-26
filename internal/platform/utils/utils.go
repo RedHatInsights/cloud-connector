@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/gorilla/mux"
@@ -13,8 +14,11 @@ import (
 
 func StartHTTPServer(addr, name string, handler *mux.Router) *http.Server {
 	srv := &http.Server{
-		Addr:    addr,
-		Handler: handler,
+		Addr:              addr,
+		Handler:           handler,
+		ReadTimeout:       10 * time.Second,
+		ReadHeaderTimeout: 2 * time.Second,
+		WriteTimeout:      10 * time.Second,
 	}
 
 	go func() {
