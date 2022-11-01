@@ -96,6 +96,8 @@ objects:
           value: "true"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
           value: ${MQTT_BROKER_TLS_SKIP_VERIFY}
+        - name: CLOUD_CONNECTOR_MQTT_CLEAN_SESSION
+          value: ${API_SERVER_MQTT_CLEAN_SESSION}
 
         - name: CLOUD_CONNECTOR_SERVICE_TO_SERVICE_CREDENTIALS
           valueFrom:
@@ -196,6 +198,8 @@ objects:
           value: ${{MQTT_TOPIC_PREFIX}}
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
           value: ${MQTT_BROKER_TLS_SKIP_VERIFY}
+        - name: CLOUD_CONNECTOR_MQTT_CLEAN_SESSION
+          value: ${MQTT_CONSUMER_MQTT_CLEAN_SESSION}
 
         - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BATCH_SIZE
           value: ${RHC_MESSAGE_KAFKA_BATCH_SIZE}
@@ -297,6 +301,8 @@ objects:
           value: "true"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
           value: ${MQTT_BROKER_TLS_SKIP_VERIFY}
+        - name: CLOUD_CONNECTOR_MQTT_CLEAN_SESSION
+          value: ${KAFKA_CONSUMER_MQTT_CLEAN_SESSION}
 
         - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_CONSUMER_GROUP
           value: ${{RHC_MESSAGE_KAFKA_CONSUMER_GROUP}}
@@ -573,6 +579,12 @@ parameters:
 - name: MQTT_BROKER_TLS_SKIP_VERIFY
   value: "false"
   required: true
+- name: MQTT_CONSUMER_MQTT_CLEAN_SESSION
+  value: "false"
+- name: KAFKA_CONSUMER_MQTT_CLEAN_SESSION
+  value: "true"
+- name: API_SERVER_MQTT_CLEAN_SESSION
+  value: "true"
 
 - name: RHC_MESSAGE_KAFKA_TOPIC
   required: true
