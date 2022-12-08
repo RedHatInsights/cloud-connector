@@ -75,7 +75,9 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 	return nil
 }
 
-func UpdateStaleTimestampInDB(log *logrus.Entry, ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, rhcClient domain.ConnectorClientState) {
+func UpdateStaleTimestampInDB(ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, rhcClient domain.ConnectorClientState) {
+
+	log := logger.Log.WithFields(logrus.Fields{"account": rhcClient.Account, "org_id": rhcClient.OrgID, "client_id": rhcClient.ClientID})
 
 	log.Debug("Updating stale timestamp")
 

@@ -96,7 +96,7 @@ func startInventoryStaleTimestampUpdater() {
 				return err
 			}
 
-			connection_repository.UpdateStaleTimestampInDB(log, ctx, databaseConn, sqlTimeout, rhcClient)
+			connection_repository.UpdateStaleTimestampInDB(ctx, databaseConn, sqlTimeout, rhcClient)
 
 			return nil
 		})
