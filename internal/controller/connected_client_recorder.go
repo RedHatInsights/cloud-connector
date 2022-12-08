@@ -107,17 +107,19 @@ func BuildInventoryMessageProducer(kafkaWriter *kafka.Writer) InventoryMessagePr
 				Value: msg,
 			})
 
-		log.Debug("Inventory kafka message written")
-
 		if err != nil {
-			log.WithFields(logrus.Fields{"error": err}).Error("Error writing response message to kafka")
+			log.WithFields(logrus.Fields{"error": err}).Error("Error writing inventory message to kafka")
 
 			if errors.Is(err, context.Canceled) != true {
 				metrics.inventoryKafkaWriterFailureCounter.Inc()
 			}
-		} else {
-			metrics.inventoryKafkaWriterSuccessCounter.Inc()
+
+			return err
 		}
+
+		log.Debug("Inventory kafka message written")
+
+		metrics.inventoryKafkaWriterSuccessCounter.Inc()
 
 		return nil
 	}
@@ -178,7 +180,10 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 
 	logger = logger.WithFields(logrus.Fields{"request_id": requestID.String()})
 
-	ibccr.MessageProducer(ctx, logger, jsonInventoryMessage)
+	err = ibccr.MessageProducer(ctx, logger, jsonInventoryMessage)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
