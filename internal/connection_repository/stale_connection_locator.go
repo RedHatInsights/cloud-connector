@@ -82,7 +82,7 @@ func UpdateStaleTimestampInDB(log *logrus.Entry, ctx context.Context, databaseCo
 	ctx, cancel := context.WithTimeout(ctx, sqlTimeout)
 	defer cancel()
 
-	update := "UPDATE connections SET stale_timestamp = NOW() WHERE account=$1 AND client_id=$2"
+	update := "UPDATE connections SET stale_timestamp = NOW() WHERE org_id=$1 AND client_id=$2"
 
 	statement, err := databaseConn.Prepare(update)
 	if err != nil {
@@ -90,7 +90,7 @@ func UpdateStaleTimestampInDB(log *logrus.Entry, ctx context.Context, databaseCo
 	}
 	defer statement.Close()
 
-	results, err := statement.ExecContext(ctx, rhcClient.Account, rhcClient.ClientID)
+	results, err := statement.ExecContext(ctx, rhcClient.OrgID, rhcClient.ClientID)
 	if err != nil {
 		log.Fatal(err)
 	}
