@@ -165,6 +165,7 @@ func (bar *ConfigurableAccountIdResolver) createIdentityHeader(account domain.Ac
             "type": "User",
             "auth_type": "cert-auth",
             "account_number": "%s",
+            "org_id": "%s",
             "internal":
                 {"org_id": "%s"},
             "user":
@@ -172,6 +173,7 @@ func (bar *ConfigurableAccountIdResolver) createIdentityHeader(account domain.Ac
             }
         }`,
 		string(account),
+		string(org_id),
 		string(org_id))
 	identityJsonBase64 := base64.StdEncoding.EncodeToString([]byte(identityJson))
 	return domain.Identity(identityJsonBase64)
