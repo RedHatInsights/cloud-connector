@@ -122,6 +122,9 @@ objects:
 
 
     - name: mqtt-message-consumer
+      metadata:
+        annotations:
+          ignore-check.kube-linter.io/minimum-three-replicas: "This deployment uses 1 pod, using more than 1 pod will lead to the ingestion of the same mqtt message multiple times"
       webServices:
         private:
           enabled: True
