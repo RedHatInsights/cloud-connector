@@ -9,6 +9,7 @@ IMAGE="quay.io/cloudservices/cloud-connector"
 IQE_CJI_TIMEOUT="15m"
 EXTRA_DEPLOY_ARGS="-p playbook-dispatcher/CLOUD_CONNECTOR_IMPL=impl"
 REF_ENV="insights-stage"
+IQE_MARKER_EXPRESSION="not e2e"
 
 # Install bonfire repo/initialize
 CICD_URL=https://raw.githubusercontent.com/RedHatInsights/bonfire/master/cicd
