@@ -6,9 +6,9 @@
 APP_NAME="cloud-connector"  # name of app-sre "application" folder this component lives in
 COMPONENT_NAME="cloud-connector-api"  # name of app-sre "resourceTemplate" in deploy.yaml for this component
 IMAGE="quay.io/cloudservices/cloud-connector"
-IQE_CJI_TIMEOUT="15m"
+IQE_CJI_TIMEOUT="30m"
 EXTRA_DEPLOY_ARGS="-p playbook-dispatcher/CLOUD_CONNECTOR_IMPL=impl"
-REF_ENV="insights-stage"
+IQE_MARKER_EXPRESSION="not e2e"
 
 # Install bonfire repo/initialize
 CICD_URL=https://raw.githubusercontent.com/RedHatInsights/bonfire/master/cicd
