@@ -156,7 +156,7 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 		SubscriptionManagerID: generateUUID(),
 		SatelliteID:           generateUUID(),
 		IpAddresses:           []string{"192.168.68.101"},
-		MacAddresses:          []string{"54.54.45.45.62.26"},
+		MacAddresses:          []string{"54:54:45:45:62:26"},
 		Fqdn:                  "fred.flintstone.com",
 	}
 
