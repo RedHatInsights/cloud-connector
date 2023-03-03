@@ -131,6 +131,7 @@ The `content` field of a `ConnectionStatus` message must contain two fields:
 | `dispatchers`     | object       | no           |
 | `state`           | string(enum) | no           |
 | `tags`            | object       | yes          |
+| `client_version`  | string       | yes          |
 
 
 `state` must be one of the following values:
@@ -160,6 +161,9 @@ The `tags` object includes an arbitrary number of key-value pairs where the
 key and value are both strings, as reported by the client. The field is
 optional, so it may be omitted.
 
+The optional `client_version` field contains the software version as reported by
+the client.
+
 A complete example of a `ConnectionStatus` message:
 
 ```
@@ -188,7 +192,8 @@ A complete example of a `ConnectionStatus` message:
         "tags": {
             "region": "us1",
             "prod": "false"
-        }
+        },
+        "client_version": "0.1.4"
     }
 }
 ```
