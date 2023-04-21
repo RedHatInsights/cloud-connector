@@ -230,6 +230,8 @@ func publishConnectionStatusMessage(client MQTT.Client, topic string, qos byte, 
 		Dispatchers:     dispatchers,
 		ConnectionState: "online",
 		Tags:            tags,
+		ClientName:      "fred.flintstone",
+		ClientVersion:   "11.0.2",
 	}
 	connMsg := Connector.ControlMessage{
 		MessageType: "connection-status",

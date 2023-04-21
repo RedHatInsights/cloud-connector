@@ -89,6 +89,11 @@ func handleConnectionStatusMessage(logger *logrus.Entry, client MQTT.Client, cli
 		return nil
 	}
 
+	clientName, _ := protocol.GetClientVersionFromConnectionStatusContent(handshakePayload)
+	clientVersion, _ := protocol.GetClientNameFromConnectionStatusContent(handshakePayload)
+
+	logger = logger.WithFields(logrus.Fields{"client_name": clientName, "client_version": clientVersion})
+
 	var err error
 	if connectionState == "online" {
 		err = handleOnlineMessage(logger, client, clientID, msg, cfg, topicBuilder, accountResolver, connectionRegistrar, connectedClientRecorder, sourcesRecorder)

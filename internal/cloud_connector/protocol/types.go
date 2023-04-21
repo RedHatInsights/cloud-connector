@@ -17,6 +17,8 @@ type ConnectionStatusMessageContent struct {
 	Dispatchers     Dispatchers    `json:"dispatchers"`
 	ConnectionState string         `json:"state"`
 	Tags            Tags           `json:"tags"`
+	ClientName      string         `json:"client_name"`
+	ClientVersion   string         `json:"client_version"`
 }
 
 type Dispatchers map[string]map[string]string
