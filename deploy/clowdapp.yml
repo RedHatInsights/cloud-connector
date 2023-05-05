@@ -434,6 +434,10 @@ objects:
 
           - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
             value: ${{MQTT_TOPIC_PREFIX}}
+
+          - name: CLOUD_CONNECTOR_INVENTORY_STALE_TIMESTAMP_UPDATER_CHUNK_SIZE
+            value: INVENTORY_STALE_TIMESTAMP_UPDATER_CHUNK_SIZE
+
         volumeMounts:
         - mountPath: /tmp/cloud-connector-config
           name: client-id-to-account-id-map
@@ -667,3 +671,6 @@ parameters:
 
 - name: PROMETHEUS_PUSHGATEWAY
   value: prometheus-push.insights-push-stage.svc.cluster.local:9091
+
+- name: INVENTORY_STALE_TIMESTAMP_UPDATER_CHUNK_SIZE
+  value: "200"
