@@ -436,7 +436,7 @@ objects:
             value: ${{MQTT_TOPIC_PREFIX}}
 
           - name: CLOUD_CONNECTOR_INVENTORY_STALE_TIMESTAMP_UPDATER_CHUNK_SIZE
-            value: INVENTORY_STALE_TIMESTAMP_UPDATER_CHUNK_SIZE
+            value: ${INVENTORY_STALE_TIMESTAMP_UPDATER_CHUNK_SIZE}
 
         volumeMounts:
         - mountPath: /tmp/cloud-connector-config
