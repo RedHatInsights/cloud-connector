@@ -673,4 +673,4 @@ parameters:
   value: prometheus-push.insights-push-stage.svc.cluster.local:9091
 
 - name: INVENTORY_STALE_TIMESTAMP_UPDATER_CHUNK_SIZE
-  value: "200"
+  value: "100"
