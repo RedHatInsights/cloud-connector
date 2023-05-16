@@ -38,6 +38,7 @@ const (
 	MQTT_DATA_PUBLISH_QOS                        = "MQTT_Data_Publish_QoS"
 	MQTT_DISCONNECT_QUIESCE_TIME                 = "MQTT_Disconnect_Quiesce_Time"
 	MQTT_PUBLISH_TIMEOUT                         = "MQTT_Publish_Timeout"
+	MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME            = "Mqtt_Consumer_Shutdown_Sleep_Time"
 	INVALID_HANDSHAKE_RECONNECT_DELAY            = "Invalid_Handshake_Reconnect_Delay"
 	CLIENT_ID_TO_ACCOUNT_ID_IMPL                 = "Client_Id_To_Account_Id_Impl"
 	CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE          = "Client_Id_To_Account_Id_Config_File"
@@ -116,6 +117,7 @@ type Config struct {
 	MqttDataPublishQoS                      byte
 	MqttDisconnectQuiesceTime               uint
 	MqttPublishTimeout                      time.Duration
+	MqttConsumerShutdownSleepTime           time.Duration
 	InvalidHandshakeReconnectDelay          int
 	KafkaBrokers                            []string
 	KafkaCA                                 string
@@ -193,6 +195,7 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %d\n", MQTT_DATA_PUBLISH_QOS, c.MqttDataPublishQoS)
 	fmt.Fprintf(&b, "%s: %d\n", MQTT_DISCONNECT_QUIESCE_TIME, c.MqttDisconnectQuiesceTime)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_PUBLISH_TIMEOUT, c.MqttPublishTimeout)
+	fmt.Fprintf(&b, "%s: %s\n", MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME, c.MqttConsumerShutdownSleepTime)
 	fmt.Fprintf(&b, "%s: %d\n", INVALID_HANDSHAKE_RECONNECT_DELAY, c.InvalidHandshakeReconnectDelay)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_IMPL, c.ClientIdToAccountIdImpl)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE, c.ClientIdToAccountIdConfigFile)
@@ -260,6 +263,7 @@ func GetConfig() *Config {
 	options.SetDefault(MQTT_DATA_PUBLISH_QOS, 1)
 	options.SetDefault(MQTT_DISCONNECT_QUIESCE_TIME, 1000)
 	options.SetDefault(MQTT_PUBLISH_TIMEOUT, 2)
+	options.SetDefault(MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME, 2)
 	options.SetDefault(INVALID_HANDSHAKE_RECONNECT_DELAY, 5)
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_IMPL, "config_file_based")
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE, "client_id_to_account_id_map.json")
@@ -334,6 +338,7 @@ func GetConfig() *Config {
 		MqttDataPublishQoS:                      byte(options.GetInt(MQTT_DATA_PUBLISH_QOS)),
 		MqttDisconnectQuiesceTime:               options.GetUint(MQTT_DISCONNECT_QUIESCE_TIME),
 		MqttPublishTimeout:                      options.GetDuration(MQTT_PUBLISH_TIMEOUT) * time.Second,
+		MqttConsumerShutdownSleepTime:           options.GetDuration(MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME) * time.Second,
 		InvalidHandshakeReconnectDelay:          options.GetInt(INVALID_HANDSHAKE_RECONNECT_DELAY),
 		ClientIdToAccountIdImpl:                 options.GetString(CLIENT_ID_TO_ACCOUNT_ID_IMPL),
 		ClientIdToAccountIdConfigFile:           options.GetString(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE),
