@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/controller/api"
@@ -108,6 +109,12 @@ func startMqttMessageConsumer(mgmtAddr string) {
 	mqttClient.Disconnect(cfg.MqttDisconnectQuiesceTime)
 
 	kafkaProducer.Close()
+
+	logger.FlushLogger()
+
+	// This is kind of gross.  The idea here is to flush the logs and then
+	// sleep for a bit to make sure the logs are sent to cloudwatch.
+	time.Sleep(cfg.MqttConsumerShutdownSleepTime)
 
 	logger.Log.Info("Cloud-Connector shutting down")
 }
