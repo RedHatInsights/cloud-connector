@@ -5,7 +5,6 @@ import (
 	"errors"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
@@ -85,17 +84,12 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	}
 
 	connectedChan := make(chan struct{})
-	var initialConnection sync.Once
+	brokerOptions = append(brokerOptions, mqtt.WithOnConnectHandler(notifyOnIntialMqttConnection(connectedChan)))
 
-	mqttClient, err := mqtt.CreateBrokerConnection(cfg.MqttBrokerAddress,
-		func(MQTT.Client) {
-			logger.Log.Trace("Connected to MQTT broker")
-			initialConnection.Do(func() {
-				connectedChan <- struct{}{}
-			})
-		},
-		brokerOptions...,
-	)
+	mqttConnectionFailedChan := make(chan error)
+	brokerOptions = buildOnConnectionLostMqttOptions(cfg, mqttConnectionFailedChan, brokerOptions)
+
+	mqttClient, err := mqtt.CreateBrokerConnection(cfg.MqttBrokerAddress, brokerOptions...)
 	if err != nil {
 		logger.LogFatalError("Unable to establish MQTT broker connection", err)
 	}
@@ -142,6 +136,9 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 		shutdownCtxCancel() // Notify the consumer to shutdown
 	case <-fatalProcessingError:
 		logger.Log.Info("Received a fatal processing error...shutting down!")
+	case err = <-mqttConnectionFailedChan:
+		logger.Log.Info("MQTT connection dropped: ", err)
+		shutdownCtxCancel() // Notify the consumer to shutdown
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.HttpShutdownTimeout)

@@ -6,6 +6,7 @@ import (
 )
 
 type mqttMetrics struct {
+	mqttConnectionFailureCounter   prometheus.Counter
 	controlMessageReceivedCounter  prometheus.Counter
 	dataMessageReceivedCounter     prometheus.Counter
 	sentMessageDirectiveCounter    *prometheus.CounterVec
@@ -17,6 +18,11 @@ type mqttMetrics struct {
 
 func newMqttMetrics() *mqttMetrics {
 	metrics := new(mqttMetrics)
+
+	metrics.mqttConnectionFailureCounter = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "cloud_connector_mqtt_connection_failure_count",
+		Help: "The number of mqtt connection failures",
+	})
 
 	metrics.controlMessageReceivedCounter = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "cloud_connector_mqtt_control_message_received_count",

@@ -106,6 +106,35 @@ func WithProtocolVersion(protocolVersion uint) MqttClientOptionsFunc {
 	}
 }
 
+func WithAutoReconnect(autoReconnect bool) MqttClientOptionsFunc {
+	return func(opts *MQTT.ClientOptions) error {
+		logger.Log.Tracef("Setting the auto-reconnect flag: %v\n", autoReconnect)
+		opts.SetAutoReconnect(autoReconnect)
+		return nil
+	}
+}
+
+func WithOnConnectHandler(handler func(MQTT.Client)) MqttClientOptionsFunc {
+	return func(opts *MQTT.ClientOptions) error {
+		logger.Log.Tracef("Setting the on-connect handler")
+		opts.SetOnConnectHandler(handler)
+		return nil
+	}
+}
+
+func WithConnectionLostHandler(handler func(MQTT.Client, error)) MqttClientOptionsFunc {
+	return func(opts *MQTT.ClientOptions) error {
+		logger.Log.Tracef("Setting the on-connection-lost handler")
+		opts.SetConnectionLostHandler(
+			// Decorate the user supplied handler function with the connection lost metric
+			func(c MQTT.Client, e error) {
+				metrics.mqttConnectionFailureCounter.Inc()
+				handler(c, e)
+			})
+		return nil
+	}
+}
+
 func NewBrokerOptions(brokerUrl string, opts ...MqttClientOptionsFunc) (*MQTT.ClientOptions, error) {
 	connOpts := MQTT.NewClientOptions()
 
