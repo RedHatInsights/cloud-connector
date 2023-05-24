@@ -97,6 +97,8 @@ func buildDefaultMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Confi
 
 	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithProtocolVersion(4))
 
+	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithConnectionLostHandler(logMqttConnectionLostHandler))
+
 	return brokerConfigFuncs, nil
 }
 
@@ -128,17 +130,12 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 	}
 
 	connectedChan := make(chan struct{})
-	var initialConnection sync.Once
+	brokerOptions = append(brokerOptions, mqtt.WithOnConnectHandler(notifyOnIntialMqttConnection(connectedChan)))
 
-	mqttClient, err := mqtt.CreateBrokerConnection(cfg.MqttBrokerAddress,
-		func(MQTT.Client) {
-			logger.Log.Trace("Connected to MQTT broker")
-			initialConnection.Do(func() {
-				connectedChan <- struct{}{}
-			})
-		},
-		brokerOptions...,
-	)
+	mqttConnectionFailedChan := make(chan error)
+	brokerOptions = buildOnConnectionLostMqttOptions(cfg, mqttConnectionFailedChan, brokerOptions)
+
+	mqttClient, err := mqtt.CreateBrokerConnection(cfg.MqttBrokerAddress, brokerOptions...)
 	if err != nil {
 		logger.LogFatalError("Unable to establish MQTT Broker connection", err)
 	}
@@ -204,8 +201,12 @@ func startCloudConnectorApiServer(mgmtAddr string) {
 
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
-	sig := <-signalChan
-	logger.Log.Info("Received signal to shutdown: ", sig)
+	select {
+	case sig := <-signalChan:
+		logger.Log.Info("Received signal to shutdown: ", sig)
+	case err = <-mqttConnectionFailedChan:
+		logger.Log.Info("MQTT connection dropped: ", err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.HttpShutdownTimeout)
 	defer cancel()
@@ -276,4 +277,18 @@ func buildTenantTranslatorMockMapping(mappingFromConfig map[string]interface{}) 
 	}
 
 	return mapping
+}
+
+func notifyOnIntialMqttConnection(connectedChan chan struct{}) func(MQTT.Client) {
+	// The onConnect handler function below will be called repeatedly
+	// if AutoReconnect is enabled.  Use the sync.Once to only notify
+	// the caller on the initial connection.
+	var initialConnection sync.Once
+
+	return func(MQTT.Client) {
+		logger.Log.Info("Connected to MQTT broker")
+		initialConnection.Do(func() {
+			connectedChan <- struct{}{}
+		})
+	}
 }

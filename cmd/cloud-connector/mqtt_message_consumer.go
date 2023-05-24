@@ -17,7 +17,9 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/tls_utils"
 
+	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
 )
 
 func buildMessageHandlerMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config) ([]mqtt.MqttClientOptionsFunc, error) {
@@ -82,7 +84,18 @@ func startMqttMessageConsumer(mgmtAddr string) {
 		logger.LogFatalError("Unable to configure MQTT Broker connection", err)
 	}
 
-	mqttClient, err := mqtt.RegisterSubscribers(cfg.MqttBrokerAddress, subscribers, defaultMsgHandler, brokerOptions...)
+	mqttConnectionFailedChan := make(chan error)
+
+	brokerOptions = buildOnConnectionLostMqttOptions(cfg, mqttConnectionFailedChan, brokerOptions)
+
+	brokerOptions = append(brokerOptions, mqtt.WithOnConnectHandler(subscribeOnMqttConnectHandler(subscribers)))
+
+	// Add a default publish message handler as some messages will get delivered before the topic
+	// subscriptions are setup completely
+	// See "Common Problems" here: https://github.com/eclipse/paho.mqtt.golang#common-problems
+	brokerOptions = append(brokerOptions, mqtt.WithDefaultPublishHandler(defaultMsgHandler))
+
+	mqttClient, err := mqtt.CreateBrokerConnection(cfg.MqttBrokerAddress, brokerOptions...)
 	if err != nil {
 		logger.LogFatalError("Failed to connect to MQTT broker", err)
 	}
@@ -98,8 +111,12 @@ func startMqttMessageConsumer(mgmtAddr string) {
 
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
-	sig := <-signalChan
-	logger.Log.Info("Received signal to shutdown: ", sig)
+	select {
+	case sig := <-signalChan:
+		logger.Log.Info("Received signal to shutdown: ", sig)
+	case err = <-mqttConnectionFailedChan:
+		logger.Log.Info("MQTT connection dropped: ", err)
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.HttpShutdownTimeout)
 	defer cancel()
@@ -162,4 +179,43 @@ func buildRhcMessageKafkaProducerConfig(cfg *config.Config) *queue.ProducerConfi
 	}
 
 	return kafkaProducerCfg
+}
+
+func buildOnConnectionLostMqttOptions(cfg *config.Config, mqttConnectionFailedChan chan error, brokerOptions []mqtt.MqttClientOptionsFunc) []mqtt.MqttClientOptionsFunc {
+
+	var autoReconnect = true
+	var onConnectionLostHandler func(MQTT.Client, error)
+
+	if cfg.ShutdownOnMqttConnectionLost {
+		autoReconnect = false
+		onConnectionLostHandler = notifyOnMqttConnectionLostHandler(mqttConnectionFailedChan)
+	} else {
+		autoReconnect = true
+		onConnectionLostHandler = logMqttConnectionLostHandler
+	}
+
+	return append(brokerOptions, mqtt.WithAutoReconnect(autoReconnect), mqtt.WithConnectionLostHandler(onConnectionLostHandler))
+}
+
+func notifyOnMqttConnectionLostHandler(mqttConnectionFailedChan chan error) func(MQTT.Client, error) {
+	return func(client MQTT.Client, err error) {
+		logger.Log.Infof("MQTT connection dropped, err: %s", err)
+		client.Disconnect(1000) // FIXME: If a connection is lost, do we really need to call disconnect??
+		mqttConnectionFailedChan <- err
+	}
+}
+
+func logMqttConnectionLostHandler(client MQTT.Client, err error) {
+	logger.Log.Infof("MQTT connection dropped, err: %s", err)
+}
+
+func subscribeOnMqttConnectHandler(subscribers []mqtt.Subscriber) func(client MQTT.Client) {
+	return func(client MQTT.Client) {
+		for _, subscriber := range subscribers {
+			logger.Log.Infof("Subscribing to MQTT topic: %s - QOS: %d\n", subscriber.Topic, subscriber.Qos)
+			if token := client.Subscribe(subscriber.Topic, subscriber.Qos, subscriber.EntryPoint); token.Wait() && token.Error() != nil {
+				logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Fatalf("Subscribing to MQTT topic (%s) failed", subscriber.Topic)
+			}
+		}
+	}
 }
