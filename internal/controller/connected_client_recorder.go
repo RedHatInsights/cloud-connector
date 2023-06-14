@@ -19,9 +19,10 @@ import (
 )
 
 const (
-	playbookWorkerDispatcherKey = "rhc-worker-playbook"
-	packageManagerDispatcherKey = "package-manager"
-	inventoryTagNamespace       = "rhc_client"
+	playbookWorkerDispatcherKey     = "rhc-worker-playbook"
+	packageManagerDispatcherKey     = "package-manager"
+	convert2RhelWorkerDispatcherKey = "rhc-bash-worker"
+	inventoryTagNamespace           = "rhc_client"
 )
 
 type ConnectedClientRecorder interface {
@@ -189,7 +190,10 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 }
 
 func shouldHostBeRegisteredWithInventory(connectorClient domain.ConnectorClientState) bool {
-	return doesHostHaveCanonicalFacts(connectorClient) && (doesHostHaveDispatcher(connectorClient, playbookWorkerDispatcherKey) || doesHostHaveDispatcher(connectorClient, packageManagerDispatcherKey))
+	return doesHostHaveCanonicalFacts(connectorClient) &&
+		(doesHostHaveDispatcher(connectorClient, playbookWorkerDispatcherKey) ||
+			doesHostHaveDispatcher(connectorClient, packageManagerDispatcherKey) ||
+			doesHostHaveDispatcher(connectorClient, convert2RhelWorkerDispatcherKey))
 }
 
 func doesHostHaveCanonicalFacts(connectorClient domain.ConnectorClientState) bool {
