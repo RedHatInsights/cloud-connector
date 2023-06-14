@@ -143,6 +143,7 @@ func TestRegisterHostWithInventory(t *testing.T) {
 	}{
 		{playbookWorkerDispatcherKey, map[string]string{"version": "0.1"}},
 		{packageManagerDispatcherKey, map[string]string{"version": "0.0.1"}},
+		{convert2RhelWorkerDispatcherKey, map[string]string{"version": "1.14"}},
 	}
 
 	for _, tc := range testCases {
