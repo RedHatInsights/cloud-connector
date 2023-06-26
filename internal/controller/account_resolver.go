@@ -30,7 +30,13 @@ type AuthGwResp struct {
 }
 
 type ErrorResponse struct {
-	Message string `json:"Message"`
+	Errors []struct {
+		Meta struct {
+			ResponseBy string `json:"response_by"`
+		} `json:"meta"`
+		Status int    `json:"status"`
+		Detail string `json:"detail"`
+	} `json:"errors"`
 }
 
 func NewAccountIdResolver(accountIdResolverImpl string, cfg *config.Config) (AccountIdResolver, error) {
@@ -92,7 +98,7 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse error reponse")
 			return "", "", "", err
 		}
-		return "", "", "", fmt.Errorf("Unable to find account %s", errResponse.Message)
+		return "", "", "", fmt.Errorf("Unable to find account %p", errResponse)
 	}
 
 	var resp AuthGwResp
