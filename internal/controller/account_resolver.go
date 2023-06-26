@@ -29,6 +29,10 @@ type AuthGwResp struct {
 	Identity string `json:"x-rh-identity"`
 }
 
+type ErrorResponse struct {
+	Message string `json:"Message"`
+}
+
 func NewAccountIdResolver(accountIdResolverImpl string, cfg *config.Config) (AccountIdResolver, error) {
 	switch accountIdResolverImpl {
 	case "config_file_based":
@@ -83,8 +87,14 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 	if r.StatusCode != 200 {
 		logger.Debugf("Call to Auth Gateway returned http status code %d", r.StatusCode)
 		b, _ := ioutil.ReadAll(r.Body)
-		return "", "", "", fmt.Errorf("Unable to find account %s", string(b))
+		var errResponse ErrorResponse
+		if err := json.Unmarshal(b, &errResponse); err != nil {
+			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse error reponse")
+			return "", "", "", err
+		}
+		return "", "", "", fmt.Errorf("Unable to find account %s", errResponse.Message)
 	}
+
 	var resp AuthGwResp
 	err = json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
