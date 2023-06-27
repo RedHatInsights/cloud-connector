@@ -23,6 +23,14 @@ func NewRootCommand() *cobra.Command {
 		Use: "cloud-connector",
 	}
 
+	var connectionCountCmd = &cobra.Command{
+		Use:   "connection_count",
+		Short: "Gets the connection count from the databaseand pushes it to Prometheus",
+		Run: func(cmd *cobra.Command, args []string) {
+			startConnectionCount(listenAddr)
+		},
+	}
+
 	var mqttMessageConsumerCmd = &cobra.Command{
 		Use:   "mqtt_message_consumer",
 		Short: "Run the mqtt message consumer",
@@ -78,6 +86,7 @@ func NewRootCommand() *cobra.Command {
 	rootCmd.AddCommand(apiServerCmd)
 	rootCmd.AddCommand(kafkaMessageConsumerCmd)
 	rootCmd.AddCommand(connectedAccountReportCmd)
+	rootCmd.AddCommand(connectionCountCmd)
 
 	return rootCmd
 }
