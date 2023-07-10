@@ -29,7 +29,7 @@ type AuthGwResp struct {
 	Identity string `json:"x-rh-identity"`
 }
 
-type ErrorResponse struct {
+type authGwErrorResponse struct {
 	Errors []struct {
 		Meta struct {
 			ResponseBy string `json:"response_by"`
@@ -92,13 +92,12 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 
 	if r.StatusCode != 200 {
 		logger.Debugf("Call to Auth Gateway returned http status code %d", r.StatusCode)
-		b, _ := ioutil.ReadAll(r.Body)
-		var errResponse ErrorResponse
-		if err := json.Unmarshal(b, &errResponse); err != nil {
+		var errResponse authGwErrorResponse
+		if err := json.NewDecoder(r.Body).Decode(&errResponse); err != nil {
 			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse error reponse")
-			return "", "", "", err
+			return "", "", "", fmt.Errorf("Unable to find account: %w", err)
 		}
-		return "", "", "", fmt.Errorf("Unable to find account %p", errResponse)
+		return "", "", "", fmt.Errorf("Unable to find account %s", errResponse.Errors[2].Detail)
 	}
 
 	var resp AuthGwResp
