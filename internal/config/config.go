@@ -85,6 +85,7 @@ const (
 	PENDO_REQUEST_TIMEOUT                        = "Pendo_Request_Timeout"
 	PENDO_INTEGRATION_KEY                        = "Pendo_Integration_Key"
 	PENDO_REQUEST_SIZE                           = "Pendo_Request_Size"
+	PROMETHEUS_PUSHGATEWAY                       = "Prometheus_PushGateway"
 	API_SERVER_CONNECTION_LOOKUP_IMPL            = "API_Server_Connection_Lookup_Impl"
 	TENANT_TRANSLATOR_IMPL                       = "Tenant_Translator_Impl"
 	TENANT_TRANSLATOR_MOCK_MAPPING               = "Tenant_Translator_Mock_Mapping"
@@ -164,6 +165,7 @@ type Config struct {
 	PendoRequestTimeout                     time.Duration
 	PendoIntegrationKey                     string
 	PendoRequestSize                        int
+	PrometheusPushGateway                   string
 	ApiServerConnectionLookupImpl           string
 	TenantTranslatorImpl                    string
 	TenantTranslatorMockMapping             map[string]interface{}
@@ -240,6 +242,7 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", TENANT_TRANSLATOR_MOCK_MAPPING, c.TenantTranslatorMockMapping)
 	fmt.Fprintf(&b, "%s: %s\n", TENANT_TRANSLATOR_URL, c.TenantTranslatorURL)
 	fmt.Fprintf(&b, "%s: %s\n", TENANT_TRANSLATOR_TIMEOUT, c.TenantTranslatorTimeout)
+	fmt.Fprintf(&b, "%s: %s\n", PROMETHEUS_PUSHGATEWAY, c.PrometheusPushGateway)
 	return b.String()
 }
 
@@ -312,6 +315,7 @@ func GetConfig() *Config {
 	options.SetDefault(TENANT_TRANSLATOR_MOCK_MAPPING, "{\"10001\": \"010101\", \"10000\": \"000000\", \"0002\": \"111000\", \"10002\": \"010102\", \"10003\": \"010103\", \"10004\": \"010104\"}")
 	options.SetDefault(TENANT_TRANSLATOR_URL, "http://gateway.3scale-dev.svc.cluster.local:8892")
 	options.SetDefault(TENANT_TRANSLATOR_TIMEOUT, 5)
+	options.SetDefault(PROMETHEUS_PUSHGATEWAY, "prometheus-push.insights-push-stage.svc.cluster.local:9091") // other option prometheus-push.insights-push-prod.svc.cluster.local:9091
 
 	options.SetEnvPrefix(ENV_PREFIX)
 	options.AutomaticEnv()
@@ -387,6 +391,7 @@ func GetConfig() *Config {
 		PendoRequestTimeout:                     options.GetDuration(PENDO_REQUEST_TIMEOUT) * time.Second,
 		PendoIntegrationKey:                     options.GetString(PENDO_INTEGRATION_KEY),
 		PendoRequestSize:                        options.GetInt(PENDO_REQUEST_SIZE),
+		PrometheusPushGateway:                   options.GetString(PROMETHEUS_PUSHGATEWAY),
 		ApiServerConnectionLookupImpl:           options.GetString(API_SERVER_CONNECTION_LOOKUP_IMPL),
 		TenantTranslatorImpl:                    options.GetString(TENANT_TRANSLATOR_IMPL),
 		TenantTranslatorMockMapping:             options.GetStringMap(TENANT_TRANSLATOR_MOCK_MAPPING),

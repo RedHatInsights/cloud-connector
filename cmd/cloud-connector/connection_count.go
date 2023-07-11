@@ -38,13 +38,9 @@ func startConnectionCount(mgmtAddr string) {
 
 	connectionCountMetric.Add(float64(count))
 
-	pusher := push.New("???????????", "cloud_connector") //Missing the URL of our Prometheus Push Gateway
-	err = pusher.Collector(connectionCountMetric)        //Differnt types as well,
-	if err != nil {
-		logger.LogFatalError("Error pushing metric to the Push Gateway:", err)
-	}
-	err = pusher.Push()
-	if err != nil {
+	if err := push.New(cfg.PrometheusPushGateway, "cloud_connector").
+		Collector(connectionCountMetric).
+		Push(); err != nil {
 		logger.LogFatalError("Error pushing metric to the Push Gateway:", err)
 	}
 
