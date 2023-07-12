@@ -576,9 +576,9 @@ parameters:
   required: true
   value: cloud-connector-rhc-message-consumer
 - name: INVENTORY_KAFKA_BATCH_SIZE
-  value: "100"
+  value: "1"
 - name: RHC_MESSAGE_KAFKA_BATCH_SIZE
-  value: "100"
+  value: "1"
 - name: RHC_MESSAGE_KAFKA_BATCH_BYTES
   value: "1048576"
 
