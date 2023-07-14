@@ -12,7 +12,7 @@ import (
 var (
 	connectionCountMetric = prometheus.NewCounter(
 		prometheus.CounterOpts{
-			Name: "connection_count",
+			Name: "cloud_connector_connection_count",
 			Help: "Number of connections",
 		},
 	)

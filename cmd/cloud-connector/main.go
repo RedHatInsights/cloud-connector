@@ -24,7 +24,7 @@ func NewRootCommand() *cobra.Command {
 	}
 
 	var connectionCountCmd = &cobra.Command{
-		Use:   "connection_count",
+		Use:   "publish_connection_count",
 		Short: "Gets the connection count from the databaseand pushes it to Prometheus",
 		Run: func(cmd *cobra.Command, args []string) {
 			startConnectionCount(listenAddr)
