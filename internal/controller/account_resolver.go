@@ -98,7 +98,7 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 			logger.Debugf("Error Response: %p", errResponse)
 			return "", "", "", fmt.Errorf("Unable to find account: %w", err)
 		}
-		return "", "", "", nil
+		return "", "", "", err
 	}
 
 	var resp AuthGwResp
