@@ -97,8 +97,8 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse error reponse")
 			return "", "", "", fmt.Errorf("Unable to find account: %w", err)
 		}
-		logger.Debugf("Error Response: %d", errResponse)
-		return "", "", "", fmt.Errorf("Unable to find account %s", errResponse.Errors[2].Detail)
+		logger.Debugf("Error Response: %p", errResponse)
+		return "", "", "", fmt.Errorf("Unable to find account %p", &errResponse.Errors[2].Detail)
 	}
 
 	var resp AuthGwResp
