@@ -98,7 +98,8 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 			logger.Debugf("Error Response: %p", errResponse)
 			return "", "", "", fmt.Errorf("Unable to find account: %w", err)
 		}
-		return nil
+		return "", "", "", nil
+	}
 
 	var resp AuthGwResp
 	err = json.NewDecoder(r.Body).Decode(&resp)
