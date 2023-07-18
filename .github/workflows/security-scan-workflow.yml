@@ -24,4 +24,4 @@ on:
 
 jobs:
   PlatSec-Security-Workflow:
-    uses: ./.github/workflows/platsec-security-scan-reusable-workflow.yml
+    uses: RedHatInsights/platform-security-gh-workflow/.github/workflows/platsec-security-scan-reusable-workflow.yml@master
