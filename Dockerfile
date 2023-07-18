@@ -1,6 +1,6 @@
 # Use go-toolset as the builder image
 # Once built, copy to a smaller image and run from there
-FROM registry.redhat.io/ubi8/go-toolset as builder
+FROM registry.access.redhat.com/ubi8/go-toolset as builder
 
 WORKDIR /go/src/app
 
@@ -15,7 +15,7 @@ USER root
 RUN make build
 
 # Using ubi8-minimal due to its smaller footprint
-FROM registry.redhat.io/ubi8/ubi-minimal
+FROM registry.access.redhat.com/ubi8/ubi-minimal
 
 WORKDIR /
 
