@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -37,6 +38,15 @@ type authGwErrorResponse struct {
 		Status int    `json:"status"`
 		Detail string `json:"detail"`
 	} `json:"errors"`
+}
+
+func (this authGwErrorResponse) String() string {
+	var b strings.Builder
+	for _, err := range this.Errors {
+		b.WriteString(err.Detail)
+		fmt.Fprintf(&b, "(response_by: %s, status: %d, detail: %s)", err.Meta.ResponseBy, err.Status, err.Detail)
+	}
+	return b.String()
 }
 
 func NewAccountIdResolver(accountIdResolverImpl string, cfg *config.Config) (AccountIdResolver, error) {
@@ -98,7 +108,7 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 			logger.Debugf("Error Response: %p", errResponse)
 			return "", "", "", fmt.Errorf("Unable to find account: %w", err)
 		}
-		return "", "", "", err
+		return "", "", "", fmt.Errorf("Unable to find account: %s", errResponse)
 	}
 
 	var resp AuthGwResp
