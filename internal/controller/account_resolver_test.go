@@ -55,7 +55,7 @@ func TestBopResolver(t *testing.T) {
 			expectError:       true,
 		},
 		{
-			mockResponse:      "{\"errors\":[{\"meta\":{\"response_by\":\"service\"},\"status\":500,\"detail\":\"\"}]}",
+			mockResponse:      "{\"errors\":[{\"meta\":{\"response_by\":\"service\"},\"status\":500,\"detail\":\"ima detail\"}]}",
 			mockResponseCode:  500,
 			inputClientID:     "testID",
 			expectedOutHeader: "/CN=testID",
