@@ -42,9 +42,9 @@ type authGwErrorResponse struct {
 
 func (this authGwErrorResponse) String() string {
 	var b strings.Builder
+	fmt.Fprintf(&b, "Gateway returned an error: ")
 	for _, err := range this.Errors {
-		b.WriteString(err.Detail)
-		fmt.Fprintf(&b, "(response_by: %s, status: %d, detail: %s)", err.Meta.ResponseBy, err.Status, err.Detail)
+		fmt.Fprintf(&b, " (response_by: %s, status: %d, detail: %s)", err.Meta.ResponseBy, err.Status, err.Detail)
 	}
 	return b.String()
 }
@@ -105,7 +105,6 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 		var errResponse authGwErrorResponse
 		if err := json.NewDecoder(r.Body).Decode(&errResponse); err != nil {
 			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse error reponse")
-			logger.Debugf("Error Response: %p", errResponse)
 			return "", "", "", fmt.Errorf("Unable to find account: %w", err)
 		}
 		return "", "", "", fmt.Errorf("Unable to find account: %s", errResponse)
