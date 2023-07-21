@@ -54,6 +54,30 @@ func TestBopResolver(t *testing.T) {
 			expectedOutput:    resolverResponse{"", "", ""},
 			expectError:       true,
 		},
+		{
+			mockResponse:      "{\"errors\":[{\"meta\":{\"response_by\":\"service\"},\"status\":500,\"detail\":\"\"}]}",
+			mockResponseCode:  500,
+			inputClientID:     "testID",
+			expectedOutHeader: "/CN=testID",
+			expectedOutput:    resolverResponse{"", "", ""},
+			expectError:       true,
+		},
+		{
+			mockResponse:      "{\"errors\":[{\"meta\":{}]}",
+			mockResponseCode:  500,
+			inputClientID:     "testID",
+			expectedOutHeader: "/CN=testID",
+			expectedOutput:    resolverResponse{"", "", ""},
+			expectError:       true,
+		},
+		{
+			mockResponse:      "{\"errors\":[{\"meta\":{\"response_by\":\"service\"},\"status\":200,\"detail\":\"Got the detail\"}]}",
+			mockResponseCode:  200,
+			inputClientID:     "testID",
+			expectedOutHeader: "/CN=testID",
+			expectedOutput:    resolverResponse{"", "", ""},
+			expectError:       true,
+		},
 	}
 	for _, c := range cases {
 		conf := config.GetConfig()

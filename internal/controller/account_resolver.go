@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -27,6 +28,25 @@ type AccountIdResolver interface {
 
 type AuthGwResp struct {
 	Identity string `json:"x-rh-identity"`
+}
+
+type authGwErrorResponse struct {
+	Errors []struct {
+		Meta struct {
+			ResponseBy string `json:"response_by"`
+		} `json:"meta"`
+		Status int    `json:"status"`
+		Detail string `json:"detail"`
+	} `json:"errors"`
+}
+
+func (this authGwErrorResponse) String() string {
+	var b strings.Builder
+	for _, err := range this.Errors {
+		b.WriteString(err.Detail)
+		fmt.Fprintf(&b, "(response_by: %s, status: %d, detail: %s)", err.Meta.ResponseBy, err.Status, err.Detail)
+	}
+	return b.String()
 }
 
 func NewAccountIdResolver(accountIdResolverImpl string, cfg *config.Config) (AccountIdResolver, error) {
@@ -82,9 +102,15 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 
 	if r.StatusCode != 200 {
 		logger.Debugf("Call to Auth Gateway returned http status code %d", r.StatusCode)
-		b, _ := ioutil.ReadAll(r.Body)
-		return "", "", "", fmt.Errorf("Unable to find account %s", string(b))
+		var errResponse authGwErrorResponse
+		if err := json.NewDecoder(r.Body).Decode(&errResponse); err != nil {
+			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse error reponse")
+			logger.Debugf("Error Response: %p", errResponse)
+			return "", "", "", fmt.Errorf("Unable to find account: %w", err)
+		}
+		return "", "", "", fmt.Errorf("Unable to find account: %s", errResponse)
 	}
+
 	var resp AuthGwResp
 	err = json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
