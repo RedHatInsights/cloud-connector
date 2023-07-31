@@ -27,7 +27,7 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
-      "id": 159090,
+      "id": 168132,
       "links": [],
       "liveNow": false,
       "panels": [
@@ -73,49 +73,18 @@ data:
           "fieldConfig": {
             "defaults": {
               "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
+                "mode": "thresholds"
               },
               "mappings": [],
               "thresholds": {
-                "mode": "absolute",
+                "mode": "percentage",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
-                    "color": "red",
-                    "value": 80
+                    "color": "dark-red",
+                    "value": 95
                   }
                 ]
               }
@@ -130,17 +99,18 @@ data:
           },
           "id": 54,
           "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
             },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
           },
+          "pluginVersion": "9.3.8",
           "targets": [
             {
               "datasource": {
@@ -148,7 +118,7 @@ data:
                 "uid": "${datasource}"
               },
               "editorMode": "code",
-              "expr": "1 - (sum(increase(cloud_connector_http_status_code_counter{service=\"cloud-connector-api\", status_code!~\"5.*\"}[$__range:1m])) / sum(increase(cloud_connector_http_status_code_counter{service=\"cloud-connector-api\"}[$__range:1m])))",
+              "expr": "(1 - (sum(increase((0 * absent(cloud_connector_http_status_code_counter{service=\"cloud-connector-api\", status_code=~\"5.*\"}) or cloud_connector_http_status_code_counter{service=\"cloud-connector-api\", status_code=~\"5.*\"})[$__range:1m]))/ sum(increase(cloud_connector_http_status_code_counter{service=\"cloud-connector-api\"}[$__range:1m]))) )* 100.0",
               "hide": false,
               "legendFormat": "__auto",
               "range": true,
@@ -156,7 +126,7 @@ data:
             }
           ],
           "title": "HTTP Availability SLO",
-          "type": "timeseries"
+          "type": "gauge"
         },
         {
           "datasource": {
@@ -203,8 +173,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -296,8 +265,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -470,8 +438,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -546,8 +513,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -645,8 +611,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -737,8 +702,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -810,8 +774,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -896,8 +859,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "red",
-                    "value": null
+                    "color": "red"
                   }
                 ]
               },
@@ -981,8 +943,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -1067,8 +1028,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "red",
-                    "value": null
+                    "color": "red"
                   }
                 ]
               },
@@ -1173,8 +1133,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1263,8 +1222,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -2015,8 +1973,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -2348,7 +2305,7 @@ data:
         "list": [
           {
             "current": {
-              "selected": true,
+              "selected": false,
               "text": "crcp01ue1-prometheus",
               "value": "crcp01ue1-prometheus"
             },
@@ -2398,7 +2355,7 @@ data:
       "timezone": "",
       "title": "Cloud-Connector",
       "uid": "c91dcda039618ded",
-      "version": 3,
+      "version": 4,
       "weekStart": ""
     }
 kind: ConfigMap
