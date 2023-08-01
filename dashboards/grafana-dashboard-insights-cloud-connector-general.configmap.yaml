@@ -68,23 +68,22 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "$datasource"
           },
           "fieldConfig": {
             "defaults": {
-              "color": {
-                "mode": "thresholds"
-              },
               "mappings": [],
+              "max": 1,
+              "min": 0,
               "thresholds": {
                 "mode": "percentage",
                 "steps": [
                   {
-                    "color": "green",
+                    "color": "red",
                     "value": null
                   },
                   {
-                    "color": "dark-red",
+                    "color": "green",
                     "value": 95
                   }
                 ]
@@ -99,12 +98,12 @@ data:
             "x": 0,
             "y": 2
           },
-          "id": 54,
+          "id": 62,
           "options": {
             "orientation": "auto",
             "reduceOptions": {
               "calcs": [
-                "lastNotNull"
+                "mean"
               ],
               "fields": "",
               "values": false
@@ -116,18 +115,17 @@ data:
           "targets": [
             {
               "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
+                "uid": "$datasource"
               },
               "editorMode": "code",
               "expr": "(1.0 - (sum(increase((0 * absent(cloud_connector_http_status_code_counter{service=\"cloud-connector-api\", status_code=~\"5.*\"}) or cloud_connector_http_status_code_counter{service=\"cloud-connector-api\", status_code=~\"5.*\"})[$__range:1m]))/ sum(increase(cloud_connector_http_status_code_counter{service=\"cloud-connector-api\"}[$__range:1m]))) )",
-              "hide": false,
-              "legendFormat": "__auto",
+              "interval": "",
+              "legendFormat": "",
               "range": true,
-              "refId": "D"
+              "refId": "A"
             }
           ],
-          "title": "HTTP Availability SLO",
+          "title": "HTTP Availability SLO (95%)",
           "type": "gauge"
         },
         {
@@ -2385,7 +2383,7 @@ data:
       "timezone": "",
       "title": "Cloud-Connector",
       "uid": "c91dcda039618ded",
-      "version": 5,
+      "version": 6,
       "weekStart": ""
     }
 kind: ConfigMap
