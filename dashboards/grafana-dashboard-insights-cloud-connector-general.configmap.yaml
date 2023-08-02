@@ -131,57 +131,27 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "$datasource"
           },
           "fieldConfig": {
             "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
               "mappings": [],
+              "max": 1,
+              "min": 0,
               "thresholds": {
-                "mode": "absolute",
+                "mode": "percentage",
                 "steps": [
                   {
-                    "color": "green",
+                    "color": "red",
                     "value": null
                   },
                   {
-                    "color": "red",
-                    "value": 80
+                    "color": "green",
+                    "value": 95
                   }
                 ]
-              }
+              },
+              "unit": "percentunit"
             },
             "overrides": []
           },
@@ -191,90 +161,60 @@ data:
             "x": 7,
             "y": 2
           },
-          "id": 55,
+          "id": 63,
           "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "mean"
+              ],
+              "fields": "",
+              "values": false
             },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
           },
+          "pluginVersion": "9.3.8",
           "targets": [
             {
               "datasource": {
-                "type": "prometheus",
-                "uid": "${datasource}"
+                "uid": "$datasource"
               },
               "editorMode": "code",
-              "expr": "1 - sum(rate(cloud_connector_mqtt_message_consumer_kafka_writer_publish_success_count[$__range:1m])) / sum(rate(cloud_connector_mqtt_control_message_received_count[$__range:1m]))\n",
-              "hide": false,
-              "legendFormat": "__auto",
+              "expr": "sum(rate(cloud_connector_mqtt_control_message_received_count[5m])) / sum(rate(cloud_connector_mqtt_control_message_received_count[5m]))",
+              "interval": "",
+              "legendFormat": "",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": "MQTT Availability SLO",
-          "type": "timeseries"
+          "title": "MQTT Control Message Availability SLO (95%)",
+          "type": "gauge"
         },
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "$datasource"
           },
           "fieldConfig": {
             "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
               "mappings": [],
+              "max": 1,
+              "min": 0,
               "thresholds": {
-                "mode": "absolute",
+                "mode": "percentage",
                 "steps": [
                   {
-                    "color": "green",
+                    "color": "red",
                     "value": null
                   },
                   {
-                    "color": "red",
-                    "value": 80
+                    "color": "green",
+                    "value": 95
                   }
                 ]
-              }
+              },
+              "unit": "percentunit"
             },
             "overrides": []
           },
@@ -284,35 +224,36 @@ data:
             "x": 13,
             "y": 2
           },
-          "id": 57,
+          "id": 64,
           "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "mean"
+              ],
+              "fields": "",
+              "values": false
             },
-            "tooltip": {
-              "mode": "single",
-              "sort": "none"
-            }
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
           },
+          "pluginVersion": "9.3.8",
           "targets": [
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "${datasource}"
+                "uid": "$datasource"
               },
               "editorMode": "code",
-              "expr": "1 - (sum(increase(cloud_connector_http_status_code_counter{service=\"cloud-connector-api\", status_code!~\"5.*\"}[$__range:1m])) / sum(increase(cloud_connector_http_status_code_counter{service=\"cloud-connector-api\"}[$__range:1m])))",
+              "expr": "(1 - sum(kafka_consumergroup_group_sum_lag{group=\"cloud-connector-rhc-message-consumer\"}) / 100) ",
               "hide": false,
               "legendFormat": "__auto",
               "range": true,
-              "refId": "D"
+              "refId": "A"
             }
           ],
-          "title": "HTTP Availability SLO",
-          "type": "timeseries"
+          "title": "Kafka Message Consumer Latency SLO (95%)",
+          "type": "gauge"
         },
         {
           "datasource": {
@@ -2383,7 +2324,7 @@ data:
       "timezone": "",
       "title": "Cloud-Connector",
       "uid": "c91dcda039618ded",
-      "version": 6,
+      "version": 7,
       "weekStart": ""
     }
 kind: ConfigMap
