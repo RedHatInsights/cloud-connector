@@ -27,7 +27,7 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
-      "id": 168132,
+      "id": 170787,
       "links": [],
       "liveNow": false,
       "panels": [
@@ -210,7 +210,7 @@ data:
                   },
                   {
                     "color": "green",
-                    "value": 95
+                    "value": 90
                   }
                 ]
               },
@@ -224,7 +224,7 @@ data:
             "x": 13,
             "y": 2
           },
-          "id": 64,
+          "id": 65,
           "options": {
             "orientation": "auto",
             "reduceOptions": {
@@ -245,14 +245,14 @@ data:
                 "uid": "$datasource"
               },
               "editorMode": "code",
-              "expr": "(1 - sum(kafka_consumergroup_group_sum_lag{group=\"cloud-connector-rhc-message-consumer\"}) / 100) ",
+              "expr": "1 - (quantile_over_time(0.95, sum(kafka_consumergroup_group_lag{topic=~\"platform.cloud-connector.rhc-message-ingress\"})[28d:]) / 100)",
               "hide": false,
               "legendFormat": "__auto",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": "Kafka Message Consumer Latency SLO (95%)",
+          "title": "Kafka Message Consumer Latency SLO (90%)",
           "type": "gauge"
         },
         {
@@ -1661,8 +1661,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1843,8 +1842,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -1931,8 +1929,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "red",
-                    "value": null
+                    "color": "red"
                   }
                 ]
               },
