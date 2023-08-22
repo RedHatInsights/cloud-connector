@@ -244,7 +244,7 @@ data:
                 "uid": "$datasource"
               },
               "editorMode": "code",
-              "expr": "sum(rate(cloud_connector_mqtt_control_message_received_count[5m])) / sum(rate(cloud_connector_mqtt_control_message_received_count[5m]))",
+              "expr": "sum(rate(cloud_connector_mqtt_message_consumer_kafka_writer_publish_duration_count[5m])) / sum(rate(cloud_connector_mqtt_control_message_received_count[5m]))",
               "interval": "",
               "legendFormat": "",
               "range": true,
@@ -2384,7 +2384,7 @@ data:
       "timezone": "",
       "title": "Cloud-Connector",
       "uid": "c91dcda039618ded",
-      "version": 8,
+      "version": 9,
       "weekStart": ""
     }
 kind: ConfigMap
