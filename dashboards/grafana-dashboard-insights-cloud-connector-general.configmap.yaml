@@ -94,7 +94,7 @@ data:
           },
           "gridPos": {
             "h": 7,
-            "w": 7,
+            "w": 10,
             "x": 0,
             "y": 2
           },
@@ -118,7 +118,7 @@ data:
                 "uid": "$datasource"
               },
               "editorMode": "code",
-              "expr": "(1.0 - (sum(increase((0 * absent(cloud_connector_http_status_code_counter{service=\"cloud-connector-api\", status_code=~\"5.*\"}) or cloud_connector_http_status_code_counter{service=\"cloud-connector-api\", status_code=~\"5.*\"})[$__range:1m]))/ sum(increase(cloud_connector_http_status_code_counter{service=\"cloud-connector-api\"}[$__range:1m]))) )",
+              "expr": "(1.0 - (sum(increase((cloud_connector_http_status_code_counter{service=\"cloud-connector-api\", status_code=~\"5.*\"})[$__range:1m]) or vector(0))/ sum(increase(cloud_connector_http_status_code_counter{service=\"cloud-connector-api\"}[$__range:1m]))) )",
               "interval": "",
               "legendFormat": "",
               "range": true,
@@ -157,9 +157,72 @@ data:
           },
           "gridPos": {
             "h": 7,
-            "w": 6,
-            "x": 7,
+            "w": 10,
+            "x": 10,
             "y": 2
+          },
+          "id": 66,
+          "options": {
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "mean"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          },
+          "pluginVersion": "9.3.8",
+          "targets": [
+            {
+              "datasource": {
+                "uid": "$datasource"
+              },
+              "editorMode": "code",
+              "expr": " avg(avg_over_time(up{container=~\"cloud-connector-.*\"}[28d:]))",
+              "interval": "",
+              "legendFormat": "",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": " Uptime Availability SLO (95%)",
+          "type": "gauge"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "$datasource"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "mappings": [],
+              "max": 1,
+              "min": 0,
+              "thresholds": {
+                "mode": "percentage",
+                "steps": [
+                  {
+                    "color": "red",
+                    "value": null
+                  },
+                  {
+                    "color": "green",
+                    "value": 95
+                  }
+                ]
+              },
+              "unit": "percentunit"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 7,
+            "w": 10,
+            "x": 0,
+            "y": 9
           },
           "id": 63,
           "options": {
@@ -220,9 +283,9 @@ data:
           },
           "gridPos": {
             "h": 7,
-            "w": 7,
-            "x": 13,
-            "y": 2
+            "w": 10,
+            "x": 10,
+            "y": 9
           },
           "id": 65,
           "options": {
@@ -264,7 +327,7 @@ data:
             "h": 2,
             "w": 20,
             "x": 0,
-            "y": 9
+            "y": 16
           },
           "id": 58,
           "links": [],
@@ -298,7 +361,7 @@ data:
             "h": 2,
             "w": 10,
             "x": 0,
-            "y": 11
+            "y": 18
           },
           "id": 56,
           "links": [],
@@ -332,7 +395,7 @@ data:
             "h": 2,
             "w": 10,
             "x": 10,
-            "y": 11
+            "y": 18
           },
           "id": 10,
           "links": [],
@@ -398,7 +461,7 @@ data:
             "h": 3,
             "w": 10,
             "x": 0,
-            "y": 13
+            "y": 20
           },
           "id": 36,
           "links": [],
@@ -475,7 +538,7 @@ data:
             "h": 3,
             "w": 10,
             "x": 10,
-            "y": 13
+            "y": 20
           },
           "id": 34,
           "links": [],
@@ -572,7 +635,7 @@ data:
             "h": 6,
             "w": 10,
             "x": 0,
-            "y": 16
+            "y": 23
           },
           "id": 60,
           "options": {
@@ -666,7 +729,7 @@ data:
             "h": 6,
             "w": 10,
             "x": 10,
-            "y": 16
+            "y": 23
           },
           "id": 59,
           "options": {
@@ -758,7 +821,7 @@ data:
             "h": 6,
             "w": 10,
             "x": 0,
-            "y": 22
+            "y": 29
           },
           "id": 48,
           "options": {
@@ -848,7 +911,7 @@ data:
             "h": 6,
             "w": 10,
             "x": 10,
-            "y": 22
+            "y": 29
           },
           "id": 49,
           "options": {
@@ -899,7 +962,7 @@ data:
             "h": 7,
             "w": 5,
             "x": 0,
-            "y": 28
+            "y": 35
           },
           "hiddenSeries": false,
           "id": 38,
@@ -991,7 +1054,7 @@ data:
             "h": 7,
             "w": 5,
             "x": 5,
-            "y": 28
+            "y": 35
           },
           "hiddenSeries": false,
           "id": 39,
@@ -1100,7 +1163,7 @@ data:
             "h": 3,
             "w": 5,
             "x": 10,
-            "y": 28
+            "y": 35
           },
           "id": 50,
           "links": [],
@@ -1188,7 +1251,7 @@ data:
             "h": 3,
             "w": 5,
             "x": 15,
-            "y": 28
+            "y": 35
           },
           "id": 35,
           "links": [],
@@ -1258,7 +1321,7 @@ data:
             "h": 7,
             "w": 5,
             "x": 10,
-            "y": 31
+            "y": 38
           },
           "hiddenSeries": false,
           "id": 29,
@@ -1350,7 +1413,7 @@ data:
             "h": 7,
             "w": 5,
             "x": 15,
-            "y": 31
+            "y": 38
           },
           "hiddenSeries": false,
           "id": 30,
@@ -1441,7 +1504,7 @@ data:
             "h": 6,
             "w": 10,
             "x": 0,
-            "y": 35
+            "y": 42
           },
           "hiddenSeries": false,
           "id": 46,
@@ -1532,7 +1595,7 @@ data:
             "h": 6,
             "w": 10,
             "x": 10,
-            "y": 38
+            "y": 45
           },
           "hiddenSeries": false,
           "id": 2,
@@ -1612,7 +1675,7 @@ data:
             "h": 2,
             "w": 10,
             "x": 0,
-            "y": 41
+            "y": 48
           },
           "id": 40,
           "links": [],
@@ -1677,7 +1740,7 @@ data:
             "h": 3,
             "w": 10,
             "x": 0,
-            "y": 43
+            "y": 50
           },
           "id": 41,
           "links": [],
@@ -1734,7 +1797,7 @@ data:
             "h": 6,
             "w": 10,
             "x": 10,
-            "y": 44
+            "y": 51
           },
           "hiddenSeries": false,
           "id": 33,
@@ -1854,7 +1917,7 @@ data:
             "h": 3,
             "w": 5,
             "x": 0,
-            "y": 46
+            "y": 53
           },
           "id": 52,
           "links": [],
@@ -1941,7 +2004,7 @@ data:
             "h": 3,
             "w": 5,
             "x": 5,
-            "y": 46
+            "y": 53
           },
           "id": 51,
           "links": [],
@@ -2011,7 +2074,7 @@ data:
             "h": 7,
             "w": 5,
             "x": 0,
-            "y": 49
+            "y": 56
           },
           "hiddenSeries": false,
           "id": 42,
@@ -2102,7 +2165,7 @@ data:
             "h": 7,
             "w": 5,
             "x": 5,
-            "y": 49
+            "y": 56
           },
           "hiddenSeries": false,
           "id": 43,
@@ -2192,7 +2255,7 @@ data:
             "h": 6,
             "w": 10,
             "x": 0,
-            "y": 56
+            "y": 63
           },
           "hiddenSeries": false,
           "id": 45,
@@ -2321,7 +2384,7 @@ data:
       "timezone": "",
       "title": "Cloud-Connector",
       "uid": "c91dcda039618ded",
-      "version": 7,
+      "version": 8,
       "weekStart": ""
     }
 kind: ConfigMap
