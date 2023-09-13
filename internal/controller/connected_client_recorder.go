@@ -21,7 +21,7 @@ import (
 const (
 	playbookWorkerDispatcherKey     = "rhc-worker-playbook"
 	packageManagerDispatcherKey     = "package-manager"
-	convert2RhelWorkerDispatcherKey = "rhc-worker-bash"
+	convert2RhelWorkerDispatcherKey = "rhc-worker-script"
 	inventoryTagNamespace           = "rhc_client"
 )
 
