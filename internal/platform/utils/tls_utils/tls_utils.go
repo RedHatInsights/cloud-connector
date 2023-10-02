@@ -59,7 +59,7 @@ func WithSkipVerify() TlsConfigFunc {
 
 func NewTlsConfig(configOpts ...TlsConfigFunc) (*tls.Config, error) {
 	tlsConfig := &tls.Config{
-		MinVersion: tls.VersionTLS13,
+		MinVersion: tls.VersionTLS12,
 	}
 
 	for _, opt := range configOpts {
