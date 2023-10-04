@@ -423,15 +423,14 @@ func GetConfig() *Config {
 			config.KafkaUsername = *broker.Sasl.Username
 			config.KafkaPassword = *broker.Sasl.Password
 			config.KafkaSASLMechanism = *broker.Sasl.SaslMechanism
+		}
 
-			if broker.Cacert != nil {
-				caPath, err := cfg.KafkaCa(broker)
-				if err != nil {
-					panic("Kafka CA cert failed to write")
-				}
-
-				config.KafkaCA = caPath
+		if broker.Cacert != nil {
+			caPath, err := cfg.KafkaCa(broker)
+			if err != nil {
+				panic("Kafka CA cert failed to write")
 			}
+			config.KafkaCA = caPath
 		}
 
 		config.ConnectionDatabaseHost = cfg.Database.Hostname
