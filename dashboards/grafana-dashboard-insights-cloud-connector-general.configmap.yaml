@@ -27,7 +27,7 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
-      "id": 170787,
+      "id": 348668,
       "links": [],
       "liveNow": false,
       "panels": [
@@ -133,6 +133,7 @@ data:
             "type": "prometheus",
             "uid": "$datasource"
           },
+          "description": "",
           "fieldConfig": {
             "defaults": {
               "mappings": [],
@@ -147,7 +148,7 @@ data:
                   },
                   {
                     "color": "green",
-                    "value": 95
+                    "value": 90
                   }
                 ]
               },
@@ -181,14 +182,14 @@ data:
                 "uid": "$datasource"
               },
               "editorMode": "code",
-              "expr": " avg(avg_over_time(up{container=~\"cloud-connector-.*\"}[28d:]))",
+              "expr": "sum(increase(cloud_connector_http_response_duration_bucket{le=\"0.25\", status_code=~\"2.*\", service=\"cloud-connector-api\"}[5m])) / sum(increase(cloud_connector_http_response_duration_bucket{le=\"+Inf\", status_code=~\"2.*\", service=\"cloud-connector-api\"}[5m]))",
               "interval": "",
               "legendFormat": "",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": " Uptime Availability SLO (95%)",
+          "title": " HTTP Latency SLO (90%)",
           "type": "gauge"
         },
         {
@@ -805,8 +806,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -895,8 +895,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1150,8 +1149,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   }
                 ]
               },
@@ -1238,8 +1236,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "red",
-                    "value": null
+                    "color": "red"
                   }
                 ]
               },
@@ -2353,7 +2350,7 @@ data:
         ]
       },
       "time": {
-        "from": "now-2d",
+        "from": "now-7d",
         "to": "now"
       },
       "timepicker": {
@@ -2384,7 +2381,7 @@ data:
       "timezone": "",
       "title": "Cloud-Connector",
       "uid": "c91dcda039618ded",
-      "version": 9,
+      "version": 10,
       "weekStart": ""
     }
 kind: ConfigMap
