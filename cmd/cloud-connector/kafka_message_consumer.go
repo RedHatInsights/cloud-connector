@@ -184,9 +184,11 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 
 		topic := getHeaderValueAsString(msg.Headers, mqtt.TopicKafkaHeaderKey)
 		mqttMessageID := getHeaderValueAsString(msg.Headers, mqtt.MessageIDKafkaHeaderKey)
+		dateReceived := getHeaderValueAsString(msg.Headers, mqtt.DateReceivedHeaderKey)
 
 		logger := logger.Log.WithFields(logrus.Fields{"mqtt_message_id": mqttMessageID,
-			"client_id": string(msg.Key)})
+			"client_id":     string(msg.Key),
+			"date_received": dateReceived})
 
 		logger.Debug("Read message off of kafka topic")
 
@@ -228,7 +230,7 @@ func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*kafka
 			break
 		}
 
-		logger.Log.Debugf("message from partition %d at offset %d: %s = %s\n", m.Partition, m.Offset, string(m.Key), string(m.Value))
+		logger.Log.Tracef("message from partition %d at offset %d: %s = %s\n", m.Partition, m.Offset, string(m.Key), string(m.Value))
 
 		metrics.kafkaMessageReceivedCounter.Inc()
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
@@ -16,6 +17,7 @@ import (
 const (
 	TopicKafkaHeaderKey     = "topic"
 	MessageIDKafkaHeaderKey = "mqtt_message_id"
+	DateReceivedHeaderKey   = "date_received"
 )
 
 func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topicVerifier *TopicVerifier) func(MQTT.Client, MQTT.Message) {
@@ -56,6 +58,7 @@ func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topic
 				Headers: []kafka.Header{
 					{TopicKafkaHeaderKey, []byte(message.Topic())},
 					{MessageIDKafkaHeaderKey, []byte(mqttMessageID)},
+					{DateReceivedHeaderKey, []byte(time.Now().UTC().String())},
 				},
 				Key:   []byte(clientID),
 				Value: message.Payload(),
@@ -88,7 +91,7 @@ func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topic
 
 func DataMessageHandler() func(MQTT.Client, MQTT.Message) {
 	return func(client MQTT.Client, message MQTT.Message) {
-		logger.Log.Debugf("Received data message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
+		logger.Log.Tracef("Received data message on topic: %s\n", message.Topic())
 
 		metrics.dataMessageReceivedCounter.Inc()
 
