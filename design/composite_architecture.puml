@@ -1,0 +1,63 @@
+@startuml
+left to right direction
+
+together {
+  cloud akamai_mqtt_broker as "Akamai MQTT Broker"
+
+  component akamai_mqtt_consumer as "MQTT Consumer"
+  
+  component akamai_kafka_consumer1 as "Kafka Consumer"
+  
+  component akamai_api_server1 as "API Server"
+
+  database akamai_database as "Database"
+
+  queue akamai_queue as "Kafka"
+}
+
+together {
+  cloud aws_mqtt_broker as "AWS MQTT Broker"
+
+  component aws_mqtt_consumer as "MQTT Consumer"
+  
+  component aws_kafka_consumer1 as "Kafka Consumer"
+
+  component aws_api_server1 as "API Server"
+
+  database aws_database as "Database"
+
+  queue aws_queue as "Kafka"
+}
+
+
+component composite_api_server1 as "Composite API Server"
+
+@enduml
+
+
+akamai_mqtt_broker <-> akamai_mqtt_consumer
+akamai_mqtt_consumer -> akamai_queue
+akamai_queue --> akamai_kafka_consumer1
+
+akamai_kafka_consumer1 --> akamai_database
+
+akamai_api_server1 --> akamai_database
+
+akamai_api_server1 -> akamai_mqtt_broker
+
+
+
+aws_mqtt_broker <-> aws_mqtt_consumer
+aws_mqtt_consumer -> aws_queue
+aws_queue --> aws_kafka_consumer1
+
+aws_kafka_consumer1 --> aws_database
+
+aws_api_server1 --> aws_database
+
+aws_api_server1 -> aws_mqtt_broker
+
+
+composite_api_server1 -> aws_api_server1
+composite_api_server1 -> akamai_api_server1
+
