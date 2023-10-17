@@ -333,6 +333,9 @@ objects:
         - name: CLOUD_CONNECTOR_SOURCES_BASE_URL
           value: ${{SOURCES_BASE_URL}}
 
+        - name: CLOUD_CONNECTOR_INVALID_HANDSHAKE_RECONNECT_DELAY
+          value: ${INVALID_HANDSHAKE_RECONNECT_DELAY}
+
 
     jobs:
 
@@ -568,6 +571,9 @@ parameters:
   value: "false"
 - name: API_SERVER_SHUTDOWN_ON_MQTT_CONNECTION_LOST
   value: "false"
+
+- name: INVALID_HANDSHAKE_RECONNECT_DELAY
+  value: "60"
 
 - name: RHC_MESSAGE_KAFKA_TOPIC
   required: true

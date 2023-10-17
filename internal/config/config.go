@@ -271,7 +271,7 @@ func GetConfig() *Config {
 	options.SetDefault(MQTT_PUBLISH_TIMEOUT, 2)
 	options.SetDefault(MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME, 2)
 	options.SetDefault(SHUTDOWN_ON_MQTT_CONNECTION_LOST, false)
-	options.SetDefault(INVALID_HANDSHAKE_RECONNECT_DELAY, 5)
+	options.SetDefault(INVALID_HANDSHAKE_RECONNECT_DELAY, 60)
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_IMPL, "config_file_based")
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE, "client_id_to_account_id_map.json")
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID, "111000")
