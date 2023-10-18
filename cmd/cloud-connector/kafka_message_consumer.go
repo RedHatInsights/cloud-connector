@@ -162,7 +162,7 @@ func getHeaderValueAsString(headers []kafka.Header, headerName string) string {
 	return ""
 }
 
-func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mqtt.TopicVerifier, topicBuilder *mqtt.TopicBuilder, connectionRegistrar connection_repository.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(*kafka.Message) error {
+func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mqtt.TopicVerifier, topicBuilder *mqtt.TopicBuilder, connectionRegistrar connection_repository.ConnectionRegistrar, accountResolver controller.AccountIdResolver, connectedClientRecorder controller.ConnectedClientRecorder, sourcesRecorder controller.SourcesRecorder) func(*logrus.Entry, *kafka.Message) error {
 
 	controlMessageHandler := cloud_connector.HandleControlMessage(
 		cfg,
@@ -173,7 +173,7 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 		connectedClientRecorder,
 		sourcesRecorder)
 
-	return func(msg *kafka.Message) error {
+	return func(log *logrus.Entry, msg *kafka.Message) error {
 
 		logger.Log.Tracef("%% Message %s\n", string(msg.Value))
 
@@ -186,30 +186,30 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 		mqttMessageID := getHeaderValueAsString(msg.Headers, mqtt.MessageIDKafkaHeaderKey)
 		dateReceived := getHeaderValueAsString(msg.Headers, mqtt.DateReceivedHeaderKey)
 
-		logger := logger.Log.WithFields(logrus.Fields{"mqtt_message_id": mqttMessageID,
+		log = log.WithFields(logrus.Fields{"mqtt_message_id": mqttMessageID,
 			"client_id":     string(msg.Key),
 			"date_received": dateReceived})
 
-		logger.Debug("Read message off of kafka topic")
+		log.Debug("Read message off of kafka topic")
 
 		if len(topic) == 0 {
-			logger.Debug("Unable to process message.  Message does not have topic header!")
+			log.Debug("Unable to process message.  Message does not have topic header!")
 			return nil
 		}
 
 		payload := string(msg.Value)
 
-		logger.Debugf("Received control message on topic: %s\nMessage: %s\n", topic, payload)
+		log.Debugf("Received control message on topic: %s\nMessage: %s\n", topic, payload)
 
 		topicType, clientID, err := topicVerifier.VerifyIncomingTopic(topic)
 
 		if err != nil {
-			logger.WithFields(logrus.Fields{"error": err}).Debug("Unable to process message.  Unable to parse topic!")
+			log.WithFields(logrus.Fields{"error": err}).Debug("Unable to process message.  Unable to parse topic!")
 			return nil
 		}
 
 		if topicType != mqtt.ControlTopicType {
-			logger.Debug("Invalid topic type read from kafka.  Skipping message...")
+			log.Debug("Invalid topic type read from kafka.  Skipping message...")
 			return nil
 		}
 
@@ -217,7 +217,7 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 	}
 }
 
-func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*kafka.Message) error, ctx context.Context, fatalProcessingError chan struct{}) {
+func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*logrus.Entry, *kafka.Message) error, ctx context.Context, fatalProcessingError chan struct{}) {
 
 	for {
 		m, err := kafkaReader.FetchMessage(ctx)
@@ -230,13 +230,16 @@ func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*kafka
 			break
 		}
 
-		logger.Log.Tracef("message from partition %d at offset %d: %s = %s\n", m.Partition, m.Offset, string(m.Key), string(m.Value))
+		log := logger.Log.WithFields(logrus.Fields{
+			"client_id": string(m.Key),
+			"partition": m.Partition,
+			"offset":    m.Offset})
 
 		metrics.kafkaMessageReceivedCounter.Inc()
 
-		err = process(&m)
+		err = process(log, &m)
 		if err != nil {
-			logger.LogError("Error handling message:", err)
+			logger.LogWithError(log, "Error handling message:", err)
 			// Notify the main thread to shutdown
 			fatalProcessingError <- struct{}{}
 			break
@@ -245,7 +248,7 @@ func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*kafka
 		// explicitly commit the message
 		err = kafkaReader.CommitMessages(ctx, m)
 		if err != nil {
-			logger.LogError("Failed to commit message to kafka", err)
+			logger.LogWithError(log, "Failed to commit message to kafka", err)
 			// Notify the main thread to shutdown
 			fatalProcessingError <- struct{}{}
 			break
