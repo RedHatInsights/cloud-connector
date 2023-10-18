@@ -139,15 +139,22 @@ objects:
       # one mqtt consumer running at a time
       deploymentStrategy:
         privateStrategy: Recreate
+      terminationGracePeriodSeconds: 1
       podSpec:
         minReadySeconds: 15
         progressDeadlineSeconds: 600
         image: ${IMAGE}:${IMAGE_TAG}
+        terminationGracePeriodSeconds: 2
         command:
           - ./cloud-connector
           - mqtt_message_consumer
           - -l
           - :10000
+        lifecycle:
+          preStop:
+            exec:
+              # SIGTERM triggers a quick exit; gracefully terminate instead
+              command: ["/usr/sbin/nginx","-s","quit"]
         livenessProbe:
           failureThreshold: 3
           httpGet:
@@ -207,6 +214,8 @@ objects:
           value: ${MQTT_CONSUMER_MQTT_CLEAN_SESSION}
         - name: CLOUD_CONNECTOR_SHUTDOWN_ON_MQTT_CONNECTION_LOST
           value: ${MQTT_CONSUMER_SHUTDOWN_ON_MQTT_CONNECTION_LOST}
+        - name: CLOUD_CONNECTOR_MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME
+          value: ${MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME}
 
         - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BATCH_SIZE
           value: ${RHC_MESSAGE_KAFKA_BATCH_SIZE}
@@ -574,6 +583,8 @@ parameters:
 
 - name: INVALID_HANDSHAKE_RECONNECT_DELAY
   value: "60"
+- name: MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME
+  value: "50"
 
 - name: RHC_MESSAGE_KAFKA_TOPIC
   required: true
