@@ -584,7 +584,7 @@ parameters:
 - name: INVALID_HANDSHAKE_RECONNECT_DELAY
   value: "60"
 - name: MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME
-  value: "50"
+  value: "2"
 
 - name: RHC_MESSAGE_KAFKA_TOPIC
   required: true
