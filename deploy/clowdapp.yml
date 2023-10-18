@@ -139,22 +139,15 @@ objects:
       # one mqtt consumer running at a time
       deploymentStrategy:
         privateStrategy: Recreate
-      terminationGracePeriodSeconds: 1
       podSpec:
         minReadySeconds: 15
         progressDeadlineSeconds: 600
         image: ${IMAGE}:${IMAGE_TAG}
-        terminationGracePeriodSeconds: 2
         command:
           - ./cloud-connector
           - mqtt_message_consumer
           - -l
           - :10000
-        lifecycle:
-          preStop:
-            exec:
-              # SIGTERM triggers a quick exit; gracefully terminate instead
-              command: ["/usr/sbin/nginx","-s","quit"]
         livenessProbe:
           failureThreshold: 3
           httpGet:
