@@ -18,7 +18,6 @@ import (
 	"github.com/gorilla/mux"
 )
 
-
 func startCompositeCloudConnectorApiServer(mgmtAddr string) {
 
 	logger.Log.Info("Starting Cloud-Connector Composite API service")
@@ -26,11 +25,11 @@ func startCompositeCloudConnectorApiServer(mgmtAddr string) {
 	cfg := config.GetConfig()
 	logger.Log.Info("Cloud-Connector configuration:\n", cfg)
 
-    cache := make(map[domain.ClientID]string)
-    urls := []string{"http://localhost:8081"}
+	cache := make(map[domain.ClientID]string)
+	urls := []string{"http://localhost:8081"}
 
-    fmt.Println("PASS IN THE SHARED CONNECTION STATE CACHE")
-	proxyFactory, err := api.NewConnectorClientHTTPProxyFactory(cfg,cache)
+	fmt.Println("PASS IN THE SHARED CONNECTION STATE CACHE")
+	proxyFactory, err := api.NewConnectorClientHTTPProxyFactory(cfg, cache)
 	if err != nil {
 		logger.LogFatalError("Unable to create proxy factory", err)
 	}
@@ -53,7 +52,7 @@ func startCompositeCloudConnectorApiServer(mgmtAddr string) {
 	getConnectionFunction, err = connection_repository.NewCompositeGetConnectionByClientID(cfg, urls, cache)
 
 	if err != nil {
-	    logger.LogFatalError("Unable to create connection_repository.GetConnection() function", err)
+		logger.LogFatalError("Unable to create connection_repository.GetConnection() function", err)
 	}
 
 	jr := api.NewMessageReceiver(getConnectionFunction, tenantTranslator, proxyFactory, apiMux, cfg.UrlBasePath, cfg)

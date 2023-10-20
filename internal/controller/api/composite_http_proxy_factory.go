@@ -12,14 +12,14 @@ import (
 )
 
 type ConnectorClientHTTPProxyFactory struct {
-	config       *config.Config
+	config *config.Config
 
-    // FIXME: Add the cache here
-    cache        map[domain.ClientID]string
+	// FIXME: Add the cache here
+	cache map[domain.ClientID]string
 }
 
 func NewConnectorClientHTTPProxyFactory(cfg *config.Config, cache map[domain.ClientID]string) (controller.ConnectorClientProxyFactory, error) {
-    proxyFactory := ConnectorClientHTTPProxyFactory{config: cfg, cache: cache}
+	proxyFactory := ConnectorClientHTTPProxyFactory{config: cfg, cache: cache}
 	return &proxyFactory, nil
 }
 
@@ -27,7 +27,7 @@ func (this *ConnectorClientHTTPProxyFactory) CreateProxy(ctx context.Context, or
 
 	logger := logger.Log.WithFields(logrus.Fields{"org_id": orgID, "account": account, "client_id": client_id})
 
-    // Look up connection in cache
+	// Look up connection in cache
 
 	proxy := ConnectorClientHTTPProxy{
 		Logger:         logger,

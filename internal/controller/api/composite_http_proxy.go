@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 	"errors"
-    "fmt"
+	"fmt"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -30,15 +30,15 @@ type ConnectorClientHTTPProxy struct {
 
 func (this *ConnectorClientHTTPProxy) SendMessage(ctx context.Context, directive string, metadata interface{}, payload interface{}) (*uuid.UUID, error) {
 
-//	metrics.sentMessageDirectiveCounter.With(prometheus.Labels{"directive": directive}).Inc()
+	//	metrics.sentMessageDirectiveCounter.With(prometheus.Labels{"directive": directive}).Inc()
 
-//	logger := this.Logger.WithFields(logrus.Fields{"message_id": messageID})
+	//	logger := this.Logger.WithFields(logrus.Fields{"message_id": messageID})
 
-// FIXME: get the request id from the context
+	// FIXME: get the request id from the context
 
 	this.Logger.Debug("Sending data message to connected client")
 
-//	err = sendMessage(cc.Client, logger, cc.ClientID, messageID, topic, cc.Config.MqttDataPublishQoS, cc.Config.MqttPublishTimeout, message)
+	//	err = sendMessage(cc.Client, logger, cc.ClientID, messageID, topic, cc.Config.MqttDataPublishQoS, cc.Config.MqttPublishTimeout, message)
 
 	return nil, fmt.Errorf("Not implemented!!")
 }

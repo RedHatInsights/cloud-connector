@@ -75,7 +75,6 @@ func NewRootCommand() *cobra.Command {
 	}
 	compositeApiServerCmd.Flags().StringVarP(&listenAddr, "listen-addr", "l", ":8081", "Hostname:port")
 
-
 	var connectedAccountReportCmd = &cobra.Command{
 		Use:   "connection_count_per_account_reporter",
 		Short: "Generate a report on the number of connections per account",

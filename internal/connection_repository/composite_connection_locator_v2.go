@@ -7,7 +7,7 @@ import (
 	"fmt"
 	//"io/ioutil"
 	"net/http"
-    "time"
+	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -39,33 +39,32 @@ func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []strin
 			return clientState, err
 		}
 
-        // FIXME: Look in the cache
-        fmt.Println("LOOK IN THE CACHE DUMB DUMB")
+		// FIXME: Look in the cache
+		fmt.Println("LOOK IN THE CACHE DUMB DUMB")
 
-        for i := 0; i < len(urls); i++ {
-            clientState, err := makeHttpCall(orgId, clientId, urls[i])
-            if err == nil {
+		for i := 0; i < len(urls); i++ {
+			clientState, err := makeHttpCall(orgId, clientId, urls[i])
+			if err == nil {
 
-                // FIXME: store it in the cache along with the url
-                fmt.Println("STORE IT IN THE CACHE DUMB DUMB")
-                
-                cache[clientId] = urls[i]
+				// FIXME: store it in the cache along with the url
+				fmt.Println("STORE IT IN THE CACHE DUMB DUMB")
 
-                return clientState, nil
-            }
-        }
+				cache[clientId] = urls[i]
+
+				return clientState, nil
+			}
+		}
 
 		return clientState, fmt.Errorf("NOT FOUND!!  FIXME!! ISN'T THERE AN EXISting ERROR TYpe")
 	}, nil
 }
 
-
 func makeHttpCall(orgID domain.OrgID, clientID domain.ClientID, url string) (domain.ConnectorClientState, error) {
 
-    var clientState domain.ConnectorClientState
-    var err error
+	var clientState domain.ConnectorClientState
+	var err error
 
-    // FIXME:  get the request id from context??  Kinda gross??
+	// FIXME:  get the request id from context??  Kinda gross??
 	requestID := uuid.NewString()
 
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID, "request_id": requestID})
@@ -73,12 +72,12 @@ func makeHttpCall(orgID domain.OrgID, clientID domain.ClientID, url string) (dom
 	logger.Infof("Searching for connection - org id: %s, client id: %s", orgID, clientID)
 
 	client := &http.Client{
-		Timeout: 5*time.Second,
+		Timeout: 5 * time.Second,
 	}
 
-    u := fmt.Sprintf("%s/api/cloud-connector/v2/connections/%s/status", url, clientID)
+	u := fmt.Sprintf("%s/api/cloud-connector/v2/connections/%s/status", url, clientID)
 
-    //curl -v -s -X GET -H  "x-rh-identity: $IDENTITY_HEADER" -H "x-rh-insights-request-id: testing1234" http://$JOB_RECEIVER_HOST/api/cloud-connector/v2/connections/$NODE_ID/status | jq
+	//curl -v -s -X GET -H  "x-rh-identity: $IDENTITY_HEADER" -H "x-rh-insights-request-id: testing1234" http://$JOB_RECEIVER_HOST/api/cloud-connector/v2/connections/$NODE_ID/status | jq
 
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
@@ -96,31 +95,30 @@ func makeHttpCall(orgID domain.OrgID, clientID domain.ClientID, url string) (dom
 	logger.Debug("Returned from call to backend cloud-connector")
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Call to backend cloud-connector failed")
-		return clientState, err 
+		return clientState, err
 	}
 	defer r.Body.Close()
 
 	if r.StatusCode != 200 {
 		logger.Debugf("Call to Auth Gateway returned http status code %d", r.StatusCode)
-        return clientState, fmt.Errorf("Unable to find connection")
+		return clientState, fmt.Errorf("Unable to find connection")
 	}
 
-    /*
-	var resp AuthGwResp
-	err = json.NewDecoder(r.Body).Decode(&resp)
-	if err != nil {
-		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse Auth Gateway response")
-		return "", "", "", err
-	}
+	/*
+		var resp AuthGwResp
+		err = json.NewDecoder(r.Body).Decode(&resp)
+		if err != nil {
+			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse Auth Gateway response")
+			return "", "", "", err
+		}
 
-	logger.WithFields(logrus.Fields{"account": jsonData.Identity.AccountNumber, "org_id": jsonData.Identity.Internal.OrgID}).Debug("Located account number and org ID for client")
+		logger.WithFields(logrus.Fields{"account": jsonData.Identity.AccountNumber, "org_id": jsonData.Identity.Internal.OrgID}).Debug("Located account number and org ID for client")
 
 
-	return domain.Identity(resp.Identity), domain.AccountID(jsonData.Identity.AccountNumber), domain.OrgID(jsonData.Identity.Internal.OrgID), nil
-    */
-    return clientState, nil
+		return domain.Identity(resp.Identity), domain.AccountID(jsonData.Identity.AccountNumber), domain.OrgID(jsonData.Identity.Internal.OrgID), nil
+	*/
+	return clientState, nil
 }
-
 
 func NewCompositeGetConnectionsByOrgID(cfg *config.Config) (GetConnectionsByOrgID, error) {
 
