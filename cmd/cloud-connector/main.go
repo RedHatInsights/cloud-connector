@@ -66,6 +66,16 @@ func NewRootCommand() *cobra.Command {
 	}
 	apiServerCmd.Flags().StringVarP(&listenAddr, "listen-addr", "l", ":8081", "Hostname:port")
 
+	var compositeApiServerCmd = &cobra.Command{
+		Use:   "composite_api_server",
+		Short: "Run the Cloud-Connector Composite API Server",
+		Run: func(cmd *cobra.Command, args []string) {
+			startCompositeCloudConnectorApiServer(listenAddr)
+		},
+	}
+	compositeApiServerCmd.Flags().StringVarP(&listenAddr, "listen-addr", "l", ":8081", "Hostname:port")
+
+
 	var connectedAccountReportCmd = &cobra.Command{
 		Use:   "connection_count_per_account_reporter",
 		Short: "Generate a report on the number of connections per account",
@@ -84,6 +94,7 @@ func NewRootCommand() *cobra.Command {
 	rootCmd.AddCommand(mqttMessageConsumerCmd)
 	rootCmd.AddCommand(inventoryStaleTimestampeUpdaterCmd)
 	rootCmd.AddCommand(apiServerCmd)
+	rootCmd.AddCommand(compositeApiServerCmd)
 	rootCmd.AddCommand(kafkaMessageConsumerCmd)
 	rootCmd.AddCommand(connectedAccountReportCmd)
 	rootCmd.AddCommand(connectionCountCmd)
