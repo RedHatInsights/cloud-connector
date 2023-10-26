@@ -2,7 +2,7 @@ package connection_repository
 
 import (
 	"context"
-	//"encoding/json"
+	"encoding/json"
 	//"errors"
 	"fmt"
 	//"io/ioutil"
@@ -55,7 +55,7 @@ func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []strin
 			}
 		}
 
-		return clientState, fmt.Errorf("NOT FOUND!!  FIXME!! ISN'T THERE AN EXISting ERROR TYpe")
+		return clientState, NotFoundError
 	}, nil
 }
 
@@ -77,8 +77,6 @@ func makeHttpCall(orgID domain.OrgID, clientID domain.ClientID, url string) (dom
 
 	u := fmt.Sprintf("%s/api/cloud-connector/v2/connections/%s/status", url, clientID)
 
-	//curl -v -s -X GET -H  "x-rh-identity: $IDENTITY_HEADER" -H "x-rh-insights-request-id: testing1234" http://$JOB_RECEIVER_HOST/api/cloud-connector/v2/connections/$NODE_ID/status | jq
-
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
 		return clientState, err
@@ -87,8 +85,8 @@ func makeHttpCall(orgID domain.OrgID, clientID domain.ClientID, url string) (dom
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("x-rh-insights-request-id", requestID)
 	req.Header.Add("x-rh-cloud-connector-org-id", string(orgID))
-	req.Header.Add("x-rh-cloud-connector-client-id", "PSK-client-id")
-	req.Header.Add("x-rh-cloud-connector-psk", "PSK")
+	req.Header.Add("x-rh-cloud-connector-client-id", "cloud-connector-composite")
+	req.Header.Add("x-rh-cloud-connector-psk", "imaPSK")
 
 	logger.Debug("About to call backend cloud-connector")
 	r, err := client.Do(req)
@@ -104,19 +102,36 @@ func makeHttpCall(orgID domain.OrgID, clientID domain.ClientID, url string) (dom
 		return clientState, fmt.Errorf("Unable to find connection")
 	}
 
-	/*
-		var resp AuthGwResp
-		err = json.NewDecoder(r.Body).Decode(&resp)
-		if err != nil {
-			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse Auth Gateway response")
-			return "", "", "", err
-		}
+	type cloudConnectorStatusResponse struct {
+		Status         string                `json:"status"`
+		Account        string                `json:"account"`
+		OrgID          string                `json:"org_id"`
+		ClientID       string                `json:"client_id"`
+		CanonicalFacts domain.CanonicalFacts `json:"canonical_facts"`
+		Dispatchers    domain.Dispatchers    `json:"dispatchers"`
+		Tags           domain.Tags           `json:"tags"`
+	}
 
-		logger.WithFields(logrus.Fields{"account": jsonData.Identity.AccountNumber, "org_id": jsonData.Identity.Internal.OrgID}).Debug("Located account number and org ID for client")
+	var resp cloudConnectorStatusResponse
+	err = json.NewDecoder(r.Body).Decode(&resp)
+	if err != nil {
+		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse Cloud-Connector response")
+		return clientState, err
+	}
 
+	fmt.Println("\n\nresp: ", resp)
 
-		return domain.Identity(resp.Identity), domain.AccountID(jsonData.Identity.AccountNumber), domain.OrgID(jsonData.Identity.Internal.OrgID), nil
-	*/
+	if resp.Status != "connected" {
+		return clientState, NotFoundError
+	}
+
+	clientState.Account = domain.AccountID(resp.Account)
+	clientState.OrgID = domain.OrgID(resp.OrgID)
+	clientState.ClientID = domain.ClientID(resp.ClientID)
+	clientState.CanonicalFacts = resp.CanonicalFacts
+	clientState.Dispatchers = resp.Dispatchers
+	clientState.Tags = resp.Tags
+
 	return clientState, nil
 }
 
