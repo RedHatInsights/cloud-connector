@@ -86,7 +86,7 @@ func makeHttpCall(orgID domain.OrgID, clientID domain.ClientID, url string) (dom
 	req.Header.Add("x-rh-insights-request-id", requestID)
 	req.Header.Add("x-rh-cloud-connector-org-id", string(orgID))
 	req.Header.Add("x-rh-cloud-connector-client-id", "cloud-connector-composite")
-	req.Header.Add("x-rh-cloud-connector-psk", "imaPSK")
+	req.Header.Add("x-rh-cloud-connector-psk", "secret_used_by_composite")
 
 	logger.Debug("About to call backend cloud-connector")
 	r, err := client.Do(req)
