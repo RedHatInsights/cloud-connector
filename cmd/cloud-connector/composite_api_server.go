@@ -25,8 +25,11 @@ func startCompositeCloudConnectorApiServer(mgmtAddr string) {
 	cfg := config.GetConfig()
 	logger.Log.Info("Cloud-Connector configuration:\n", cfg)
 
+	// FIXME:  Thread safety anyone??
 	cache := make(map[domain.ClientID]string)
-	urls := []string{"http://localhost:8081"}
+
+	// FIXME:  What a hack!!  Come on man!
+	urls := []string{"http://cloud-connector-api:10000", "http://cloud-connector-aws-api:10000"}
 
 	fmt.Println("PASS IN THE SHARED CONNECTION STATE CACHE")
 	proxyFactory, err := api.NewConnectorClientHTTPProxyFactory(cfg, cache)
