@@ -215,6 +215,9 @@ objects:
         - name: CLOUD_CONNECTOR_MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME
           value: ${MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME}
 
+        - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_TOPIC
+          value: "platform.cloud-connector.rhc-message-ingress-aws"
+
         - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BATCH_SIZE
           value: ${RHC_MESSAGE_KAFKA_BATCH_SIZE}
         - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BATCH_BYTES
@@ -320,6 +323,8 @@ objects:
         - name: CLOUD_CONNECTOR_SHUTDOWN_ON_MQTT_CONNECTION_LOST
           value: ${KAFKA_CONSUMER_SHUTDOWN_ON_MQTT_CONNECTION_LOST}
 
+        - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_TOPIC
+          value: "platform.cloud-connector.rhc-message-ingress-aws"
         - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_CONSUMER_GROUP
           value: ${{RHC_MESSAGE_KAFKA_CONSUMER_GROUP}}
         - name: CLOUD_CONNECTOR_INVENTORY_KAFKA_BATCH_SIZE
