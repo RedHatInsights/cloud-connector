@@ -1,0 +1,266 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: cloud-connector-composite
+objects:
+
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdApp
+  metadata:
+    name: cloud-connector-composite
+    labels:
+      component: composite
+  spec:
+    envName: ${ENV_NAME}
+    optionalDependencies:
+      - ingress
+      - playbook-dispatcher
+    testing:
+      iqePlugin: cloud-connector
+    inMemoryDb: false
+    deployments:
+    - name: api
+      webServices:
+        private:
+          enabled: True
+        public:
+          enabled: False
+        metrics:
+          enabled: False
+      minReplicas: ${{API_REPLICAS}}
+      podSpec:
+        minReadySeconds: 15
+        progressDeadlineSeconds: 600
+        image: ${IMAGE}:${IMAGE_TAG}
+        command:
+          - ./cloud-connector
+          - composite_api_server
+          - -l
+          - :10000
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /liveness
+            port: 10000
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /readiness
+            port: 10000
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: ${CPU_LIMIT}
+            memory: ${MEMORY_LIMIT}
+          requests:
+            cpu: ${CPU_REQUEST}
+            memory: ${MEMORY_REQUEST}
+        env:
+        - name: CLOUD_CONNECTOR_LOG_LEVEL
+          value: ${{LOG_LEVEL}}
+        - name: CLOUD_CONNECTOR_LOG_FORMAT
+          value: ${{LOG_FORMAT}}
+
+        - name: CLOUD_CONNECTOR_SERVICE_TO_SERVICE_CREDENTIALS
+          valueFrom:
+            secretKeyRef:
+              key: connector-psk-map
+              name: cloud-connector-psks
+
+        - name: CLOUD_CONNECTOR_API_SERVER_CONNECTION_LOOKUP_IMPL
+          value: ${{API_SERVER_CONNECTION_LOOKUP_IMPL}}
+
+        - name: CLOUD_CONNECTOR_TENANT_TRANSLATOR_IMPL
+          value: ${{TENANT_TRANSLATOR_IMPL}}
+        - name: CLOUD_CONNECTOR_TENANT_TRANSLATOR_MOCK_MAPPING
+          value: ${TENANT_TRANSLATOR_MOCK_MAPPING}
+        - name: CLOUD_CONNECTOR_TENANT_TRANSLATOR_URL
+          value: ${TENANT_TRANSLATOR_PROTOCOL}://${TENANT_TRANSLATOR_HOST}:${TENANT_TRANSLATOR_PORT}
+        - name: CLOUD_CONNECTOR_TENANT_TRANSLATOR_TIMEOUT
+          value: ${TENANT_TRANSLATOR_TIMEOUT}
+
+
+# - apiVersion: v1
+#   kind: Service
+#   metadata:
+#     name: cloud-connector
+#     labels:
+#       app: cloud-connector
+#       api-mode: composite
+#   spec:
+#     ports:
+#     - name: legacy-cloud-connector-port
+#       port: 8080
+#       protocol: TCP
+#       targetPort: 10000
+#     selector:
+#       app: cloud-connector
+#       pod: cloud-connector-api
+#     sessionAffinity: None
+#     type: ClusterIP
+
+parameters:
+- description: Initial amount of memory the cloud-connector container will request.
+  displayName: Memory Request
+  name: MEMORY_REQUEST
+  required: true
+  value: 256Mi
+- description: Maximum amount of memory the cloud-connector.
+  displayName: Memory Limit
+  name: MEMORY_LIMIT
+  required: true
+  value: 512Mi
+- description: Initial amount of cpu the cloud-connector container will request.
+  displayName: CPU Request
+  name: CPU_REQUEST
+  required: true
+  value: 200m
+- description: Maximum amount of cpu the cloud-connector container can use.
+  displayName: CPU Limit
+  name: CPU_LIMIT
+  required: true
+  value: 500m
+- description: The log level to use for logging
+  displayName: The log level to use for logging
+  name: LOG_LEVEL
+  required: true
+  value: DEBUG
+- name: LOG_FORMAT
+  value: logstash
+- description: The number of replicas to use for the cloud-connector api
+  name: API_REPLICAS
+  value: '1'
+- description: The number of replicas to use for the cloud-connector api
+  name: MQTT_CONSUMER_REPLICAS
+  value: '1'
+- description: The number of replicas to use for the cloud-connector api
+  name: KAFKA_CONSUMER_REPLICAS
+  value: '1'
+- description: Image
+  name: IMAGE
+  required: true
+  value: quay.io/cloudservices/cloud-connector
+- description: Image tag
+  name: IMAGE_TAG
+  required: true
+- description : ClowdEnvironment name
+  name: ENV_NAME
+  required: true
+
+- name: MQTT_BROKER_ADDRESS
+  value: "ssl://mosquitto:8883/"
+  required: true
+- name: MQTT_TOPIC_PREFIX
+  value: "redhat"
+  required: true
+- name: MQTT_BROKER_TLS_SKIP_VERIFY
+  value: "false"
+  required: true
+- name: MQTT_CONSUMER_MQTT_CLEAN_SESSION
+  value: "false"
+- name: KAFKA_CONSUMER_MQTT_CLEAN_SESSION
+  value: "true"
+- name: API_SERVER_MQTT_CLEAN_SESSION
+  value: "true"
+
+- name: MQTT_CONSUMER_SHUTDOWN_ON_MQTT_CONNECTION_LOST
+  value: "true"
+- name: KAFKA_CONSUMER_SHUTDOWN_ON_MQTT_CONNECTION_LOST
+  value: "false"
+- name: API_SERVER_SHUTDOWN_ON_MQTT_CONNECTION_LOST
+  value: "false"
+
+- name: INVALID_HANDSHAKE_RECONNECT_DELAY
+  value: "60"
+- name: MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME
+  value: "2"
+
+- name: RHC_MESSAGE_KAFKA_TOPIC
+  required: true
+  value: platform.cloud-connector.rhc-message-ingress
+- name: RHC_MESSAGE_KAFKA_CONSUMER_GROUP
+  required: true
+  value: cloud-connector-rhc-message-consumer
+- name: INVENTORY_KAFKA_BATCH_SIZE
+  value: "1"
+- name: RHC_MESSAGE_KAFKA_BATCH_SIZE
+  value: "1"
+- name: RHC_MESSAGE_KAFKA_BATCH_BYTES
+  value: "1048576"
+
+- name: CONNECTED_CLIENT_RECORDER_IMPL
+  required: true
+  value: "inventory"
+
+- name: CLIENT_ID_TO_ACCOUNT_ID_IMPL
+  value: "bop"
+  required: true
+
+- name: AUTH_GATEWAY_URL
+  value: "fake"
+  required: true
+
+- name: SOURCES_RECORDER_IMPL
+  value: "fake"
+  required: true
+
+- name: SOURCES_BASE_URL
+  value: "fake"
+  required: true
+
+- name: API_SERVER_CONNECTION_LOOKUP_IMPL
+  value: "relaxed"
+  required: true
+
+- name: CONNECTION_PER_ACCOUNT_REPORTER_SCHEDULE
+  value: "00 01 * * 1"
+- name: CONNECTION_PER_ACCOUNT_REPORTER_SUSPEND
+  value: "false"
+- name: CONNECTION_PER_ACCOUNT_REPORTER_LOG_FORMAT
+  value: "logstash"
+
+- name: STALE_TIMESTAMP_UPDATER_SCHEDULE
+  value: "*/10 * * * *"
+- name: STALE_TIMESTAMP_UPDATER_SUSPEND
+  value: "false"
+- name: STALE_TIMESTAMP_UPDATER_LOG_FORMAT
+  value: "logstash"
+
+- name: PENDO_API_ENDPOINT
+  value: "https://app.pendo.io/api/v1"
+- name: PENDO_REQUEST_TIMEOUT
+  value: "5"
+- name: PENDO_REQUEST_SIZE
+  value: "100"
+- name: CONNECTION_COUNT_PER_ACCOUNT_REPORT_OUTPUT_DESTINATION
+  value: "stdout"
+- name: CONNECTION_COUNT_PER_ACCOUNT_REPORT_ACCOUNT_EXCLUSION_LIST
+  value: "477931,6089719,540155"
+
+- name: TENANT_TRANSLATOR_HOST
+  value: 'apicast.3scale-dev.svc.cluster.local'
+- name: TENANT_TRANSLATOR_PORT
+  value: '8892'
+- name: TENANT_TRANSLATOR_PROTOCOL
+  value: 'http'
+
+- name: TENANT_TRANSLATOR_IMPL
+  value: 'translator-service'
+- name: TENANT_TRANSLATOR_MOCK_MAPPING
+  value: "{\"10001\": \"010101\", \"10000\": \"000000\", \"0002\": \"111000\", \"0001\": \"\", \"10002\": \"010102\", \"10003\": \"010103\", \"10004\": \"010104\"}"
+- name: TENANT_TRANSLATOR_TIMEOUT
+  value: "5"
+
+- name: PROMETHEUS_PUSHGATEWAY
+  value: prometheus-push.insights-push-stage.svc.cluster.local:9091
+
+- name: INVENTORY_STALE_TIMESTAMP_UPDATER_CHUNK_SIZE
+  value: "100"

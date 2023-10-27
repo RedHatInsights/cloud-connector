@@ -442,20 +442,22 @@ func GetConfig() *Config {
 			config.KafkaCA = caPath
 		}
 
-		config.ConnectionDatabaseHost = cfg.Database.Hostname
-		config.ConnectionDatabasePort = cfg.Database.Port
-		config.ConnectionDatabaseName = cfg.Database.Name
-		config.ConnectionDatabaseUser = cfg.Database.Username
-		config.ConnectionDatabasePassword = cfg.Database.Password
+		if cfg.Database != nil {
+			config.ConnectionDatabaseHost = cfg.Database.Hostname
+			config.ConnectionDatabasePort = cfg.Database.Port
+			config.ConnectionDatabaseName = cfg.Database.Name
+			config.ConnectionDatabaseUser = cfg.Database.Username
+			config.ConnectionDatabasePassword = cfg.Database.Password
 
-		config.ConnectionDatabaseSslMode = cfg.Database.SslMode
-		if cfg.Database.RdsCa != nil {
-			pathToDBCertFile, err := cfg.RdsCa()
-			if err != nil {
-				panic(err)
+			config.ConnectionDatabaseSslMode = cfg.Database.SslMode
+			if cfg.Database.RdsCa != nil {
+				pathToDBCertFile, err := cfg.RdsCa()
+				if err != nil {
+					panic(err)
+				}
+
+				config.ConnectionDatabaseSslRootCert = pathToDBCertFile
 			}
-
-			config.ConnectionDatabaseSslRootCert = pathToDBCertFile
 		}
 	}
 

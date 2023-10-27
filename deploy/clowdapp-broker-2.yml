@@ -2,15 +2,15 @@
 apiVersion: v1
 kind: Template
 metadata:
-  name: cloud-connector
+  name: cloud-connector-aws
 objects:
 
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdApp
   metadata:
-    name: cloud-connector
-    labels:
-      mqtt-broker: broker-1
+    name: cloud-connector-aws
+    label:
+      mqtt-broker: broker-2
   spec:
     envName: ${ENV_NAME}
     optionalDependencies:
@@ -20,7 +20,7 @@ objects:
       iqePlugin: cloud-connector
     inMemoryDb: false
     database:
-       name: cloud-connector
+       name: cloud-connector-aws
        version: 10
     kafkaTopics:
     - replicas: 3
@@ -28,9 +28,12 @@ objects:
       topicName: platform.inventory.host-ingress-p1
     - replicas: 3
       partitions: 24
-      topicName: platform.cloud-connector.rhc-message-ingress
+      topicName: platform.cloud-connector.rhc-message-ingress-aws
     deployments:
     - name: api
+      metadata:
+        labels:
+          mqtt-broker: broker-2
       webServices:
         private:
           enabled: True
@@ -81,7 +84,7 @@ objects:
         - name: volume-mqtt-jwt-keys
           secret:
             defaultMode: 420
-            secretName: cloud-connector-mqtt-credentials
+            secretName: cloud-connector-mqtt-credentials-aws
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -183,7 +186,7 @@ objects:
         - name: volume-mqtt-jwt-keys
           secret:
             defaultMode: 420
-            secretName: cloud-connector-mqtt-credentials
+            secretName: cloud-connector-mqtt-credentials-aws
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -200,7 +203,7 @@ objects:
           valueFrom:
             secretKeyRef:
               key: mqtt.user
-              name: cloud-connector-mqtt-credentials
+              name: cloud-connector-mqtt-credentials-aws
         - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
           value: ${{MQTT_TOPIC_PREFIX}}
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
@@ -289,7 +292,7 @@ objects:
         - name: volume-mqtt-jwt-keys
           secret:
             defaultMode: 420
-            secretName: cloud-connector-mqtt-credentials
+            secretName: cloud-connector-mqtt-credentials-aws
         - name: client-id-to-account-id-map
           secret:
             defaultMode: 420
@@ -328,12 +331,6 @@ objects:
           value: ${{AUTH_GATEWAY_URL}}
         - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE
           value: "/tmp/cloud-connector-config/client_id_to_account_id_map.json"
-        - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CACHE_SIZE
-          value: ${CLIENT_ID_TO_ACCOUNT_ID_CACHE_SIZE}
-        - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CACHE_VALID_RESPONSE_TTL
-          value: ${{CLIENT_ID_TO_ACCOUNT_ID_CACHE_VALID_RESPONSE_TTL}}
-        - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CACHE_ERROR_RESPONSE_TTL
-          value: ${{CLIENT_ID_TO_ACCOUNT_ID_CACHE_ERROR_RESPONSE_TTL}}
 
         - name: CLOUD_CONNECTOR_CONNECTED_CLIENT_RECORDER_IMPL
           value: ${{CONNECTED_CLIENT_RECORDER_IMPL}}
@@ -438,23 +435,23 @@ objects:
             memory: 512Mi
 
 
-- apiVersion: v1
-  kind: Service
-  metadata:
-    name: cloud-connector
-    labels:
-      app: cloud-connector
-  spec:
-    ports:
-    - name: legacy-cloud-connector-port
-      port: 8080
-      protocol: TCP
-      targetPort: 10000
-    selector:
-      app: cloud-connector
-      pod: cloud-connector-api
-    sessionAffinity: None
-    type: ClusterIP
+# - apiVersion: v1
+#   kind: Service
+#   metadata:
+#     name: cloud-connector
+#     labels:
+#       app: cloud-connector
+#   spec:
+#     ports:
+#     - name: legacy-cloud-connector-port
+#       port: 8080
+#       protocol: TCP
+#       targetPort: 10000
+#     selector:
+#       app: cloud-connector
+#       pod: cloud-connector-api
+#     sessionAffinity: None
+#     type: ClusterIP
 
 
 - apiVersion: v1
@@ -471,7 +468,7 @@ objects:
 - apiVersion: v1
   kind: Secret
   metadata:
-    name: cloud-connector-mqtt-credentials
+    name: cloud-connector-mqtt-credentials-aws
     labels:
       app: cloud-connector
   data:
@@ -481,34 +478,13 @@ objects:
 - apiVersion: v1
   kind: Secret
   metadata:
-    name: cloud-connector-mqtt-consumer-cert
+    name: cloud-connector-mqtt-consumer-cert-aws
     labels:
       app: cloud-connector
   data:
     cert.pem: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNtRENDQWdHZ0F3SUJBZ0lVVFc5R0h1MmExYWh6cWxOZ0FyKzduWHJoamQwd0RRWUpLb1pJaHZjTkFRRUwKQlFBd1hqRUxNQWtHQTFVRUJoTUNXRmd4RlRBVEJnTlZCQWNNREVSbFptRjFiSFFnUTJsMGVURWNNQm9HQTFVRQpDZ3dUUkdWbVlYVnNkQ0JEYjIxd1lXNTVJRXgwWkRFYU1CZ0dBMVVFQXd3UlkyOXVibVZqZEc5eUxYTmxjblpwClkyVXdIaGNOTWpBeE1URTNNVGt4TURBM1doY05NakV4TVRFM01Ua3hNREEzV2pCZU1Rc3dDUVlEVlFRR0V3SlkKV0RFVk1CTUdBMVVFQnd3TVJHVm1ZWFZzZENCRGFYUjVNUnd3R2dZRFZRUUtEQk5FWldaaGRXeDBJRU52YlhCaApibmtnVEhSa01Sb3dHQVlEVlFRRERCRmpiMjV1WldOMGIzSXRjMlZ5ZG1salpUQ0JuekFOQmdrcWhraUc5dzBCCkFRRUZBQU9CalFBd2dZa0NnWUVBeTg3amZHS0ZEaHp5aGVCVDA4QmRIdTdyZ2pKSEI1WDJvb3l0L3llZlVLRzYKd0VMS2dsQktIK2VHNURlWEpVVWc3MXc3OXgwOFJjbmNUNHpFckhMRGRselpDTmNXUFFucnpYUlBDSURGY0ZuUgpYRTdkRk9uQk1vWHkvODltc3cvWmgyajdhVnI3Z0plSHVpNUhFTkJYaTBOYkJVTnBVbDg4dCtwdGt0NnZjOE1DCkF3RUFBYU5UTUZFd0hRWURWUjBPQkJZRUZJZE9SampuWWVWMHBOa2tnMUpMWkIzcEV5NzRNQjhHQTFVZEl3UVkKTUJhQUZJZE9SampuWWVWMHBOa2tnMUpMWkIzcEV5NzRNQThHQTFVZEV3RUIvd1FGTUFNQkFmOHdEUVlKS29aSQpodmNOQVFFTEJRQURnWUVBWllqa0cycGViN3NkOG9teTJ5QzhkVmdGWlcreFF6a2lxSXpiYlpLT3FQVzQxSmRXCkFlTTM4eTFzZDhObG5meS9XUEhCMHdYdGVNUGowb2wxTUxrQ0ZraHNQajVPWkI4eXRYYlNjeTNxNmVjaUJJdUEKQVFTT1NNOVpxd3FDYmtZNTllOUNNdWd5SzZabmV4dk5PYmFLcUwxWU5FcUZwT3VZL2lVanZaTHErM0k9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
     
     key.pem: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUNlQUlCQURBTkJna3Foa2lHOXcwQkFRRUZBQVNDQW1Jd2dnSmVBZ0VBQW9HQkFNdk80M3hpaFE0YzhvWGcKVTlQQVhSN3U2NEl5UndlVjlxS01yZjhubjFDaHVzQkN5b0pRU2gvbmh1UTNseVZGSU85Y08vY2RQRVhKM0UrTQp4S3h5dzNaYzJRalhGajBKNjgxMFR3aUF4WEJaMFZ4TzNSVHB3VEtGOHYvUFpyTVAyWWRvKzJsYSs0Q1hoN291ClJ4RFFWNHREV3dWRGFWSmZQTGZxYlpMZXIzUERBZ01CQUFFQ2dZRUFuSXVPV29WR0ZFQVIzTmtoS2wzd2FRazEKWm16OStBcXRSYy91K2pUUi8xb3FtdkR5b2NQUUc4OTM0aVg4OThpd2NvcVRHTTJnOVM0SEJpZG5EZHFjM1JlWApLdUhlY0svTkt0anZFZjViOHZSNmRjcTlLN0pLQmlXeFNLb1E3WW9ua1o4M1JFZ1d3Q0thdXZ1VzJDRit1NVNOCm8rNk0veWcrcXFLZ3lwSXpnRWtDUVFEcHlFbTNFYnlON2ZpQmhYSDlmcDliOHBrRklpYmFZblY2dXV0WkNlY28KZy92K0NOa1dEWENNejNkbGQ5ZkVrQVFjclN1c1FuM1VtcWtUOGJKQ1ptQkZBa0VBM3kxYTllSGxyZ3lPWXVOVApmUkZIamFhbDJNKytKRldCaWlMZHpTaTg3OEZXb3VEdDlUNm9KeThoeGM0SGR5NWpKT2N6dGNCcUdHU1BNeStJClZMdFlad0pBRE9menVkbU8wVDhMOHdxTTZuT3RGSVJtRWpSNmRKL3U0R0dsVUhzTmVkMGZjanpHejBMYXJjdGUKU2dtOXJhcE5yOCtYazZEd0ZXYWNZdTk2NmRPQkNRSkJBSkM2VlBhSFcrOFc3VzlyaEVUaTQ4Z1VmaEN3QjlxQQpLTlZ2N3U2UXNKVzZoM2h3N1YvUkZqTHkrYS9SQUQ1bHNwM0g0VnpJUHdVNmtUTGNiRWltaFprQ1FRQ2l1b1J6CjdTS2Q1ZmhsUmxBTmFHdzcvQ3FodHBjekVwbmo1RkJRblpjVnVOazdHYW4vZmc1YnJpL1pIekpGQ1ZWZkNJcXEKTWF6L1ltSy9SZTE0VjUvYgotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg==
-
-
-- apiVersion: v1
-  kind: Secret
-  metadata:
-    name: client-id-to-account-id-map-config
-    labels:
-      app: cloud-connector
-  data:
-    client_id_to_account_id_map.json: eyI4YTgyMzkxOC1mODAxLTQ3NGMtOWY3OS03Y2M3ZTlkNzlhN2YiOiB7ImFjY291bnRJZCI6ICIwMTAxMDEiLCAib3JnSWQiOiAiMTAwMDEifSwgImNsaWVudC0xIjogeyAiYWNjb3VudElkIjogIjAxMDEwMiIsICJvcmdJZCI6ICIxMDAwMiJ9fQ==
-  type: Opaque
-
-
-- apiVersion: v1
-  kind: Secret
-  metadata:
-    name: pendo-creds
-    labels:
-      app: cloud-connector
-  data:
-    apikey: Tk9UIEEgUkVBTCBLRVk=
 
 
 parameters:
@@ -605,14 +581,8 @@ parameters:
   value: "inventory"
 
 - name: CLIENT_ID_TO_ACCOUNT_ID_IMPL
-  value: "bop_with_cache"
+  value: "bop"
   required: true
-- name: CLIENT_ID_TO_ACCOUNT_ID_CACHE_SIZE
-  value: "1000"
-- name: CLIENT_ID_TO_ACCOUNT_ID_CACHE_VALID_RESPONSE_TTL
-  value: "10m"
-- name: CLIENT_ID_TO_ACCOUNT_ID_CACHE_ERROR_RESPONSE_TTL
-  value: "10s"
 
 - name: AUTH_GATEWAY_URL
   value: "fake"
