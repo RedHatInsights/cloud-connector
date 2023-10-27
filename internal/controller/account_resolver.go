@@ -11,6 +11,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -18,6 +19,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/redhatinsights/platform-go-middlewares/identity"
 
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
@@ -47,6 +49,62 @@ func (this authGwErrorResponse) String() string {
 		fmt.Fprintf(&b, " (response_by: %s, status: %d, detail: %s)", err.Meta.ResponseBy, err.Status, err.Detail)
 	}
 	return b.String()
+}
+
+type CachedAccountIdResolver struct {
+	AccountIdResolver
+	cache 		*lru.Cache
+	cacheTTL 	time.Duration
+}
+
+func NewCachedAccountIdResolver(accountIdResolverImpl string, cfg *config.Config, cacheSize int, cacheTTL time.Duration) (AccountIdResolver, error) {
+	baseResolver, err := NewAccountIdResolver(accountIdResolverImpl, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	cache, err := lru.New(cacheSize)
+	if err != nil {
+		return nil, err
+	}
+
+	return &CachedAccountIdResolver{
+		AccountIdResolver: 	baseResolver,
+		cache:				cache,
+		cacheTTL: 			cacheTTL,
+	},nil
+}
+
+func (car *CachedAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, domain.OrgID, error){
+	//Check cache 
+	if cached, ok := car.cache.Get(clientID); ok {
+		cachedResult := cached.(cachedResult)
+		//Check if cached result is still valid 
+		if time.Since(cachedResult.timestamp) < car.cacheTTL {
+			return cachedResult.identity, cachedResult.accountID, cachedResult.orgID, nil
+		}
+	}
+	//if not in cache or cache expired, call base resolver
+	identity, accountID, orgID, err := car.AccountIdResolver.MapClientIdToAccountId(ctx, clientID)
+
+	if err == nil{
+		//Cache the result
+		car.cache.Add(clientID, cachedResult{
+			identity: identity,
+			accountID: accountID,
+			orgID: orgID,
+			timestamp: time.Now(),
+		})
+	}
+
+	return identity, accountID,orgID, err
+}
+
+type cachedResult struct {
+	identity 	domain.Identity
+	accountID  	domain.AccountID
+	orgID 		domain.OrgID
+	timestamp   time.Time
 }
 
 func NewAccountIdResolver(accountIdResolverImpl string, cfg *config.Config) (AccountIdResolver, error) {
