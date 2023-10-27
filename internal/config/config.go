@@ -423,10 +423,10 @@ func GetConfig() *Config {
 		fmt.Println("Cloud-Connector is running in a Clowderized environment...overriding configuration!!")
 
 		config.InventoryKafkaBrokers = clowder.KafkaServers
-		config.InventoryKafkaTopic = clowder.KafkaTopics["platform.inventory.host-ingress-p1"].Name
+		config.InventoryKafkaTopic = clowder.KafkaTopics[config.InventoryKafkaTopic].Name
 
 		config.RhcMessageKafkaBrokers = clowder.KafkaServers
-		config.RhcMessageKafkaTopic = clowder.KafkaTopics[RHC_MESSAGE_KAFKA_TOPIC_DEFAULT].Name
+		config.RhcMessageKafkaTopic = clowder.KafkaTopics[config.RhcMessageKafkaTopic].Name
 
 		if broker.Authtype != nil {
 			config.KafkaUsername = *broker.Sasl.Username
