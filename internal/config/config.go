@@ -425,8 +425,13 @@ func GetConfig() *Config {
 		config.InventoryKafkaBrokers = clowder.KafkaServers
 		config.InventoryKafkaTopic = clowder.KafkaTopics[config.InventoryKafkaTopic].Name
 
+
+
+        fmt.Println("Looking for topic named:", config.RhcMessageKafkaTopic)
+
 		config.RhcMessageKafkaBrokers = clowder.KafkaServers
 		config.RhcMessageKafkaTopic = clowder.KafkaTopics[config.RhcMessageKafkaTopic].Name
+        fmt.Println("Configured topic name:", config.RhcMessageKafkaTopic)
 
 		if broker.Authtype != nil {
 			config.KafkaUsername = *broker.Sasl.Username
