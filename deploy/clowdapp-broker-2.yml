@@ -324,7 +324,7 @@ objects:
           value: ${KAFKA_CONSUMER_SHUTDOWN_ON_MQTT_CONNECTION_LOST}
 
         - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_TOPIC
-          value: ${{RHC_MESSAGE_KAFKA_TOPIC}}
+          value: "platform.cloud-connector.rhc-message-ingress-aws"
         - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_CONSUMER_GROUP
           value: ${{RHC_MESSAGE_KAFKA_CONSUMER_GROUP}}
         - name: CLOUD_CONNECTOR_INVENTORY_KAFKA_BATCH_SIZE

@@ -46,6 +46,8 @@ func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []strin
 			clientState, err := makeHttpCall(orgId, clientId, urls[i])
 			if err == nil {
 
+				fmt.Println("url: ", urls[i])
+
 				// FIXME: store it in the cache along with the url
 				fmt.Println("STORE IT IN THE CACHE DUMB DUMB")
 
