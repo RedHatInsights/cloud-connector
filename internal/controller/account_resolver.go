@@ -79,11 +79,14 @@ func (ecar *ExpirableCachedAccountIdResolver) MapClientIdToAccountId(ctx context
 	cached, ok := ecar.cache.Get(clientID)
 	if ok {
 		cachedResult := cached.(cachedResult)
+
+		now := time.Now()
 		//Check if cached result is still valid 
-		if time.Since(cachedResult.timestamp) < ecar.cacheTTL {
+		if cachedResult.err == nil && now.Sub(cachedResult.timestamp) < ecar.cacheTTL {
 			return cachedResult.identity, cachedResult.accountID, cachedResult.orgID, nil
 		}
-		if time.Since(cachedResult.timestamp) < ecar.errorTTL {
+
+		if now.Sub(cachedResult.timestamp) < ecar.errorTTL && cachedResult.err != nil {
 			//if cach err is whin the erro ttl return it
 			return "","","", cachedResult.err
 		}
