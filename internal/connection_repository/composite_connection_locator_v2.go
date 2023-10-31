@@ -19,50 +19,54 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func NewCompositeGetConnectionByClientID(cfg *config.Config, urls []string, cache *expirable.LRU[domain.ClientID, string]) (GetConnectionByClientID, error) {
+func NewCompositeGetConnectionByClientID(cfg *config.Config, urls []string, connectionLocationCache *expirable.LRU[domain.ClientID, string]) (GetConnectionByClientID, error) {
 
-	return createGetConnectionByClientIDCompositeImpl(cfg, urls, cache)
+	return createGetConnectionByClientIDCompositeImpl(cfg, urls, connectionLocationCache)
 }
 
-func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []string, cache *expirable.LRU[domain.ClientID, string]) (GetConnectionByClientID, error) {
+func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []string, connectionLocationCache *expirable.LRU[domain.ClientID, string]) (GetConnectionByClientID, error) {
 
 	return func(ctx context.Context, log *logrus.Entry, orgId domain.OrgID, clientId domain.ClientID) (domain.ConnectorClientState, error) {
-		var clientState domain.ConnectorClientState
 		var err error
 
 		err = verifyOrgId(orgId)
 		if err != nil {
-			return clientState, err
+			return domain.ConnectorClientState{}, err
 		}
 
 		err = verifyClientId(clientId)
 		if err != nil {
-			return clientState, err
+			return domain.ConnectorClientState{}, err
 		}
 
-		// FIXME: Look in the cache
-		fmt.Println("LOOK IN THE CACHE DUMB DUMB")
-
-		for i := 0; i < len(urls); i++ {
-			clientState, err := makeHttpCall(ctx, log, orgId, clientId, urls[i])
-			if err == nil {
-
-				fmt.Println("url: ", urls[i])
-
-				// FIXME: store it in the cache along with the url
-				fmt.Println("STORE IT IN THE CACHE DUMB DUMB")
-
-				cache.Add(clientId, urls[i])
-
-				return clientState, nil
-			}
+		cachedConnectionLocationUrl, ok := connectionLocationCache.Get(clientId)
+		if ok {
+			return getConnectionState(ctx, log, orgId, clientId, cachedConnectionLocationUrl)
 		}
 
-		return clientState, NotFoundError
+		connectionState, err := lookupConnectionState(ctx, log, orgId, clientId, urls, connectionLocationCache)
+		if err == nil {
+			return connectionState, err
+		}
+
+		return domain.ConnectorClientState{}, NotFoundError
 	}, nil
 }
 
-func makeHttpCall(ctx context.Context, log *logrus.Entry, orgID domain.OrgID, clientID domain.ClientID, url string) (domain.ConnectorClientState, error) {
+func lookupConnectionState(ctx context.Context, log *logrus.Entry, orgId domain.OrgID, clientId domain.ClientID, urls []string, cache *expirable.LRU[domain.ClientID, string]) (domain.ConnectorClientState, error) {
+	for i := 0; i < len(urls); i++ {
+		clientState, err := getConnectionState(ctx, log, orgId, clientId, urls[i])
+		if err == nil {
+			fmt.Println("url: ", urls[i])
+			cache.Add(clientId, urls[i])
+			return clientState, nil
+		}
+	}
+
+	return domain.ConnectorClientState{}, NotFoundError
+}
+
+func getConnectionState(ctx context.Context, log *logrus.Entry, orgID domain.OrgID, clientID domain.ClientID, url string) (domain.ConnectorClientState, error) {
 
 	var clientState domain.ConnectorClientState
 	var err error
