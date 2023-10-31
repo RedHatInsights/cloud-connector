@@ -15,15 +15,16 @@ import (
 
 	"github.com/google/uuid"
 	//"github.com/prometheus/client_golang/prometheus"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/sirupsen/logrus"
 )
 
-func NewCompositeGetConnectionByClientID(cfg *config.Config, urls []string, cache map[domain.ClientID]string) (GetConnectionByClientID, error) {
+func NewCompositeGetConnectionByClientID(cfg *config.Config, urls []string, cache *expirable.LRU[domain.ClientID, string]) (GetConnectionByClientID, error) {
 
 	return createGetConnectionByClientIDCompositeImpl(cfg, urls, cache)
 }
 
-func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []string, cache map[domain.ClientID]string) (GetConnectionByClientID, error) {
+func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []string, cache *expirable.LRU[domain.ClientID, string]) (GetConnectionByClientID, error) {
 
 	return func(ctx context.Context, log *logrus.Entry, orgId domain.OrgID, clientId domain.ClientID) (domain.ConnectorClientState, error) {
 		var clientState domain.ConnectorClientState
@@ -51,7 +52,7 @@ func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []strin
 				// FIXME: store it in the cache along with the url
 				fmt.Println("STORE IT IN THE CACHE DUMB DUMB")
 
-				cache[clientId] = urls[i]
+				cache.Add(clientId, urls[i])
 
 				return clientState, nil
 			}

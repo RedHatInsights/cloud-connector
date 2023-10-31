@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/connection_repository"
@@ -16,6 +17,7 @@ import (
 	"github.com/redhatinsights/platform-go-middlewares/request_id"
 
 	"github.com/gorilla/mux"
+	"github.com/hashicorp/golang-lru/v2/expirable"
 )
 
 func startCompositeCloudConnectorApiServer(mgmtAddr string) {
@@ -25,10 +27,9 @@ func startCompositeCloudConnectorApiServer(mgmtAddr string) {
 	cfg := config.GetConfig()
 	logger.Log.Info("Cloud-Connector configuration:\n", cfg)
 
-	// FIXME:  Thread safety anyone??
-	cache := make(map[domain.ClientID]string)
+	cache := expirable.NewLRU[domain.ClientID, string](10, nil, 10*time.Millisecond)
 
-	// FIXME:  What a hack!!  Come on man!
+	// FIXME:  Make this configurable
 	urls := []string{"http://cloud-connector-api:10000", "http://cloud-connector-aws-api:10000"}
 
 	fmt.Println("PASS IN THE SHARED CONNECTION STATE CACHE")
