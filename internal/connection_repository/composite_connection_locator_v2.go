@@ -11,10 +11,10 @@ import (
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
-	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/redhatinsights/platform-go-middlewares/request_id"
 
-	"github.com/google/uuid"
 	//"github.com/prometheus/client_golang/prometheus"
+	"github.com/google/uuid"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/sirupsen/logrus"
 )
@@ -44,7 +44,7 @@ func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []strin
 		fmt.Println("LOOK IN THE CACHE DUMB DUMB")
 
 		for i := 0; i < len(urls); i++ {
-			clientState, err := makeHttpCall(orgId, clientId, urls[i])
+			clientState, err := makeHttpCall(ctx, log, orgId, clientId, urls[i])
 			if err == nil {
 
 				fmt.Println("url: ", urls[i])
@@ -62,15 +62,14 @@ func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []strin
 	}, nil
 }
 
-func makeHttpCall(orgID domain.OrgID, clientID domain.ClientID, url string) (domain.ConnectorClientState, error) {
+func makeHttpCall(ctx context.Context, log *logrus.Entry, orgID domain.OrgID, clientID domain.ClientID, url string) (domain.ConnectorClientState, error) {
 
 	var clientState domain.ConnectorClientState
 	var err error
 
-	// FIXME:  get the request id from context??  Kinda gross??
-	requestID := uuid.NewString()
+	requestID := getRequestId(ctx)
 
-	logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID, "request_id": requestID})
+	logger := log.WithFields(logrus.Fields{"client_id": clientID, "request_id": requestID, "url": url})
 
 	logger.Infof("Searching for connection - org id: %s, client id: %s", orgID, clientID)
 
@@ -91,17 +90,17 @@ func makeHttpCall(orgID domain.OrgID, clientID domain.ClientID, url string) (dom
 	req.Header.Add("x-rh-cloud-connector-client-id", "cloud-connector-composite")
 	req.Header.Add("x-rh-cloud-connector-psk", "secret_used_by_composite")
 
-	logger.Debug("About to call backend cloud-connector")
+	logger.Debug("About to call child Cloud-Connector")
 	r, err := client.Do(req)
-	logger.Debug("Returned from call to backend cloud-connector")
+	logger.Debug("Returned from call to child Cloud-Connector")
 	if err != nil {
-		logger.WithFields(logrus.Fields{"error": err}).Error("Call to backend cloud-connector failed")
+		logger.WithFields(logrus.Fields{"error": err}).Error("Call to child Cloud-Connector failed")
 		return clientState, err
 	}
 	defer r.Body.Close()
 
 	if r.StatusCode != 200 {
-		logger.Debugf("Call to Auth Gateway returned http status code %d", r.StatusCode)
+		logger.Debugf("Call to child Cloud-Connector returned http status code %d", r.StatusCode)
 		return clientState, fmt.Errorf("Unable to find connection")
 	}
 
@@ -118,7 +117,7 @@ func makeHttpCall(orgID domain.OrgID, clientID domain.ClientID, url string) (dom
 	var resp cloudConnectorStatusResponse
 	err = json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
-		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse Cloud-Connector response")
+		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse response from child Cloud-Connector")
 		return clientState, err
 	}
 
@@ -158,4 +157,14 @@ func NewCompositeGetAllConnections(cfg *config.Config) (GetAllConnections, error
 
 		return connectionMap, totalConnections, nil
 	}, nil
+}
+
+func getRequestId(ctx context.Context) string {
+	requestId := request_id.GetReqID(ctx)
+
+	if requestId == "" {
+		return uuid.NewString()
+	}
+
+	return requestId
 }

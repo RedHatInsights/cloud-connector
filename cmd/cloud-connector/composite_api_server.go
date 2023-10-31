@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -32,7 +31,6 @@ func startCompositeCloudConnectorApiServer(mgmtAddr string) {
 	// FIXME:  Make this configurable
 	urls := []string{"http://cloud-connector-api:10000", "http://cloud-connector-aws-api:10000"}
 
-	fmt.Println("PASS IN THE SHARED CONNECTION STATE CACHE")
 	proxyFactory, err := api.NewConnectorClientHTTPProxyFactory(cfg, cache)
 	if err != nil {
 		logger.LogFatalError("Unable to create proxy factory", err)

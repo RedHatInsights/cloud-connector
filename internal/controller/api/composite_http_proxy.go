@@ -12,6 +12,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/redhatinsights/platform-go-middlewares/request_id"
 
 	"github.com/google/uuid"
 	//"github.com/prometheus/client_golang/prometheus"
@@ -38,8 +39,7 @@ func (this *ConnectorClientHTTPProxy) SendMessage(ctx context.Context, directive
 
 	//	metrics.sentMessageDirectiveCounter.With(prometheus.Labels{"directive": directive}).Inc()
 
-	// FIXME:  get the request id from context??  Kinda gross??
-	requestID := uuid.NewString()
+	requestID := getRequestId(ctx)
 
 	logger := logger.Log.WithFields(logrus.Fields{"client_id": this.ClientID, "request_id": requestID})
 
@@ -48,14 +48,6 @@ func (this *ConnectorClientHTTPProxy) SendMessage(ctx context.Context, directive
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
-
-	/*
-	   curl -v -X POST \
-	   -d "{\"directive\": \"$DIRECTIVE\", \"payload\": \"$PAYLOAD\"}" \
-	   -H "x-rh-identity: $IDENTITY_HEADER" \
-	   -H "x-rh-insights-request-id: 1234" \
-	   http://$JOB_RECEIVER_HOST/api/cloud-connector/v2/connections/$NODE_ID/message
-	*/
 
 	type cloudConnectorSendMessageRequest struct {
 		Payload   interface{} `json:"payload"`
@@ -84,17 +76,17 @@ func (this *ConnectorClientHTTPProxy) SendMessage(ctx context.Context, directive
 	req.Header.Add("x-rh-cloud-connector-client-id", "cloud-connector-composite")
 	req.Header.Add("x-rh-cloud-connector-psk", "secret_used_by_composite")
 
-	logger.Debug("About to call backend cloud-connector")
+	logger.Debug("About to call child Cloud-Connector")
 	r, err := client.Do(req)
-	logger.Debug("Returned from call to backend cloud-connector")
+	logger.Debug("Returned from call to child Cloud-Connector")
 	if err != nil {
-		logger.WithFields(logrus.Fields{"error": err}).Error("Call to backend cloud-connector failed")
+		logger.WithFields(logrus.Fields{"error": err}).Error("Call to child Cloud-Connector failed")
 		return nil, err
 	}
 	defer r.Body.Close()
 
 	if r.StatusCode != 201 {
-		logger.Debugf("Call to child cloud-connector returned http status code %d", r.StatusCode)
+		logger.Debugf("Call to child Cloud-Connector returned http status code %d", r.StatusCode)
 		return nil, fmt.Errorf("Unable to find connection")
 	}
 
@@ -105,7 +97,7 @@ func (this *ConnectorClientHTTPProxy) SendMessage(ctx context.Context, directive
 	var resp cloudConnectorSendMessageResponse
 	err = json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
-		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse Cloud-Connector response")
+		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse response from child Cloud-Connector")
 		return nil, err
 	}
 
@@ -113,7 +105,8 @@ func (this *ConnectorClientHTTPProxy) SendMessage(ctx context.Context, directive
 
 	messageID, err := uuid.Parse(resp.MessageID)
 	if err != nil {
-		return nil, fmt.Errorf("FIXME: Wrap it!!  Unable to send")
+		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse message id returned by child Cloud-Connector")
+		return nil, errUnableToSendMessage
 	}
 
 	return &messageID, nil
@@ -141,4 +134,14 @@ func (this *ConnectorClientHTTPProxy) GetTags(ctx context.Context) (domain.Tags,
 
 func (this *ConnectorClientHTTPProxy) Disconnect(ctx context.Context, message string) error {
 	return fmt.Errorf("Not implemented!!")
+}
+
+func getRequestId(ctx context.Context) string {
+	requestId := request_id.GetReqID(ctx)
+
+	if requestId == "" {
+		return uuid.NewString()
+	}
+
+	return requestId
 }
