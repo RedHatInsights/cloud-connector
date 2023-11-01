@@ -52,68 +52,6 @@ func (this authGwErrorResponse) String() string {
 	return b.String()
 }
 
-type ExpirableCachedAccountIdResolver struct {
-	AccountIdResolver
-	cache    *lru.Cache
-	cacheTTL time.Duration
-	errorTTL time.Duration
-}
-
-func NewExpirableCachedAccountIdResolver(baseResolver AccountIdResolver, cacheSize int, cacheTTL, errorTTL time.Duration) (AccountIdResolver, error) {
-	cache, err := lru.New(cacheSize)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ExpirableCachedAccountIdResolver{
-		AccountIdResolver: baseResolver,
-		cache:             cache,
-		cacheTTL:          cacheTTL,
-		errorTTL:          errorTTL,
-	}, nil
-}
-
-func (ecar *ExpirableCachedAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, domain.OrgID, error) {
-	//Check cache
-	cached, ok := ecar.cache.Get(clientID)
-	if ok {
-		cachedResult := cached.(cachedResult)
-
-		now := time.Now()
-		//Check if cached result is still valid
-		if cachedResult.err == nil && now.Sub(cachedResult.timestamp) < ecar.cacheTTL {
-			return cachedResult.identity, cachedResult.accountID, cachedResult.orgID, nil
-		}
-
-		if now.Sub(cachedResult.timestamp) < ecar.errorTTL && cachedResult.err != nil {
-			//if cache error is within the error ttl return it
-			return "", "", "", cachedResult.err
-		}
-	}
-	//if not in cache or cache expired, call base resolver
-	identity, accountID, orgID, err := ecar.AccountIdResolver.MapClientIdToAccountId(ctx, clientID)
-
-	cachedResult := cachedResult{
-		identity:  identity,
-		accountID: accountID,
-		orgID:     orgID,
-		timestamp: time.Now(),
-		err:       err,
-	}
-
-	ecar.cache.Add(clientID, cachedResult)
-
-	return identity, accountID, orgID, err
-}
-
-type cachedResult struct {
-	identity  domain.Identity
-	accountID domain.AccountID
-	orgID     domain.OrgID
-	timestamp time.Time
-	err       error
-}
-
 func NewAccountIdResolver(accountIdResolverImpl string, cfg *config.Config) (AccountIdResolver, error) {
 	switch accountIdResolverImpl {
 	case "config_file_based":
@@ -122,6 +60,13 @@ func NewAccountIdResolver(accountIdResolverImpl string, cfg *config.Config) (Acc
 		return &resolver, err
 	case "bop":
 		return &BOPAccountIdResolver{cfg}, nil
+	case "cached_bop":
+		wrappedResolver := &BOPAccountIdResolver{cfg}
+		// FIXME: pull this from teh config
+		cacheSize := 1000
+		validResponseCacheTTL := 20 * time.Minute
+		errorResponseCacheTTL := 20 * time.Second
+		return NewExpirableCachedAccountIdResolver(wrappedResolver, cacheSize, validResponseCacheTTL, errorResponseCacheTTL)
 	default:
 		return nil, errors.New("Invalid AccountIdResolver impl requested")
 	}
@@ -276,4 +221,66 @@ func (bar *ConfigurableAccountIdResolver) MapClientIdToAccountId(ctx context.Con
 	}
 
 	return bar.createIdentityHeader(bar.defaultAccountId, bar.defaultOrgId), bar.defaultAccountId, bar.defaultOrgId, nil
+}
+
+type ExpirableCachedAccountIdResolver struct {
+	AccountIdResolver
+	cache    *lru.Cache
+	cacheTTL time.Duration
+	errorTTL time.Duration
+}
+
+func NewExpirableCachedAccountIdResolver(baseResolver AccountIdResolver, cacheSize int, cacheTTL, errorTTL time.Duration) (AccountIdResolver, error) {
+	cache, err := lru.New(cacheSize)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ExpirableCachedAccountIdResolver{
+		AccountIdResolver: baseResolver,
+		cache:             cache,
+		cacheTTL:          cacheTTL,
+		errorTTL:          errorTTL,
+	}, nil
+}
+
+func (ecar *ExpirableCachedAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, domain.OrgID, error) {
+	//Check cache
+	cached, ok := ecar.cache.Get(clientID)
+	if ok {
+		cachedResult := cached.(cachedResult)
+
+		now := time.Now()
+		//Check if cached result is still valid
+		if cachedResult.err == nil && now.Sub(cachedResult.timestamp) < ecar.cacheTTL {
+			return cachedResult.identity, cachedResult.accountID, cachedResult.orgID, nil
+		}
+
+		if now.Sub(cachedResult.timestamp) < ecar.errorTTL && cachedResult.err != nil {
+			//if cache error is within the error ttl return it
+			return "", "", "", cachedResult.err
+		}
+	}
+	//if not in cache or cache expired, call base resolver
+	identity, accountID, orgID, err := ecar.AccountIdResolver.MapClientIdToAccountId(ctx, clientID)
+
+	cachedResult := cachedResult{
+		identity:  identity,
+		accountID: accountID,
+		orgID:     orgID,
+		timestamp: time.Now(),
+		err:       err,
+	}
+
+	ecar.cache.Add(clientID, cachedResult)
+
+	return identity, accountID, orgID, err
+}
+
+type cachedResult struct {
+	identity  domain.Identity
+	accountID domain.AccountID
+	orgID     domain.OrgID
+	timestamp time.Time
+	err       error
 }
