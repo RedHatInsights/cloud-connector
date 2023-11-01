@@ -1,15 +1,20 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 )
+
+const validResponseCacheTTL time.Duration = 10 * time.Millisecond
+const errorResponseCacheTTL time.Duration = 2 * time.Millisecond
 
 func init() {
 	logger.InitLogger()
@@ -106,4 +111,157 @@ func TestBopResolver(t *testing.T) {
 		}
 	}
 
+}
+
+type testAccountResolver struct {
+	clientID  domain.ClientID
+	identity  domain.Identity
+	accountID domain.AccountID
+	orgID     domain.OrgID
+	err       error
+	wasCalled bool
+}
+
+func (this *testAccountResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, domain.OrgID, error) {
+	this.wasCalled = true
+	this.clientID = clientID
+	return this.identity, this.accountID, this.orgID, this.err
+}
+
+func TestAccountResolverCacheVerifyWrappedResolverNotCalled(t *testing.T) {
+	cases := []struct {
+		testName        string
+		wrappedResolver *testAccountResolver
+		clientId        domain.ClientID
+	}{
+		{
+			testName: "Cache a good response",
+			wrappedResolver: &testAccountResolver{
+				identity:  "ImaIdentity",
+				accountID: "0001",
+				orgID:     "111100",
+				err:       nil,
+				wasCalled: false,
+			},
+			clientId: "client1",
+		},
+		{
+			testName: "Cache an error response",
+			wrappedResolver: &testAccountResolver{
+				err:       fmt.Errorf("Could not find account"),
+				wasCalled: false,
+			},
+			clientId: "client2",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.testName, func(t *testing.T) {
+			resolver, _ := NewExpirableCachedAccountIdResolver(c.wrappedResolver, 10, validResponseCacheTTL, errorResponseCacheTTL)
+
+			id, acc, org, err := resolver.MapClientIdToAccountId(context.TODO(), c.clientId)
+
+			verifyAccountResolverResponse(t, c.wrappedResolver, id, acc, org, err)
+
+			verifyAccountResolverWasCalled(t, c.wrappedResolver, c.clientId)
+
+			// Reset the WasCalled so that we can verify that it doesn't get called
+			c.wrappedResolver.wasCalled = false
+			c.wrappedResolver.clientID = ""
+
+			id, acc, org, err = resolver.MapClientIdToAccountId(context.TODO(), c.clientId)
+
+			verifyAccountResolverResponse(t, c.wrappedResolver, id, acc, org, err)
+
+			verifyAccountResolverWasNotCalled(t, c.wrappedResolver)
+		})
+	}
+}
+
+func TestAccountResolverCacheVerifyWrappedResolverCalledAfterExpiration(t *testing.T) {
+
+	cases := []struct {
+		testName        string
+		wrappedResolver *testAccountResolver
+		clientId        domain.ClientID
+		sleepTime       time.Duration
+	}{
+		{
+			testName: "Expire a good response",
+			wrappedResolver: &testAccountResolver{
+				identity:  "ImaIdentity",
+				accountID: "0001",
+				orgID:     "111100",
+				err:       nil,
+				wasCalled: false,
+			},
+			clientId:  "client3",
+			sleepTime: validResponseCacheTTL + (2 * time.Millisecond),
+		},
+		{
+			testName: "Expire an error response",
+			wrappedResolver: &testAccountResolver{
+				err:       fmt.Errorf("Could not find account"),
+				wasCalled: false,
+			},
+			clientId:  "client4",
+			sleepTime: errorResponseCacheTTL + (2 * time.Millisecond),
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.testName, func(t *testing.T) {
+			resolver, _ := NewExpirableCachedAccountIdResolver(c.wrappedResolver, 10, validResponseCacheTTL, errorResponseCacheTTL)
+
+			id, acc, org, err := resolver.MapClientIdToAccountId(context.TODO(), c.clientId)
+
+			verifyAccountResolverResponse(t, c.wrappedResolver, id, acc, org, err)
+
+			verifyAccountResolverWasCalled(t, c.wrappedResolver, c.clientId)
+
+			time.Sleep(c.sleepTime)
+
+			// Reset the WasCalled so that we can verify that it was called
+			c.wrappedResolver.wasCalled = false
+			c.wrappedResolver.clientID = ""
+
+			id, acc, org, err = resolver.MapClientIdToAccountId(context.TODO(), c.clientId)
+
+			verifyAccountResolverResponse(t, c.wrappedResolver, id, acc, org, err)
+
+			verifyAccountResolverWasCalled(t, c.wrappedResolver, c.clientId)
+		})
+	}
+}
+
+func verifyAccountResolverResponse(t *testing.T, resolver *testAccountResolver, actualIdentity domain.Identity, actualAccountID domain.AccountID, actualOrgID domain.OrgID, actualErr error) {
+	if resolver.identity != actualIdentity {
+		t.Fatalf("Expected identity (%s) did not match returned identity (%s)", resolver.identity, actualIdentity)
+	}
+
+	if resolver.accountID != actualAccountID {
+		t.Fatalf("Expected account (%s) did not match returned account (%s)", resolver.accountID, actualAccountID)
+	}
+
+	if resolver.orgID != actualOrgID {
+		t.Fatalf("Expected org id (%s) did not match returned org id (%s)", resolver.orgID, actualOrgID)
+	}
+
+	if resolver.err != actualErr {
+		t.Fatalf("Expected error (%s) did not match returned error (%s)", resolver.err, actualErr)
+	}
+}
+
+func verifyAccountResolverWasCalled(t *testing.T, resolver *testAccountResolver, expectedClientId domain.ClientID) {
+	if resolver.wasCalled != true {
+		t.Fatalf("Expected wrapped account resolver to be called")
+	}
+
+	if resolver.clientID != expectedClientId {
+		t.Fatalf("Expected wrapped account resolver to be called with client-id %s, but was called with %s", expectedClientId, resolver.clientID)
+	}
+}
+
+func verifyAccountResolverWasNotCalled(t *testing.T, resolver *testAccountResolver) {
+	if resolver.wasCalled == true {
+		t.Fatalf("Expected wrapper account resolver to NOT be called")
+	}
 }
