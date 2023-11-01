@@ -87,7 +87,7 @@ func (ecar *ExpirableCachedAccountIdResolver) MapClientIdToAccountId(ctx context
 		}
 
 		if now.Sub(cachedResult.timestamp) < ecar.errorTTL && cachedResult.err != nil {
-			//if cach err is whin the erro ttl return it
+			//if cache error is within the error ttl return it
 			return "","","", cachedResult.err
 		}
 	}
