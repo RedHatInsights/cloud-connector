@@ -11,11 +11,14 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/google/uuid"
+	lru "github.com/hashicorp/golang-lru"
+
 	"github.com/redhatinsights/platform-go-middlewares/identity"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -47,6 +50,69 @@ func (this authGwErrorResponse) String() string {
 		fmt.Fprintf(&b, " (response_by: %s, status: %d, detail: %s)", err.Meta.ResponseBy, err.Status, err.Detail)
 	}
 	return b.String()
+}
+
+type ExpirableCachedAccountIdResolver struct {
+	AccountIdResolver
+	cache 		*lru.Cache
+	cacheTTL 	time.Duration
+	errorTTL 	time.Duration
+}
+
+
+func NewExpirableCachedAccountIdResolver(baseResolver AccountIdResolver, cacheSize int, cacheTTL, errorTTL time.Duration)(AccountIdResolver, error) {
+	cache, err := lru.New(cacheSize)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ExpirableCachedAccountIdResolver{
+		AccountIdResolver: 	baseResolver,
+		cache:				cache,
+		cacheTTL: 			cacheTTL,
+		errorTTL: 			errorTTL,
+	},nil
+}
+
+func (ecar *ExpirableCachedAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, domain.OrgID, error){
+	//Check cache 
+	cached, ok := ecar.cache.Get(clientID)
+	if ok {
+		cachedResult := cached.(cachedResult)
+
+		now := time.Now()
+		//Check if cached result is still valid 
+		if cachedResult.err == nil && now.Sub(cachedResult.timestamp) < ecar.cacheTTL {
+			return cachedResult.identity, cachedResult.accountID, cachedResult.orgID, nil
+		}
+
+		if now.Sub(cachedResult.timestamp) < ecar.errorTTL && cachedResult.err != nil {
+			//if cache error is within the error ttl return it
+			return "","","", cachedResult.err
+		}
+	}
+	//if not in cache or cache expired, call base resolver
+	identity, accountID, orgID, err := ecar.AccountIdResolver.MapClientIdToAccountId(ctx, clientID)
+
+	cachedResult := cachedResult{
+		identity: 	identity,
+		accountID: 	accountID,
+		orgID: 		orgID,
+		timestamp: 	time.Now(),
+		err: 		err,
+	}
+	 
+	ecar.cache.Add(clientID, cachedResult)
+
+	return identity, accountID, orgID, err
+}
+
+type cachedResult struct {
+	identity 	domain.Identity
+	accountID  	domain.AccountID
+	orgID 		domain.OrgID
+	timestamp   time.Time
+	err			error
 }
 
 func NewAccountIdResolver(accountIdResolverImpl string, cfg *config.Config) (AccountIdResolver, error) {
