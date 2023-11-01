@@ -61,6 +61,7 @@ func NewAccountIdResolver(accountIdResolverImpl string, cfg *config.Config) (Acc
 	case "bop":
 		return &BOPAccountIdResolver{cfg}, nil
 	case "bop_with_cache":
+		logger.Log.Info("Using BOP account id resolver with caching")
 		wrappedResolver := &BOPAccountIdResolver{cfg}
 		return NewExpirableCachedAccountIdResolver(wrappedResolver, cfg.ClientIdToAccountIdCacheSize, cfg.ClientIdToAccountIdCacheValidRespTTL, cfg.ClientIdToAccountIdCacheErrorRespTTL)
 	default:
@@ -247,17 +248,21 @@ func (ecar *ExpirableCachedAccountIdResolver) MapClientIdToAccountId(ctx context
 
 		//Check if cached result is still valid
 		if result.err == nil {
+			metrics.accountLookupCacheHit.Inc()
 			logger.Debugf("Found cached account mapping results")
 			return result.identity, result.accountID, result.orgID, nil
 		}
 
 		now := time.Now()
 		if now.Sub(result.timestamp) < ecar.errorTTL && result.err != nil {
+			metrics.accountLookupCacheHit.Inc()
 			logger.Debugf("Found cached account mapping results - error: %s", result.err)
 			//if cache error is within the error ttl return it
 			return "", "", "", result.err
 		}
 	}
+
+	metrics.accountLookupCacheMiss.Inc()
 
 	//if not in cache or cache expired, call base resolver
 	identity, accountID, orgID, err := ecar.AccountIdResolver.MapClientIdToAccountId(ctx, clientID)

@@ -12,6 +12,8 @@ type Metrics struct {
 
 	authGatewayAccountLookupStatusCodeCounter *prometheus.CounterVec
 	authGatewayAccountLookupDuration          prometheus.Histogram
+	accountLookupCacheHit                     prometheus.Counter
+	accountLookupCacheMiss                    prometheus.Counter
 }
 
 func NewMetrics() *Metrics {
@@ -40,6 +42,16 @@ func NewMetrics() *Metrics {
 	metrics.authGatewayAccountLookupDuration = promauto.NewHistogram(prometheus.HistogramOpts{
 		Name: "cloud_connector_auth_gateway_account_lookup_duration",
 		Help: "The amount of time the auth gateway account lookup took",
+	})
+
+	metrics.accountLookupCacheHit = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "cloud_connector_account_lookup_cache_hit",
+		Help: "The number of account lookup cache hits",
+	})
+
+	metrics.accountLookupCacheMiss = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "cloud_connector_account_lookup_cache_miss",
+		Help: "The number of account lookup cache misses",
 	})
 
 	return metrics
