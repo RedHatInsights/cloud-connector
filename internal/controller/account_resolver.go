@@ -60,13 +60,9 @@ func NewAccountIdResolver(accountIdResolverImpl string, cfg *config.Config) (Acc
 		return &resolver, err
 	case "bop":
 		return &BOPAccountIdResolver{cfg}, nil
-	case "cached_bop":
+	case "bop_with_cache":
 		wrappedResolver := &BOPAccountIdResolver{cfg}
-		// FIXME: pull this from teh config
-		cacheSize := 1000
-		validResponseCacheTTL := 20 * time.Minute
-		errorResponseCacheTTL := 20 * time.Second
-		return NewExpirableCachedAccountIdResolver(wrappedResolver, cacheSize, validResponseCacheTTL, errorResponseCacheTTL)
+		return NewExpirableCachedAccountIdResolver(wrappedResolver, cfg.ClientIdToAccountIdCacheSize, cfg.ClientIdToAccountIdCacheValidRespTTL, cfg.ClientIdToAccountIdCacheErrorRespTTL)
 	default:
 		return nil, errors.New("Invalid AccountIdResolver impl requested")
 	}
@@ -246,13 +242,18 @@ func (ecar *ExpirableCachedAccountIdResolver) MapClientIdToAccountId(ctx context
 	//Check cache
 	result, ok := ecar.cache.Get(clientID)
 	if ok {
+
+		logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID, "account": result.accountID, "org_id": result.orgID})
+
 		//Check if cached result is still valid
 		if result.err == nil {
+			logger.Debugf("Found cached account mapping results")
 			return result.identity, result.accountID, result.orgID, nil
 		}
 
 		now := time.Now()
 		if now.Sub(result.timestamp) < ecar.errorTTL && result.err != nil {
+			logger.Debugf("Found cached account mapping results - error: %s", result.err)
 			//if cache error is within the error ttl return it
 			return "", "", "", result.err
 		}
