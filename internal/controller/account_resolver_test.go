@@ -13,6 +13,9 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 )
 
+const validResponseCacheTTL time.Duration = 10 * time.Millisecond
+const errorResponseCacheTTL time.Duration = 2 * time.Millisecond
+
 func init() {
 	logger.InitLogger()
 }
@@ -143,7 +146,7 @@ func TestAccountResolverCacheVerifyWrappedResolverNotCalled(t *testing.T) {
 			clientId: "client1",
 		},
 		{
-			testName: "Cache a an error response",
+			testName: "Cache an error response",
 			wrappedResolver: &testAccountResolver{
 				err:       fmt.Errorf("Could not find account"),
 				wasCalled: false,
@@ -153,7 +156,7 @@ func TestAccountResolverCacheVerifyWrappedResolverNotCalled(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.testName, func(t *testing.T) {
-			resolver, _ := NewExpirableCachedAccountIdResolver(c.wrappedResolver, 10, 10*time.Millisecond, 2*time.Millisecond)
+			resolver, _ := NewExpirableCachedAccountIdResolver(c.wrappedResolver, 10, validResponseCacheTTL, errorResponseCacheTTL)
 
 			id, acc, org, err := resolver.MapClientIdToAccountId(context.TODO(), c.clientId)
 
@@ -183,7 +186,7 @@ func TestAccountResolverCacheVerifyWrappedResolverCalledAfterExpiration(t *testi
 		sleepTime       time.Duration
 	}{
 		{
-			testName: "Cache a good response",
+			testName: "Expire a good response",
 			wrappedResolver: &testAccountResolver{
 				identity:  "ImaIdentity",
 				accountID: "0001",
@@ -192,21 +195,21 @@ func TestAccountResolverCacheVerifyWrappedResolverCalledAfterExpiration(t *testi
 				wasCalled: false,
 			},
 			clientId:  "client3",
-			sleepTime: 12 * time.Millisecond,
+			sleepTime: validResponseCacheTTL + (2 * time.Millisecond),
 		},
 		{
-			testName: "Cache a an error response",
+			testName: "Expire an error response",
 			wrappedResolver: &testAccountResolver{
 				err:       fmt.Errorf("Could not find account"),
 				wasCalled: false,
 			},
 			clientId:  "client4",
-			sleepTime: 4 * time.Millisecond,
+			sleepTime: errorResponseCacheTTL + (2 * time.Millisecond),
 		},
 	}
 	for _, c := range cases {
 		t.Run(c.testName, func(t *testing.T) {
-			resolver, _ := NewExpirableCachedAccountIdResolver(c.wrappedResolver, 10, 10*time.Millisecond, 2*time.Millisecond)
+			resolver, _ := NewExpirableCachedAccountIdResolver(c.wrappedResolver, 10, validResponseCacheTTL, errorResponseCacheTTL)
 
 			id, acc, org, err := resolver.MapClientIdToAccountId(context.TODO(), c.clientId)
 
