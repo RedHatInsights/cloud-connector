@@ -125,124 +125,98 @@ func (this *testAccountResolver) MapClientIdToAccountId(ctx context.Context, cli
 	return this.Identity, this.AccountID, this.OrgID, this.Err
 }
 
-func TestCachingAccountResolverCacheValidResponse(t *testing.T) {
-
-	var clientId domain.ClientID = "client1"
-
-	wrappedAccountResolver := &testAccountResolver{
-		Identity:  "ImaIdentity",
-		AccountID: "0001",
-		OrgID:     "111100",
-		Err:       nil,
-		WasCalled: false,
+func TestAccountResolverCacheVerifyWrappedResolverNotCalled(t *testing.T) {
+	cases := []struct {
+		wrappedResolver *testAccountResolver
+		clientId        domain.ClientID
+	}{
+		{
+			wrappedResolver: &testAccountResolver{
+				Identity:  "ImaIdentity",
+				AccountID: "0001",
+				OrgID:     "111100",
+				Err:       nil,
+				WasCalled: false,
+			},
+			clientId: "client1",
+		},
+		{
+			wrappedResolver: &testAccountResolver{
+				Err:       fmt.Errorf("Could not find account"),
+				WasCalled: false,
+			},
+			clientId: "client2",
+		},
 	}
+	for _, c := range cases {
+		resolver, _ := NewExpirableCachedAccountIdResolver(c.wrappedResolver, 10, 10*time.Millisecond, 2*time.Millisecond)
 
-	resolver, _ := NewExpirableCachedAccountIdResolver(wrappedAccountResolver, 10, 10*time.Millisecond, 2*time.Millisecond)
+		id, acc, org, err := resolver.MapClientIdToAccountId(context.TODO(), c.clientId)
 
-	id, acc, org, err := resolver.MapClientIdToAccountId(context.TODO(), clientId)
+		verifyAccountResolverResponse(t, c.wrappedResolver, id, acc, org, err)
 
-	verifyAccountResolverResponse(t, wrappedAccountResolver, id, acc, org, err)
+		verifyAccountResolverWasCalled(t, c.wrappedResolver, c.clientId)
 
-	verifyAccountResolverWasCalled(t, wrappedAccountResolver, clientId)
+		// Reset the WasCalled so that we can verify that it doesn't get called
+		c.wrappedResolver.WasCalled = false
+		c.wrappedResolver.ClientID = ""
 
-	// Reset the WasCalled so that we can verify that it doesn't get called
-	wrappedAccountResolver.WasCalled = false
-	wrappedAccountResolver.ClientID = ""
+		id, acc, org, err = resolver.MapClientIdToAccountId(context.TODO(), c.clientId)
 
-	id, acc, org, err = resolver.MapClientIdToAccountId(context.TODO(), clientId)
+		verifyAccountResolverResponse(t, c.wrappedResolver, id, acc, org, err)
 
-	verifyAccountResolverResponse(t, wrappedAccountResolver, id, acc, org, err)
-
-	verifyAccountResolverWasNotCalled(t, wrappedAccountResolver)
+		verifyAccountResolverWasNotCalled(t, c.wrappedResolver)
+	}
 }
 
-func TestCachingAccountResolverCacheValidResponseWaitForExpiration(t *testing.T) {
+func TestAccountResolverCacheVerifyWrappedResolverCalledAfterExpiration(t *testing.T) {
 
-	var clientId domain.ClientID = "client2"
-
-	wrappedAccountResolver := &testAccountResolver{
-		Identity:  "ImaIdentity",
-		AccountID: "0001",
-		OrgID:     "111100",
-		Err:       nil,
-		WasCalled: false,
+	cases := []struct {
+		wrappedResolver *testAccountResolver
+		clientId        domain.ClientID
+		sleepTime       time.Duration
+	}{
+		{
+			wrappedResolver: &testAccountResolver{
+				Identity:  "ImaIdentity",
+				AccountID: "0001",
+				OrgID:     "111100",
+				Err:       nil,
+				WasCalled: false,
+			},
+			clientId:  "client3",
+			sleepTime: 12 * time.Millisecond,
+		},
+		{
+			wrappedResolver: &testAccountResolver{
+				Err:       fmt.Errorf("Could not find account"),
+				WasCalled: false,
+			},
+			clientId:  "client4",
+			sleepTime: 4 * time.Millisecond,
+		},
 	}
+	for _, c := range cases {
+		resolver, _ := NewExpirableCachedAccountIdResolver(c.wrappedResolver, 10, 10*time.Millisecond, 2*time.Millisecond)
 
-	resolver, _ := NewExpirableCachedAccountIdResolver(wrappedAccountResolver, 10, 10*time.Millisecond, 2*time.Millisecond)
+		id, acc, org, err := resolver.MapClientIdToAccountId(context.TODO(), c.clientId)
 
-	id, acc, org, err := resolver.MapClientIdToAccountId(nil, clientId)
+		verifyAccountResolverResponse(t, c.wrappedResolver, id, acc, org, err)
 
-	verifyAccountResolverResponse(t, wrappedAccountResolver, id, acc, org, err)
+		verifyAccountResolverWasCalled(t, c.wrappedResolver, c.clientId)
 
-	verifyAccountResolverWasCalled(t, wrappedAccountResolver, clientId)
+		time.Sleep(c.sleepTime)
 
-	time.Sleep(12 * time.Millisecond)
+		// Reset the WasCalled so that we can verify that it was called
+		c.wrappedResolver.WasCalled = false
+		c.wrappedResolver.ClientID = ""
 
-	// Reset the WasCalled so that we can verify that it was called
-	wrappedAccountResolver.WasCalled = false
-	wrappedAccountResolver.ClientID = ""
+		id, acc, org, err = resolver.MapClientIdToAccountId(context.TODO(), c.clientId)
 
-	id, acc, org, err = resolver.MapClientIdToAccountId(nil, clientId)
+		verifyAccountResolverResponse(t, c.wrappedResolver, id, acc, org, err)
 
-	verifyAccountResolverResponse(t, wrappedAccountResolver, id, acc, org, err)
-
-	verifyAccountResolverWasCalled(t, wrappedAccountResolver, clientId)
-}
-
-func TestCachingAccountResolverCacheErrorResponse(t *testing.T) {
-
-	var clientId domain.ClientID = "client3"
-
-	wrappedAccountResolver := &testAccountResolver{
-		Err:       fmt.Errorf("Could not find account"),
-		WasCalled: false,
+		verifyAccountResolverWasCalled(t, c.wrappedResolver, c.clientId)
 	}
-
-	resolver, _ := NewExpirableCachedAccountIdResolver(wrappedAccountResolver, 10, 10*time.Millisecond, 2*time.Millisecond)
-
-	id, acc, org, err := resolver.MapClientIdToAccountId(nil, clientId)
-
-	verifyAccountResolverResponse(t, wrappedAccountResolver, id, acc, org, err)
-
-	verifyAccountResolverWasCalled(t, wrappedAccountResolver, clientId)
-
-	wrappedAccountResolver.WasCalled = false
-	wrappedAccountResolver.ClientID = ""
-
-	id, acc, org, err = resolver.MapClientIdToAccountId(nil, clientId)
-
-	verifyAccountResolverWasNotCalled(t, wrappedAccountResolver)
-
-	verifyAccountResolverResponse(t, wrappedAccountResolver, id, acc, org, err)
-}
-
-func TestCachingAccountResolverCacheErrorResponseWaitForExpiration(t *testing.T) {
-
-	var clientId domain.ClientID = "client4"
-
-	wrappedAccountResolver := &testAccountResolver{
-		Err:       fmt.Errorf("Could not find account"),
-		WasCalled: false,
-	}
-
-	resolver, _ := NewExpirableCachedAccountIdResolver(wrappedAccountResolver, 10, 10*time.Millisecond, 2*time.Millisecond)
-
-	id, acc, org, err := resolver.MapClientIdToAccountId(nil, clientId)
-
-	verifyAccountResolverResponse(t, wrappedAccountResolver, id, acc, org, err)
-
-	verifyAccountResolverWasCalled(t, wrappedAccountResolver, clientId)
-
-	time.Sleep(4 * time.Millisecond)
-
-	wrappedAccountResolver.WasCalled = false
-	wrappedAccountResolver.ClientID = ""
-
-	id, acc, org, err = resolver.MapClientIdToAccountId(nil, clientId)
-
-	verifyAccountResolverResponse(t, wrappedAccountResolver, id, acc, org, err)
-
-	verifyAccountResolverWasCalled(t, wrappedAccountResolver, clientId)
 }
 
 func verifyAccountResolverResponse(t *testing.T, resolver *testAccountResolver, actualIdentity domain.Identity, actualAccountID domain.AccountID, actualOrgID domain.OrgID, actualErr error) {
