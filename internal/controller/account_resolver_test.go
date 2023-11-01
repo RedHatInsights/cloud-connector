@@ -158,6 +158,8 @@ func TestCachingAccountResolverCacheValidResponse(t *testing.T) {
 
 func TestCachingAccountResolverCacheValidResponseWaitForExpiration(t *testing.T) {
 
+	var clientId domain.ClientID = "client2"
+
 	wrappedAccountResolver := &testAccountResolver{
 		Identity:  "ImaIdentity",
 		AccountID: "0001",
@@ -168,30 +170,29 @@ func TestCachingAccountResolverCacheValidResponseWaitForExpiration(t *testing.T)
 
 	resolver, _ := NewExpirableCachedAccountIdResolver(wrappedAccountResolver, 10, 10*time.Millisecond, 2*time.Millisecond)
 
-	id, acc, org, err := resolver.MapClientIdToAccountId(nil, domain.ClientID("client1"))
+	id, acc, org, err := resolver.MapClientIdToAccountId(nil, clientId)
 
-	fmt.Println("id:", id)
-	fmt.Println("acc:", acc)
-	fmt.Println("org:", org)
-	fmt.Println("err:", err)
+	verifyAccountResolverResponse(t, wrappedAccountResolver, id, acc, org, err)
 
-	if wrappedAccountResolver.WasCalled == false {
-		t.Fatalf("Expected wrapper account resolver to be called")
-	}
+	verifyAccountResolverWasCalled(t, wrappedAccountResolver, clientId)
 
 	time.Sleep(12 * time.Millisecond)
 
+	// Reset the WasCalled so that we can verify that it was called
 	wrappedAccountResolver.WasCalled = false
+	wrappedAccountResolver.ClientID = ""
 
-	id, acc, org, err = resolver.MapClientIdToAccountId(nil, domain.ClientID("client1"))
+	id, acc, org, err = resolver.MapClientIdToAccountId(nil, clientId)
 
-	if wrappedAccountResolver.WasCalled == false {
-		t.Fatalf("Expected wrapper account resolver to be called")
-	}
+	verifyAccountResolverResponse(t, wrappedAccountResolver, id, acc, org, err)
+
+	verifyAccountResolverWasCalled(t, wrappedAccountResolver, clientId)
 }
 
 func TestCachingAccountResolverCacheErrorResponse(t *testing.T) {
 
+	var clientId domain.ClientID = "client3"
+
 	wrappedAccountResolver := &testAccountResolver{
 		Err:       fmt.Errorf("Could not find account"),
 		WasCalled: false,
@@ -199,38 +200,26 @@ func TestCachingAccountResolverCacheErrorResponse(t *testing.T) {
 
 	resolver, _ := NewExpirableCachedAccountIdResolver(wrappedAccountResolver, 10, 10*time.Millisecond, 2*time.Millisecond)
 
-	id, acc, org, err := resolver.MapClientIdToAccountId(nil, domain.ClientID("client1"))
+	id, acc, org, err := resolver.MapClientIdToAccountId(nil, clientId)
 
-	fmt.Println("id:", id)
-	fmt.Println("acc:", acc)
-	fmt.Println("org:", org)
-	fmt.Println("err:", err)
+	verifyAccountResolverResponse(t, wrappedAccountResolver, id, acc, org, err)
 
-	if wrappedAccountResolver.WasCalled == false {
-		t.Fatalf("Expected wrapper account resolver to be called")
-	}
-
-	if wrappedAccountResolver.Err != err {
-		t.Fatalf("Expected error returned to match wrapper account resolver error")
-	}
+	verifyAccountResolverWasCalled(t, wrappedAccountResolver, clientId)
 
 	wrappedAccountResolver.WasCalled = false
+	wrappedAccountResolver.ClientID = ""
 
-	id, acc, org, err = resolver.MapClientIdToAccountId(nil, domain.ClientID("client1"))
+	id, acc, org, err = resolver.MapClientIdToAccountId(nil, clientId)
 
-	fmt.Println("err:", err)
+	verifyAccountResolverWasNotCalled(t, wrappedAccountResolver)
 
-	if wrappedAccountResolver.WasCalled == true {
-		t.Fatalf("Expected wrapper account resolver to NOT be called")
-	}
-
-	if wrappedAccountResolver.Err != err {
-		t.Fatalf("Expected error returned to match wrapper account resolver error")
-	}
+	verifyAccountResolverResponse(t, wrappedAccountResolver, id, acc, org, err)
 }
 
 func TestCachingAccountResolverCacheErrorResponseWaitForExpiration(t *testing.T) {
 
+	var clientId domain.ClientID = "client4"
+
 	wrappedAccountResolver := &testAccountResolver{
 		Err:       fmt.Errorf("Could not find account"),
 		WasCalled: false,
@@ -238,36 +227,22 @@ func TestCachingAccountResolverCacheErrorResponseWaitForExpiration(t *testing.T)
 
 	resolver, _ := NewExpirableCachedAccountIdResolver(wrappedAccountResolver, 10, 10*time.Millisecond, 2*time.Millisecond)
 
-	id, acc, org, err := resolver.MapClientIdToAccountId(nil, domain.ClientID("client1"))
+	id, acc, org, err := resolver.MapClientIdToAccountId(nil, clientId)
 
-	fmt.Println("id:", id)
-	fmt.Println("acc:", acc)
-	fmt.Println("org:", org)
-	fmt.Println("err:", err)
+	verifyAccountResolverResponse(t, wrappedAccountResolver, id, acc, org, err)
 
-	if wrappedAccountResolver.WasCalled == false {
-		t.Fatalf("Expected wrapper account resolver to be called")
-	}
-
-	if wrappedAccountResolver.Err != err {
-		t.Fatalf("Expected error returned to match wrapper account resolver error")
-	}
+	verifyAccountResolverWasCalled(t, wrappedAccountResolver, clientId)
 
 	time.Sleep(4 * time.Millisecond)
 
 	wrappedAccountResolver.WasCalled = false
+	wrappedAccountResolver.ClientID = ""
 
-	id, acc, org, err = resolver.MapClientIdToAccountId(nil, domain.ClientID("client1"))
+	id, acc, org, err = resolver.MapClientIdToAccountId(nil, clientId)
 
-	fmt.Println("err:", err)
+	verifyAccountResolverResponse(t, wrappedAccountResolver, id, acc, org, err)
 
-	if wrappedAccountResolver.WasCalled == false {
-		t.Fatalf("Expected wrapper account resolver to be called")
-	}
-
-	if wrappedAccountResolver.Err != err {
-		t.Fatalf("Expected error returned to match wrapper account resolver error")
-	}
+	verifyAccountResolverWasCalled(t, wrappedAccountResolver, clientId)
 }
 
 func verifyAccountResolverResponse(t *testing.T, resolver *testAccountResolver, actualIdentity domain.Identity, actualAccountID domain.AccountID, actualOrgID domain.OrgID, actualErr error) {
