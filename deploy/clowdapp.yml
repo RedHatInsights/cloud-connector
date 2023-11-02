@@ -326,6 +326,12 @@ objects:
           value: ${{AUTH_GATEWAY_URL}}
         - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE
           value: "/tmp/cloud-connector-config/client_id_to_account_id_map.json"
+        - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CACHE_SIZE
+          value: ${{CLIENT_ID_TO_ACCOUNT_ID_CACHE_SIZE}}
+        - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CACHE_VALID_RESPONSE_TTL
+          value: ${{CLIENT_ID_TO_ACCOUNT_ID_CACHE_VALID_RESPONSE_TTL}}
+        - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CACHE_ERROR_RESPONSE_TTL
+          value: ${{CLIENT_ID_TO_ACCOUNT_ID_CACHE_ERROR_RESPONSE_TTL}}
 
         - name: CLOUD_CONNECTOR_CONNECTED_CLIENT_RECORDER_IMPL
           value: ${{CONNECTED_CLIENT_RECORDER_IMPL}}
@@ -599,6 +605,12 @@ parameters:
 - name: CLIENT_ID_TO_ACCOUNT_ID_IMPL
   value: "bop_with_cache"
   required: true
+- name: CLIENT_ID_TO_ACCOUNT_ID_CACHE_SIZE
+  value: "10000"
+- name: CLIENT_ID_TO_ACCOUNT_ID_CACHE_VALID_RESPONSE_TTL
+  value: "100m"
+- name: CLIENT_ID_TO_ACCOUNT_ID_CACHE_ERROR_RESPONSE_TTL
+  value: "100s"
 
 - name: AUTH_GATEWAY_URL
   value: "fake"
