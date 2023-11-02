@@ -45,6 +45,9 @@ const (
 	CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE          = "Client_Id_To_Account_Id_Config_File"
 	CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID   = "Client_Id_To_Account_Id_Default_Account_Id"
 	CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ORG_ID       = "Client_Id_To_Account_Id_Default_Org_Id"
+	CLIENT_ID_TO_ACCOUNT_ID_CACHE_SIZE           = "Client_Id_To_Account_Id_Cache_Size"
+	CLIENT_ID_TO_ACCOUNT_ID_CACHE_VALID_RESP_TTL = "Client_Id_To_Account_Id_Cache_Valid_Response_TTL"
+	CLIENT_ID_TO_ACCOUNT_ID_CACHE_ERROR_RESP_TTL = "Client_Id_To_Account_Id_Cache_Error_Response_TTL"
 	CONNECTION_DATABASE_IMPL                     = "Connection_Database_Impl"
 	CONNECTION_DATABASE_HOST                     = "Connection_Database_Host"
 	CONNECTION_DATABASE_PORT                     = "Connection_Database_Port"
@@ -131,6 +134,9 @@ type Config struct {
 	ClientIdToAccountIdConfigFile           string
 	ClientIdToAccountIdDefaultAccountId     string
 	ClientIdToAccountIdDefaultOrgId         string
+	ClientIdToAccountIdCacheSize            int
+	ClientIdToAccountIdCacheValidRespTTL    time.Duration
+	ClientIdToAccountIdCacheErrorRespTTL    time.Duration
 	ConnectionDatabaseImpl                  string
 	ConnectionDatabaseHost                  string
 	ConnectionDatabasePort                  int
@@ -206,6 +212,9 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE, c.ClientIdToAccountIdConfigFile)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID, c.ClientIdToAccountIdDefaultAccountId)
 	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ORG_ID, c.ClientIdToAccountIdDefaultOrgId)
+	fmt.Fprintf(&b, "%s: %d\n", CLIENT_ID_TO_ACCOUNT_ID_CACHE_SIZE, c.ClientIdToAccountIdCacheSize)
+	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_CACHE_VALID_RESP_TTL, c.ClientIdToAccountIdCacheValidRespTTL)
+	fmt.Fprintf(&b, "%s: %s\n", CLIENT_ID_TO_ACCOUNT_ID_CACHE_ERROR_RESP_TTL, c.ClientIdToAccountIdCacheErrorRespTTL)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_IMPL, c.ConnectionDatabaseImpl)
 	fmt.Fprintf(&b, "%s: %s\n", CONNECTION_DATABASE_HOST, c.ConnectionDatabaseHost)
 	fmt.Fprintf(&b, "%s: %d\n", CONNECTION_DATABASE_PORT, c.ConnectionDatabasePort)
@@ -276,6 +285,9 @@ func GetConfig() *Config {
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE, "client_id_to_account_id_map.json")
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID, "111000")
 	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ORG_ID, "10000")
+	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_CACHE_SIZE, "1000")
+	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_CACHE_VALID_RESP_TTL, 10*time.Minute)
+	options.SetDefault(CLIENT_ID_TO_ACCOUNT_ID_CACHE_ERROR_RESP_TTL, 10*time.Second)
 	options.SetDefault(CONNECTION_DATABASE_IMPL, "postgres")
 	options.SetDefault(CONNECTION_DATABASE_HOST, "localhost")
 	options.SetDefault(CONNECTION_DATABASE_PORT, 5432)
@@ -352,6 +364,9 @@ func GetConfig() *Config {
 		ClientIdToAccountIdConfigFile:           options.GetString(CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE),
 		ClientIdToAccountIdDefaultAccountId:     options.GetString(CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ACCOUNT_ID),
 		ClientIdToAccountIdDefaultOrgId:         options.GetString(CLIENT_ID_TO_ACCOUNT_ID_DEFAULT_ORG_ID),
+		ClientIdToAccountIdCacheSize:            options.GetInt(CLIENT_ID_TO_ACCOUNT_ID_CACHE_SIZE),
+		ClientIdToAccountIdCacheValidRespTTL:    options.GetDuration(CLIENT_ID_TO_ACCOUNT_ID_CACHE_VALID_RESP_TTL),
+		ClientIdToAccountIdCacheErrorRespTTL:    options.GetDuration(CLIENT_ID_TO_ACCOUNT_ID_CACHE_ERROR_RESP_TTL),
 		ConnectionDatabaseImpl:                  options.GetString(CONNECTION_DATABASE_IMPL),
 		ConnectionDatabaseHost:                  options.GetString(CONNECTION_DATABASE_HOST),
 		ConnectionDatabasePort:                  options.GetInt(CONNECTION_DATABASE_PORT),

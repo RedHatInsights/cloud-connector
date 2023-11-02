@@ -597,7 +597,7 @@ parameters:
   value: "inventory"
 
 - name: CLIENT_ID_TO_ACCOUNT_ID_IMPL
-  value: "bop"
+  value: "bop_with_cache"
   required: true
 
 - name: AUTH_GATEWAY_URL

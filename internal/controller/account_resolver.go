@@ -17,7 +17,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/google/uuid"
-	lru "github.com/hashicorp/golang-lru"
+	expirable_lru "github.com/hashicorp/golang-lru/v2/expirable"
 
 	"github.com/redhatinsights/platform-go-middlewares/identity"
 
@@ -52,77 +52,27 @@ func (this authGwErrorResponse) String() string {
 	return b.String()
 }
 
-type ExpirableCachedAccountIdResolver struct {
-	AccountIdResolver
-	cache 		*lru.Cache
-	cacheTTL 	time.Duration
-	errorTTL 	time.Duration
-}
-
-
-func NewExpirableCachedAccountIdResolver(baseResolver AccountIdResolver, cacheSize int, cacheTTL, errorTTL time.Duration)(AccountIdResolver, error) {
-	cache, err := lru.New(cacheSize)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ExpirableCachedAccountIdResolver{
-		AccountIdResolver: 	baseResolver,
-		cache:				cache,
-		cacheTTL: 			cacheTTL,
-		errorTTL: 			errorTTL,
-	},nil
-}
-
-func (ecar *ExpirableCachedAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, domain.OrgID, error){
-	//Check cache 
-	cached, ok := ecar.cache.Get(clientID)
-	if ok {
-		cachedResult := cached.(cachedResult)
-
-		now := time.Now()
-		//Check if cached result is still valid 
-		if cachedResult.err == nil && now.Sub(cachedResult.timestamp) < ecar.cacheTTL {
-			return cachedResult.identity, cachedResult.accountID, cachedResult.orgID, nil
-		}
-
-		if now.Sub(cachedResult.timestamp) < ecar.errorTTL && cachedResult.err != nil {
-			//if cache error is within the error ttl return it
-			return "","","", cachedResult.err
-		}
-	}
-	//if not in cache or cache expired, call base resolver
-	identity, accountID, orgID, err := ecar.AccountIdResolver.MapClientIdToAccountId(ctx, clientID)
-
-	cachedResult := cachedResult{
-		identity: 	identity,
-		accountID: 	accountID,
-		orgID: 		orgID,
-		timestamp: 	time.Now(),
-		err: 		err,
-	}
-	 
-	ecar.cache.Add(clientID, cachedResult)
-
-	return identity, accountID, orgID, err
-}
-
-type cachedResult struct {
-	identity 	domain.Identity
-	accountID  	domain.AccountID
-	orgID 		domain.OrgID
-	timestamp   time.Time
-	err			error
-}
-
 func NewAccountIdResolver(accountIdResolverImpl string, cfg *config.Config) (AccountIdResolver, error) {
 	switch accountIdResolverImpl {
 	case "config_file_based":
 		resolver := ConfigurableAccountIdResolver{Config: cfg}
 		err := resolver.init()
 		return &resolver, err
+	case "config_file_based_with_cache":
+		logger.Log.Info("Using config file based account id resolver with caching")
+		wrappedResolver := &ConfigurableAccountIdResolver{Config: cfg}
+		err := wrappedResolver.init()
+		if err != nil {
+			return nil, err
+		}
+		// Using the cache here is kinda goofy...but it gives us more testing of the cache logic (in ephemeral, local dev, etc)
+		return NewExpirableCachedAccountIdResolver(wrappedResolver, cfg.ClientIdToAccountIdCacheSize, cfg.ClientIdToAccountIdCacheValidRespTTL, cfg.ClientIdToAccountIdCacheErrorRespTTL)
 	case "bop":
 		return &BOPAccountIdResolver{cfg}, nil
+	case "bop_with_cache":
+		logger.Log.Info("Using BOP account id resolver with caching")
+		wrappedResolver := &BOPAccountIdResolver{cfg}
+		return NewExpirableCachedAccountIdResolver(wrappedResolver, cfg.ClientIdToAccountIdCacheSize, cfg.ClientIdToAccountIdCacheValidRespTTL, cfg.ClientIdToAccountIdCacheErrorRespTTL)
 	default:
 		return nil, errors.New("Invalid AccountIdResolver impl requested")
 	}
@@ -277,4 +227,72 @@ func (bar *ConfigurableAccountIdResolver) MapClientIdToAccountId(ctx context.Con
 	}
 
 	return bar.createIdentityHeader(bar.defaultAccountId, bar.defaultOrgId), bar.defaultAccountId, bar.defaultOrgId, nil
+}
+
+type ExpirableCachedAccountIdResolver struct {
+	AccountIdResolver
+	cache    *expirable_lru.LRU[domain.ClientID, cachedResult]
+	errorTTL time.Duration
+}
+
+func NewExpirableCachedAccountIdResolver(baseResolver AccountIdResolver, cacheSize int, cacheTTL, errorTTL time.Duration) (AccountIdResolver, error) {
+	cache := expirable_lru.NewLRU[domain.ClientID, cachedResult](cacheSize, nil, cacheTTL)
+	if cache == nil {
+		return nil, fmt.Errorf("Unable to create LRU cache for caching AccountIdResolver results")
+	}
+
+	return &ExpirableCachedAccountIdResolver{
+		AccountIdResolver: baseResolver,
+		cache:             cache,
+		errorTTL:          errorTTL,
+	}, nil
+}
+
+func (ecar *ExpirableCachedAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, domain.OrgID, error) {
+	//Check cache
+	result, ok := ecar.cache.Get(clientID)
+	if ok {
+
+		logger := logger.Log.WithFields(logrus.Fields{"client_id": clientID, "account": result.accountID, "org_id": result.orgID})
+
+		//Check if cached result is still valid
+		if result.err == nil {
+			metrics.accountLookupCacheHit.Inc()
+			logger.Debugf("Found cached account mapping results")
+			return result.identity, result.accountID, result.orgID, nil
+		}
+
+		now := time.Now()
+		if now.Sub(result.timestamp) < ecar.errorTTL && result.err != nil {
+			metrics.accountLookupCacheHit.Inc()
+			logger.Debugf("Found cached account mapping results (error: %s)", result.err)
+			//if cache error is within the error ttl return it
+			return "", "", "", result.err
+		}
+	}
+
+	metrics.accountLookupCacheMiss.Inc()
+
+	//if not in cache or cache expired, call base resolver
+	identity, accountID, orgID, err := ecar.AccountIdResolver.MapClientIdToAccountId(ctx, clientID)
+
+	resultToCache := cachedResult{
+		identity:  identity,
+		accountID: accountID,
+		orgID:     orgID,
+		timestamp: time.Now(),
+		err:       err,
+	}
+
+	ecar.cache.Add(clientID, resultToCache)
+
+	return identity, accountID, orgID, err
+}
+
+type cachedResult struct {
+	identity  domain.Identity
+	accountID domain.AccountID
+	orgID     domain.OrgID
+	timestamp time.Time
+	err       error
 }
