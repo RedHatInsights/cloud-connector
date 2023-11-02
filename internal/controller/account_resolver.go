@@ -58,6 +58,15 @@ func NewAccountIdResolver(accountIdResolverImpl string, cfg *config.Config) (Acc
 		resolver := ConfigurableAccountIdResolver{Config: cfg}
 		err := resolver.init()
 		return &resolver, err
+	case "config_file_based_with_cache":
+		logger.Log.Info("Using config file based account id resolver with caching")
+		wrappedResolver := &ConfigurableAccountIdResolver{Config: cfg}
+		err := wrappedResolver.init()
+		if err != nil {
+			return nil, err
+		}
+		// Using the cache here is kinda goofy...but it gives us more testing of the cache logic (in ephemeral, local dev, etc)
+		return NewExpirableCachedAccountIdResolver(wrappedResolver, cfg.ClientIdToAccountIdCacheSize, cfg.ClientIdToAccountIdCacheValidRespTTL, cfg.ClientIdToAccountIdCacheErrorRespTTL)
 	case "bop":
 		return &BOPAccountIdResolver{cfg}, nil
 	case "bop_with_cache":
