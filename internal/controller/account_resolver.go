@@ -54,14 +54,11 @@ func (this authGwErrorResponse) String() string {
 
 func NewAccountIdResolver(accountIdResolverImpl string, cfg *config.Config) (AccountIdResolver, error) {
 	switch accountIdResolverImpl {
-	/*
-		case "config_file_based":
-			resolver := ConfigurableAccountIdResolver{Config: cfg}
-			err := resolver.init()
-			return &resolver, err
-		case "config_file_based_with_cache":
-	*/
 	case "config_file_based":
+		resolver := ConfigurableAccountIdResolver{Config: cfg}
+		err := resolver.init()
+		return &resolver, err
+	case "config_file_based_with_cache":
 		logger.Log.Info("Using config file based account id resolver with caching")
 		wrappedResolver := &ConfigurableAccountIdResolver{Config: cfg}
 		err := wrappedResolver.init()
