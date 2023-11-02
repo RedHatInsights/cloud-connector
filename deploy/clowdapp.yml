@@ -327,7 +327,7 @@ objects:
         - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE
           value: "/tmp/cloud-connector-config/client_id_to_account_id_map.json"
         - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CACHE_SIZE
-          value: ${{CLIENT_ID_TO_ACCOUNT_ID_CACHE_SIZE}}
+          value: ${CLIENT_ID_TO_ACCOUNT_ID_CACHE_SIZE}
         - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CACHE_VALID_RESPONSE_TTL
           value: ${{CLIENT_ID_TO_ACCOUNT_ID_CACHE_VALID_RESPONSE_TTL}}
         - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CACHE_ERROR_RESPONSE_TTL
