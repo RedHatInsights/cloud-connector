@@ -606,11 +606,11 @@ parameters:
   value: "bop_with_cache"
   required: true
 - name: CLIENT_ID_TO_ACCOUNT_ID_CACHE_SIZE
-  value: "10000"
+  value: "1000"
 - name: CLIENT_ID_TO_ACCOUNT_ID_CACHE_VALID_RESPONSE_TTL
-  value: "100m"
+  value: "10m"
 - name: CLIENT_ID_TO_ACCOUNT_ID_CACHE_ERROR_RESPONSE_TTL
-  value: "100s"
+  value: "10s"
 
 - name: AUTH_GATEWAY_URL
   value: "fake"
