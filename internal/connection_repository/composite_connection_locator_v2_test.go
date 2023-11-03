@@ -13,6 +13,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	//"github.com/RedHatInsights/cloud-connector/internal/platform/db"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/redhatinsights/platform-go-middlewares/request_id"
 
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	"github.com/sirupsen/logrus"
@@ -20,6 +21,15 @@ import (
 
 func init() {
 	logger.InitLogger()
+}
+
+// FIXME: this global is gross ... create a function to create this??
+var expectedHttpHeaders map[string]string = map[string]string{
+	"accept":                         "application/json",
+	"x-rh-insights-request-id":       "requestID-xyz-1234-5678",
+	"x-rh-cloud-connector-org-id":    "orgId",
+	"x-rh-cloud-connector-client-id": "cloud-connector-composite",
+	"x-rh-cloud-connector-psk":       "secret_used_by_composite",
 }
 
 // TEST TODO
@@ -37,11 +47,11 @@ func TestCompositeConnectionLocatorNoConnectionFound(t *testing.T) {
 	var targetClientId domain.ClientID = "clientId"
 
 	notFoundHttpHandler1 := testServerHandler{}
-	notFoundServer1 := httptest.NewServer(notFoundHttpHandler1.buildRequestHandler(t, targetClientId, http.StatusOK, []byte(`{"status":"disconnected"}`)))
+	notFoundServer1 := httptest.NewServer(notFoundHttpHandler1.buildRequestHandler(t, targetClientId, expectedHttpHeaders, http.StatusOK, []byte(`{"status":"disconnected"}`)))
 	defer notFoundServer1.Close()
 
 	notFoundHttpHandler2 := testServerHandler{}
-	notFoundServer2 := httptest.NewServer(notFoundHttpHandler2.buildRequestHandler(t, targetClientId, http.StatusOK, []byte(`{"status":"disconnected"}`)))
+	notFoundServer2 := httptest.NewServer(notFoundHttpHandler2.buildRequestHandler(t, targetClientId, expectedHttpHeaders, http.StatusOK, []byte(`{"status":"disconnected"}`)))
 	defer notFoundServer2.Close()
 
 	cache := expirable.NewLRU[domain.ClientID, string](10, nil, 10*time.Millisecond)
@@ -57,7 +67,9 @@ func TestCompositeConnectionLocatorNoConnectionFound(t *testing.T) {
 
 	log := logger.Log.WithFields(logrus.Fields{"client_id": "clientId"})
 
-	connectionState, err := getConnectionByClientID(context.TODO(), log, "orgId", "clientId")
+	ctx := createContextWithRequestId()
+
+	connectionState, err := getConnectionByClientID(ctx, log, "orgId", "clientId")
 	if err != NotFoundError {
 		t.Fatalf("Expected an error but did not get one!")
 	}
@@ -87,11 +99,11 @@ func TestCompositeConnectionLocatorConnectionFound(t *testing.T) {
 	var targetClientId domain.ClientID = "clientId"
 
 	notFoundHttpHandler := testServerHandler{}
-	notFoundServer := httptest.NewServer(notFoundHttpHandler.buildRequestHandler(t, targetClientId, http.StatusOK, []byte(`{"status":"disconnected"}`)))
+	notFoundServer := httptest.NewServer(notFoundHttpHandler.buildRequestHandler(t, targetClientId, expectedHttpHeaders, http.StatusOK, []byte(`{"status":"disconnected"}`)))
 	defer notFoundServer.Close()
 
 	foundHttpHandler := testServerHandler{}
-	foundServer := httptest.NewServer(foundHttpHandler.buildRequestHandler(t, targetClientId, http.StatusOK, []byte(`{"status":"connected", "account": "1234", "org_id": "4321", "client_id": "clientId"}`)))
+	foundServer := httptest.NewServer(foundHttpHandler.buildRequestHandler(t, targetClientId, expectedHttpHeaders, http.StatusOK, []byte(`{"status":"connected", "account": "1234", "org_id": "4321", "client_id": "clientId"}`)))
 	defer foundServer.Close()
 
 	cache := expirable.NewLRU[domain.ClientID, string](10, nil, 10*time.Millisecond)
@@ -107,7 +119,9 @@ func TestCompositeConnectionLocatorConnectionFound(t *testing.T) {
 
 	log := logger.Log.WithFields(logrus.Fields{"client_id": targetClientId})
 
-	connectionState, err := getConnectionByClientID(context.TODO(), log, "orgId", targetClientId)
+	ctx := createContextWithRequestId()
+
+	connectionState, err := getConnectionByClientID(ctx, log, "orgId", targetClientId)
 	if err != nil {
 		t.Fatalf("Received unexpected error: %s", err)
 	}
@@ -135,7 +149,7 @@ type testServerHandler struct {
 	wasCalled bool
 }
 
-func (this *testServerHandler) buildRequestHandler(t *testing.T, expectedClientId domain.ClientID, statusCode int, response []byte) http.HandlerFunc {
+func (this *testServerHandler) buildRequestHandler(t *testing.T, expectedClientId domain.ClientID, expectedHttpHeaders map[string]string, statusCode int, response []byte) http.HandlerFunc {
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		this.wasCalled = true
@@ -145,10 +159,28 @@ func (this *testServerHandler) buildRequestHandler(t *testing.T, expectedClientI
 		if r.URL.Path != expectedUrl {
 			t.Errorf("Expected to request '%s', got: %s", expectedUrl, r.URL.Path)
 		}
+
 		if r.Header.Get("Accept") != "application/json" {
 			t.Errorf("Expected Accept: application/json header, got: %s", r.Header.Get("Accept"))
 		}
+
+		for k, v := range expectedHttpHeaders {
+			actualValue := r.Header.Get(k)
+			if actualValue == "" {
+				t.Fatalf("HTTP Header %s not found", k)
+			}
+
+			if actualValue != v {
+				t.Fatalf("HTTP Header %s value (%s) does not match expected value (%s) ", k, actualValue, v)
+			}
+		}
+
 		w.WriteHeader(statusCode)
 		w.Write(response)
 	}
+}
+
+func createContextWithRequestId() context.Context {
+	ctx := context.Background()
+	return context.WithValue(ctx, request_id.RequestIDKey, expectedHttpHeaders["x-rh-insights-request-id"])
 }
