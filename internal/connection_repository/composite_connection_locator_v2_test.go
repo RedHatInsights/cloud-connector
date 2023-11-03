@@ -65,16 +65,16 @@ func TestCompositeConnectionLocatorNoConnectionFound(t *testing.T) {
 		t.Fatalf("Got an error: %s", err)
 	}
 
-	log := logger.Log.WithFields(logrus.Fields{"client_id": "clientId"})
+	log := logger.Log.WithFields(logrus.Fields{"client_id": targetClientId})
 
 	ctx := createContextWithRequestId()
 
-	connectionState, err := getConnectionByClientID(ctx, log, "orgId", "clientId")
+	connectionState, err := getConnectionByClientID(ctx, log, "orgId", targetClientId)
 	if err != NotFoundError {
 		t.Fatalf("Expected an error but did not get one!")
 	}
 
-	cachedUrl, ok := cache.Get("clientId")
+	cachedUrl, ok := cache.Get(targetClientId)
 	if ok {
 		t.Fatalf("Expected a cache miss, but found a cached url!")
 	}
