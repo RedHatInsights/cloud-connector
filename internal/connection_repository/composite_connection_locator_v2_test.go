@@ -36,17 +36,19 @@ func TestCompositeConnectionLocatorNoConnectionFound(t *testing.T) {
 
 	var targetClientId domain.ClientID = "clientId"
 
-	testHttpHandler := testServerHandler{}
+	notFoundHttpHandler1 := testServerHandler{}
+	notFoundServer1 := httptest.NewServer(notFoundHttpHandler1.buildRequestHandler(t, targetClientId, http.StatusOK, []byte(`{"status":"disconnected"}`)))
+	defer notFoundServer1.Close()
 
-	server := httptest.NewServer(testHttpHandler.buildRequestHandler(t, targetClientId, http.StatusOK, []byte(`{"status":"disconnected"}`)))
-
-	defer server.Close()
+	notFoundHttpHandler2 := testServerHandler{}
+	notFoundServer2 := httptest.NewServer(notFoundHttpHandler2.buildRequestHandler(t, targetClientId, http.StatusOK, []byte(`{"status":"disconnected"}`)))
+	defer notFoundServer2.Close()
 
 	cache := expirable.NewLRU[domain.ClientID, string](10, nil, 10*time.Millisecond)
 
 	cfg := config.GetConfig()
 
-	urls := []string{server.URL}
+	urls := []string{notFoundServer1.URL, notFoundServer2.URL}
 
 	getConnectionByClientID, err := NewCompositeGetConnectionByClientID(cfg, urls, cache)
 	if err != nil {
@@ -69,6 +71,14 @@ func TestCompositeConnectionLocatorNoConnectionFound(t *testing.T) {
 		t.Fatalf("Expected an empty string for the url, but found %s!", cachedUrl)
 	}
 
+	if notFoundHttpHandler1.wasCalled != true {
+		t.Fatalf("Expected the mocked http server to have been called")
+	}
+
+	if notFoundHttpHandler2.wasCalled != true {
+		t.Fatalf("Expected the mocked http server to have been called")
+	}
+
 	fmt.Println("connectionState:", connectionState)
 }
 
@@ -76,17 +86,19 @@ func TestCompositeConnectionLocatorConnectionFound(t *testing.T) {
 
 	var targetClientId domain.ClientID = "clientId"
 
-	testHttpHandler := testServerHandler{}
+	notFoundHttpHandler := testServerHandler{}
+	notFoundServer := httptest.NewServer(notFoundHttpHandler.buildRequestHandler(t, targetClientId, http.StatusOK, []byte(`{"status":"disconnected"}`)))
+	defer notFoundServer.Close()
 
-	server := httptest.NewServer(testHttpHandler.buildRequestHandler(t, targetClientId, http.StatusOK, []byte(`{"status":"connected", "account": "1234", "org_id": "4321", "client_id": "clientId"}`)))
-
-	defer server.Close()
+	foundHttpHandler := testServerHandler{}
+	foundServer := httptest.NewServer(foundHttpHandler.buildRequestHandler(t, targetClientId, http.StatusOK, []byte(`{"status":"connected", "account": "1234", "org_id": "4321", "client_id": "clientId"}`)))
+	defer foundServer.Close()
 
 	cache := expirable.NewLRU[domain.ClientID, string](10, nil, 10*time.Millisecond)
 
 	cfg := config.GetConfig()
 
-	urls := []string{server.URL}
+	urls := []string{notFoundServer.URL, foundServer.URL}
 
 	getConnectionByClientID, err := NewCompositeGetConnectionByClientID(cfg, urls, cache)
 	if err != nil {
@@ -105,14 +117,17 @@ func TestCompositeConnectionLocatorConnectionFound(t *testing.T) {
 		t.Fatalf("Expected a cached url, but did not find one!")
 	}
 
-	if cachedUrl != server.URL {
-		t.Fatalf("Expected an the cached url (%s) to match test server url (%s)!", cachedUrl, server.URL)
+	if cachedUrl != foundServer.URL {
+		t.Fatalf("Expected an the cached url (%s) to match test server url (%s)!", cachedUrl, foundServer.URL)
 	}
 
-	if testHttpHandler.wasCalled != true {
+	if notFoundHttpHandler.wasCalled != true {
 		t.Fatalf("Expected the mocked http server to have been called")
 	}
 
+	if foundHttpHandler.wasCalled != true {
+		t.Fatalf("Expected the mocked http server to have been called")
+	}
 	fmt.Println("connectionState:", connectionState)
 }
 
