@@ -29,24 +29,17 @@ func init() {
 //  verify second is not called
 // found in second server
 //  verify first server is called
+// not found in either
+//  verify both servers are called
 
 func TestCompositeConnectionLocatorNoConnectionFound(t *testing.T) {
 
-	targetClientId := "clientId"
+	var targetClientId domain.ClientID = "clientId"
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testHttpHandler := testServerHandler{}
 
-		expectedUrl := fmt.Sprintf("/api/cloud-connector/v2/connections/%s/status", targetClientId)
+	server := httptest.NewServer(testHttpHandler.buildRequestHandler(t, targetClientId, http.StatusOK, []byte(`{"status":"disconnected"}`)))
 
-		if r.URL.Path != expectedUrl {
-			t.Errorf("Expected to request '%s', got: %s", expectedUrl, r.URL.Path)
-		}
-		if r.Header.Get("Accept") != "application/json" {
-			t.Errorf("Expected Accept: application/json header, got: %s", r.Header.Get("Accept"))
-		}
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"disconnected"}`))
-	}))
 	defer server.Close()
 
 	cache := expirable.NewLRU[domain.ClientID, string](10, nil, 10*time.Millisecond)
@@ -81,21 +74,12 @@ func TestCompositeConnectionLocatorNoConnectionFound(t *testing.T) {
 
 func TestCompositeConnectionLocatorConnectionFound(t *testing.T) {
 
-	targetClientId := "clientId"
+	var targetClientId domain.ClientID = "clientId"
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	testHttpHandler := testServerHandler{}
 
-		expectedUrl := fmt.Sprintf("/api/cloud-connector/v2/connections/%s/status", targetClientId)
+	server := httptest.NewServer(testHttpHandler.buildRequestHandler(t, targetClientId, http.StatusOK, []byte(`{"status":"connected", "account": "1234", "org_id": "4321", "client_id": "clientId"}`)))
 
-		if r.URL.Path != expectedUrl {
-			t.Errorf("Expected to request '%s', got: %s", expectedUrl, r.URL.Path)
-		}
-		if r.Header.Get("Accept") != "application/json" {
-			t.Errorf("Expected Accept: application/json header, got: %s", r.Header.Get("Accept"))
-		}
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"connected", "account": "1234", "org_id": "4321", "client_id": "clientId"}`))
-	}))
 	defer server.Close()
 
 	cache := expirable.NewLRU[domain.ClientID, string](10, nil, 10*time.Millisecond)
@@ -109,14 +93,14 @@ func TestCompositeConnectionLocatorConnectionFound(t *testing.T) {
 		t.Fatalf("Got an error: %s", err)
 	}
 
-	log := logger.Log.WithFields(logrus.Fields{"client_id": "clientId"})
+	log := logger.Log.WithFields(logrus.Fields{"client_id": targetClientId})
 
-	connectionState, err := getConnectionByClientID(context.TODO(), log, "orgId", "clientId")
+	connectionState, err := getConnectionByClientID(context.TODO(), log, "orgId", targetClientId)
 	if err != nil {
 		t.Fatalf("Received unexpected error: %s", err)
 	}
 
-	cachedUrl, ok := cache.Get("clientId")
+	cachedUrl, ok := cache.Get(targetClientId)
 	if !ok {
 		t.Fatalf("Expected a cached url, but did not find one!")
 	}
@@ -125,5 +109,31 @@ func TestCompositeConnectionLocatorConnectionFound(t *testing.T) {
 		t.Fatalf("Expected an the cached url (%s) to match test server url (%s)!", cachedUrl, server.URL)
 	}
 
+	if testHttpHandler.wasCalled != true {
+		t.Fatalf("Expected the mocked http server to have been called")
+	}
+
 	fmt.Println("connectionState:", connectionState)
+}
+
+type testServerHandler struct {
+	wasCalled bool
+}
+
+func (this *testServerHandler) buildRequestHandler(t *testing.T, expectedClientId domain.ClientID, statusCode int, response []byte) http.HandlerFunc {
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		this.wasCalled = true
+
+		expectedUrl := fmt.Sprintf("/api/cloud-connector/v2/connections/%s/status", expectedClientId)
+
+		if r.URL.Path != expectedUrl {
+			t.Errorf("Expected to request '%s', got: %s", expectedUrl, r.URL.Path)
+		}
+		if r.Header.Get("Accept") != "application/json" {
+			t.Errorf("Expected Accept: application/json header, got: %s", r.Header.Get("Accept"))
+		}
+		w.WriteHeader(statusCode)
+		w.Write(response)
+	}
 }
