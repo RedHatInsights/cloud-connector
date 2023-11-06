@@ -44,8 +44,9 @@ func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []strin
 			return getConnectionState(ctx, log, orgId, clientId, cachedConnectionLocationUrl)
 		}
 
-		connectionState, err := lookupConnectionState(ctx, log, orgId, clientId, urls, connectionLocationCache)
+		url, connectionState, err := lookupConnectionState(ctx, log, orgId, clientId, urls)
 		if err == nil {
+			connectionLocationCache.Add(clientId, url)
 			return connectionState, err
 		}
 
@@ -53,17 +54,15 @@ func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []strin
 	}, nil
 }
 
-func lookupConnectionState(ctx context.Context, log *logrus.Entry, orgId domain.OrgID, clientId domain.ClientID, urls []string, cache *expirable.LRU[domain.ClientID, string]) (domain.ConnectorClientState, error) {
+func lookupConnectionState(ctx context.Context, log *logrus.Entry, orgId domain.OrgID, clientId domain.ClientID, urls []string) (string, domain.ConnectorClientState, error) {
 	for i := 0; i < len(urls); i++ {
 		clientState, err := getConnectionState(ctx, log, orgId, clientId, urls[i])
 		if err == nil {
-			fmt.Println("url: ", urls[i])
-			cache.Add(clientId, urls[i])
-			return clientState, nil
+			return urls[i], clientState, nil
 		}
 	}
 
-	return domain.ConnectorClientState{}, NotFoundError
+	return "", domain.ConnectorClientState{}, NotFoundError
 }
 
 func getConnectionState(ctx context.Context, log *logrus.Entry, orgID domain.OrgID, clientID domain.ClientID, url string) (domain.ConnectorClientState, error) {
@@ -130,6 +129,8 @@ func getConnectionState(ctx context.Context, log *logrus.Entry, orgID domain.Org
 	if resp.Status != "connected" {
 		return clientState, NotFoundError
 	}
+
+	logger.Info("Found connection")
 
 	clientState.Account = domain.AccountID(resp.Account)
 	clientState.OrgID = domain.OrgID(resp.OrgID)
