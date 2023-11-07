@@ -55,7 +55,10 @@ func (this *ConnectorClientHTTPProxy) SendMessage(ctx context.Context, directive
 		Metadata:  metadata,
 	}
 
-	requestJson, _ := json.Marshal(request)
+	requestJson, err := json.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
 
 	u := fmt.Sprintf("%s/api/cloud-connector/v2/connections/%s/message", this.Url, this.ClientID)
 
@@ -84,20 +87,12 @@ func (this *ConnectorClientHTTPProxy) SendMessage(ctx context.Context, directive
 		return nil, fmt.Errorf("Unable to find connection")
 	}
 
-	/*
-		type cloudConnectorSendMessageResponse struct {
-			MessageID string `json:"id"`
-		}
-	*/
-
 	var resp messageResponse
 	err = json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse response from child Cloud-Connector")
 		return nil, err
 	}
-
-	fmt.Println("\n\nresp: ", resp)
 
 	messageID, err := uuid.Parse(resp.JobID)
 	if err != nil {

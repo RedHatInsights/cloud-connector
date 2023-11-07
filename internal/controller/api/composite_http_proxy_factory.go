@@ -15,9 +15,7 @@ import (
 
 type ConnectorClientHTTPProxyFactory struct {
 	config *config.Config
-
-	// FIXME: Add the cache here
-	cache *expirable.LRU[domain.ClientID, string]
+	cache  *expirable.LRU[domain.ClientID, string]
 }
 
 func NewConnectorClientHTTPProxyFactory(cfg *config.Config, cache *expirable.LRU[domain.ClientID, string]) (controller.ConnectorClientProxyFactory, error) {
@@ -30,10 +28,11 @@ func (this *ConnectorClientHTTPProxyFactory) CreateProxy(ctx context.Context, or
 	// Look up connection in cache
 	childCloudConnectorUrl, ok := this.cache.Get(client_id)
 	if !ok {
+		// FIXME: what error should we return here??
 		return nil, fmt.Errorf("FIXME: child cloud-connector url not found in cache!")
 	}
 
-	logger := logger.Log.WithFields(logrus.Fields{"org_id": orgID, "account": account, "client_id": client_id})
+	logger := logger.Log.WithFields(logrus.Fields{"org_id": orgID, "account": account, "client_id": client_id, "child_cloud_connector": childCloudConnectorUrl})
 
 	proxy := ConnectorClientHTTPProxy{
 		Url:            childCloudConnectorUrl,

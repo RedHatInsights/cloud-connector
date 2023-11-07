@@ -23,15 +23,6 @@ func init() {
 	logger.InitLogger()
 }
 
-// FIXME: this global is gross ... create a function to create this??
-var expectedHttpHeaders map[string]string = map[string]string{
-	"accept":                         "application/json",
-	"x-rh-insights-request-id":       "requestID-xyz-1234-5678",
-	"x-rh-cloud-connector-org-id":    "orgId",
-	"x-rh-cloud-connector-client-id": "cloud-connector-composite",
-	"x-rh-cloud-connector-psk":       "secret_used_by_composite",
-}
-
 // TEST TODO
 // verify psk, request id are passed
 
@@ -45,6 +36,8 @@ var expectedHttpHeaders map[string]string = map[string]string{
 func TestCompositeConnectionLocatorNoConnectionFound(t *testing.T) {
 
 	var targetClientId domain.ClientID = "clientId"
+
+	expectedHttpHeaders := createExpectedHttpHeaders()
 
 	notFoundHttpHandler1 := testServerHandler{}
 	notFoundServer1 := httptest.NewServer(notFoundHttpHandler1.buildRequestHandler(t, targetClientId, expectedHttpHeaders, http.StatusOK, buildDisconnectedResponse()))
@@ -67,7 +60,7 @@ func TestCompositeConnectionLocatorNoConnectionFound(t *testing.T) {
 
 	log := logger.Log.WithFields(logrus.Fields{"client_id": targetClientId})
 
-	ctx := createContextWithRequestId()
+	ctx := createContextWithRequestId(expectedHttpHeaders)
 
 	connectionState, err := getConnectionByClientID(ctx, log, "orgId", targetClientId)
 	if err != NotFoundError {
@@ -98,6 +91,8 @@ func TestCompositeConnectionLocatorConnectionFoundOnSecondInstance(t *testing.T)
 
 	var targetClientId domain.ClientID = "clientId"
 
+	expectedHttpHeaders := createExpectedHttpHeaders()
+
 	notFoundHttpHandler := testServerHandler{}
 	notFoundServer := httptest.NewServer(notFoundHttpHandler.buildRequestHandler(t, targetClientId, expectedHttpHeaders, http.StatusOK, buildDisconnectedResponse()))
 	defer notFoundServer.Close()
@@ -119,7 +114,7 @@ func TestCompositeConnectionLocatorConnectionFoundOnSecondInstance(t *testing.T)
 
 	log := logger.Log.WithFields(logrus.Fields{"client_id": targetClientId})
 
-	ctx := createContextWithRequestId()
+	ctx := createContextWithRequestId(expectedHttpHeaders)
 
 	connectionState, err := getConnectionByClientID(ctx, log, "orgId", targetClientId)
 	if err != nil {
@@ -149,6 +144,8 @@ func TestCompositeConnectionLocatorConnectionFoundOnFirstInstance(t *testing.T) 
 
 	var targetClientId domain.ClientID = "clientId"
 
+	expectedHttpHeaders := createExpectedHttpHeaders()
+
 	foundHttpHandler := testServerHandler{}
 	foundServer := httptest.NewServer(foundHttpHandler.buildRequestHandler(t, targetClientId, expectedHttpHeaders, http.StatusOK, buildConnectedResponse()))
 	defer foundServer.Close()
@@ -170,7 +167,7 @@ func TestCompositeConnectionLocatorConnectionFoundOnFirstInstance(t *testing.T) 
 
 	log := logger.Log.WithFields(logrus.Fields{"client_id": targetClientId})
 
-	ctx := createContextWithRequestId()
+	ctx := createContextWithRequestId(expectedHttpHeaders)
 
 	connectionState, err := getConnectionByClientID(ctx, log, "orgId", targetClientId)
 	if err != nil {
@@ -232,7 +229,17 @@ func (this *testServerHandler) buildRequestHandler(t *testing.T, expectedClientI
 	}
 }
 
-func createContextWithRequestId() context.Context {
+func createExpectedHttpHeaders() map[string]string {
+	return map[string]string{
+		"accept":                         "application/json",
+		"x-rh-insights-request-id":       "requestID-xyz-1234-5678",
+		"x-rh-cloud-connector-org-id":    "orgId",
+		"x-rh-cloud-connector-client-id": "cloud-connector-composite",
+		"x-rh-cloud-connector-psk":       "secret_used_by_composite",
+	}
+}
+
+func createContextWithRequestId(expectedHttpHeaders map[string]string) context.Context {
 	ctx := context.Background()
 	return context.WithValue(ctx, request_id.RequestIDKey, expectedHttpHeaders["x-rh-insights-request-id"])
 }

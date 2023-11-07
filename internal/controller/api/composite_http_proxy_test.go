@@ -24,15 +24,6 @@ func init() {
 	logger.InitLogger()
 }
 
-// FIXME: this global is gross ... create a function to create this??
-var expectedHttpHeaders map[string]string = map[string]string{
-	"accept":                         "application/json",
-	"x-rh-insights-request-id":       "requestID-xyz-1234-5678",
-	"x-rh-cloud-connector-org-id":    "orgId",
-	"x-rh-cloud-connector-client-id": "cloud-connector-composite",
-	"x-rh-cloud-connector-psk":       "secret_used_by_composite",
-}
-
 // TEST TODO
 // verify psk, request id are passed
 
@@ -44,6 +35,8 @@ func TestCompositeHttpProxy(t *testing.T) {
 
 	var targetClientId domain.ClientID = "clientId"
 
+	expectedHttpHeaders := createExpectedHttpHeaders()
+
 	httpHandler := testServerHandler{}
 	server := httptest.NewServer(httpHandler.buildRequestHandler(t, targetClientId, expectedHttpHeaders, http.StatusCreated, []byte(`{"id": "5c3231c7-07c4-481a-8687-dc07342574e9"}`)))
 	defer server.Close()
@@ -54,7 +47,7 @@ func TestCompositeHttpProxy(t *testing.T) {
 
 	cfg := config.GetConfig()
 
-	ctx := createContextWithRequestId()
+	ctx := createContextWithRequestId(expectedHttpHeaders)
 
 	proxyFactory, _ := NewConnectorClientHTTPProxyFactory(cfg, cache)
 
@@ -132,7 +125,17 @@ func (this *testServerHandler) buildRequestHandler(t *testing.T, expectedClientI
 	}
 }
 
-func createContextWithRequestId() context.Context {
+func createExpectedHttpHeaders() map[string]string {
+	return map[string]string{
+		"accept":                         "application/json",
+		"x-rh-insights-request-id":       "requestID-xyz-1234-5678",
+		"x-rh-cloud-connector-org-id":    "orgId",
+		"x-rh-cloud-connector-client-id": "cloud-connector-composite",
+		"x-rh-cloud-connector-psk":       "secret_used_by_composite",
+	}
+}
+
+func createContextWithRequestId(expectedHttpHeaders map[string]string) context.Context {
 	ctx := context.Background()
 	return context.WithValue(ctx, request_id.RequestIDKey, expectedHttpHeaders["x-rh-insights-request-id"])
 }
