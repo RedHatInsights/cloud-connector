@@ -2,8 +2,8 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
-	//"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -15,6 +15,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/redhatinsights/platform-go-middlewares/request_id"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/golang-lru/v2/expirable"
 	//	"github.com/sirupsen/logrus"
 )
@@ -37,8 +38,9 @@ var expectedHttpHeaders map[string]string = map[string]string{
 
 // verify the post, verify url
 // verify error handling (500, etc)
+// verify the post body
 
-func TestCompositeConnectionLocatorNoConnectionFound(t *testing.T) {
+func TestCompositeHttpProxy(t *testing.T) {
 
 	var targetClientId domain.ClientID = "clientId"
 
@@ -58,48 +60,33 @@ func TestCompositeConnectionLocatorNoConnectionFound(t *testing.T) {
 
 	proxy, _ := proxyFactory.CreateProxy(ctx, "orgId", "account", targetClientId, nil, nil, nil)
 
-	msgId, err := proxy.SendMessage(ctx, "directive", "imametadata", "imapayload")
+	metadata := map[string]string{
+		"satellite_id": generateUUID(),
+		"job_id":       generateUUID(),
+	}
+
+	payload := map[string]string{
+		"job_name": generateUUID(),
+		"url":      "http://insights.app.console.redhat.com/api/testservice/v1/dostuff",
+	}
+
+	msgId, err := proxy.SendMessage(ctx, "imadirective", metadata, payload)
 	if err != nil {
 		t.Fatalf("Received unexpected error: %s", err)
 	}
+
 	if msgId.String() != "5c3231c7-07c4-481a-8687-dc07342574e9" {
 		t.Fatalf("Bad id")
 	}
 
-	/*
-		getConnectionByClientID, err := NewCompositeGetConnectionByClientID(cfg, urls, cache)
-		if err != nil {
-			t.Fatalf("Got an error: %s", err)
-		}
+	if httpHandler.wasCalled != true {
+		t.Fatalf("Expected the mocked http server to have been called")
+	}
+}
 
-		log := logger.Log.WithFields(logrus.Fields{"client_id": targetClientId})
-
-		ctx := createContextWithRequestId()
-
-		connectionState, err := getConnectionByClientID(ctx, log, "orgId", targetClientId)
-		if err != NotFoundError {
-			t.Fatalf("Expected an error but did not get one!")
-		}
-
-		cachedUrl, ok := cache.Get(targetClientId)
-		if ok {
-			t.Fatalf("Expected a cache miss, but found a cached url!")
-		}
-
-		if cachedUrl != "" {
-			t.Fatalf("Expected an empty string for the url, but found %s!", cachedUrl)
-		}
-
-		if notFoundHttpHandler1.wasCalled != true {
-			t.Fatalf("Expected the mocked http server to have been called")
-		}
-
-		if notFoundHttpHandler2.wasCalled != true {
-			t.Fatalf("Expected the mocked http server to have been called")
-		}
-
-		fmt.Println("connectionState:", connectionState)
-	*/
+func generateUUID() string {
+	id, _ := uuid.NewUUID()
+	return id.String()
 }
 
 type testServerHandler struct {
@@ -130,6 +117,14 @@ func (this *testServerHandler) buildRequestHandler(t *testing.T, expectedClientI
 			if actualValue != v {
 				t.Fatalf("HTTP Header %s value (%s) does not match expected value (%s) ", k, actualValue, v)
 			}
+		}
+
+		fmt.Println("***\n\nr.Body", r.Body)
+
+		var sendMsgRequest messageRequestV2
+		err := json.NewDecoder(r.Body).Decode(&sendMsgRequest)
+		if err != nil {
+			t.Fatalf("Failed to unmarshal request to child cloud-connector - error: %s", err)
 		}
 
 		w.WriteHeader(statusCode)

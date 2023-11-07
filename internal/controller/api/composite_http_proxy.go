@@ -49,13 +49,7 @@ func (this *ConnectorClientHTTPProxy) SendMessage(ctx context.Context, directive
 		Timeout: 5 * time.Second,
 	}
 
-	type cloudConnectorSendMessageRequest struct {
-		Payload   interface{} `json:"payload"`
-		Metadata  interface{} `json:"metadata"`
-		Directive string      `json:"directive" validate:"required"`
-	}
-
-	request := cloudConnectorSendMessageRequest{
+	request := messageRequestV2{
 		Directive: directive,
 		Payload:   payload,
 		Metadata:  metadata,
@@ -90,11 +84,13 @@ func (this *ConnectorClientHTTPProxy) SendMessage(ctx context.Context, directive
 		return nil, fmt.Errorf("Unable to find connection")
 	}
 
-	type cloudConnectorSendMessageResponse struct {
-		MessageID string `json:"id"`
-	}
+	/*
+		type cloudConnectorSendMessageResponse struct {
+			MessageID string `json:"id"`
+		}
+	*/
 
-	var resp cloudConnectorSendMessageResponse
+	var resp messageResponse
 	err = json.NewDecoder(r.Body).Decode(&resp)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse response from child Cloud-Connector")
@@ -103,7 +99,7 @@ func (this *ConnectorClientHTTPProxy) SendMessage(ctx context.Context, directive
 
 	fmt.Println("\n\nresp: ", resp)
 
-	messageID, err := uuid.Parse(resp.MessageID)
+	messageID, err := uuid.Parse(resp.JobID)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to parse message id returned by child Cloud-Connector")
 		return nil, errUnableToSendMessage
