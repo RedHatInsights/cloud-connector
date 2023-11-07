@@ -28,9 +28,6 @@ func startCompositeCloudConnectorApiServer(mgmtAddr string) {
 
 	cache := expirable.NewLRU[domain.ClientID, string](10, nil, 10*time.Millisecond)
 
-	// FIXME:  Make this configurable
-	urls := []string{"http://cloud-connector-api:10000", "http://cloud-connector-aws-api:10000"}
-
 	proxyFactory, err := api.NewConnectorClientHTTPProxyFactory(cfg, cache)
 	if err != nil {
 		logger.LogFatalError("Unable to create proxy factory", err)
@@ -51,7 +48,7 @@ func startCompositeCloudConnectorApiServer(mgmtAddr string) {
 	monitoringServer.Routes()
 
 	var getConnectionFunction connection_repository.GetConnectionByClientID
-	getConnectionFunction, err = connection_repository.NewCompositeGetConnectionByClientID(cfg, urls, cache)
+	getConnectionFunction, err = connection_repository.NewCompositeGetConnectionByClientID(cfg, cfg.ChildCloudConnectorApiServers, cache)
 
 	if err != nil {
 		logger.LogFatalError("Unable to create connection_repository.GetConnection() function", err)

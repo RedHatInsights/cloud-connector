@@ -41,10 +41,10 @@ func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []strin
 
 		cachedConnectionLocationUrl, ok := connectionLocationCache.Get(clientId)
 		if ok {
-			return getConnectionState(ctx, log, orgId, clientId, cachedConnectionLocationUrl)
+			return getConnectionState(ctx, log, orgId, clientId, cachedConnectionLocationUrl, cfg.ChildCloudConnectorHttpTimeout)
 		}
 
-		url, connectionState, err := lookupConnectionState(ctx, log, orgId, clientId, urls)
+		url, connectionState, err := lookupConnectionState(ctx, log, orgId, clientId, urls, cfg.ChildCloudConnectorHttpTimeout)
 		if err == nil {
 			connectionLocationCache.Add(clientId, url)
 			return connectionState, err
@@ -54,9 +54,9 @@ func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []strin
 	}, nil
 }
 
-func lookupConnectionState(ctx context.Context, log *logrus.Entry, orgId domain.OrgID, clientId domain.ClientID, urls []string) (string, domain.ConnectorClientState, error) {
+func lookupConnectionState(ctx context.Context, log *logrus.Entry, orgId domain.OrgID, clientId domain.ClientID, urls []string, httpTimeout time.Duration) (string, domain.ConnectorClientState, error) {
 	for i := 0; i < len(urls); i++ {
-		clientState, err := getConnectionState(ctx, log, orgId, clientId, urls[i])
+		clientState, err := getConnectionState(ctx, log, orgId, clientId, urls[i], httpTimeout)
 		if err == nil {
 			return urls[i], clientState, nil
 		}
@@ -65,7 +65,7 @@ func lookupConnectionState(ctx context.Context, log *logrus.Entry, orgId domain.
 	return "", domain.ConnectorClientState{}, NotFoundError
 }
 
-func getConnectionState(ctx context.Context, log *logrus.Entry, orgID domain.OrgID, clientID domain.ClientID, url string) (domain.ConnectorClientState, error) {
+func getConnectionState(ctx context.Context, log *logrus.Entry, orgID domain.OrgID, clientID domain.ClientID, url string, httpTimeout time.Duration) (domain.ConnectorClientState, error) {
 
 	var clientState domain.ConnectorClientState
 	var err error
@@ -77,7 +77,7 @@ func getConnectionState(ctx context.Context, log *logrus.Entry, orgID domain.Org
 	logger.Infof("Searching for connection - org id: %s, client id: %s", orgID, clientID)
 
 	client := &http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: httpTimeout,
 	}
 
 	u := fmt.Sprintf("%s/api/cloud-connector/v2/connections/%s/status", url, clientID)

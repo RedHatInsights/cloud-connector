@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -46,7 +45,7 @@ func (this *ConnectorClientHTTPProxy) SendMessage(ctx context.Context, directive
 	this.Logger.Debug("Sending data message to connected client")
 
 	client := &http.Client{
-		Timeout: 5 * time.Second,
+		Timeout: this.Config.ChildCloudConnectorHttpTimeout,
 	}
 
 	request := messageRequestV2{

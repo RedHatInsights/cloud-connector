@@ -94,6 +94,8 @@ const (
 	TENANT_TRANSLATOR_MOCK_MAPPING               = "Tenant_Translator_Mock_Mapping"
 	TENANT_TRANSLATOR_URL                        = "Tenant_Translator_URL"
 	TENANT_TRANSLATOR_TIMEOUT                    = "Tenant_Translator_Timeout"
+	CHILD_CLOUD_CONNECTOR_API_SERVERS            = "Child_Cloud_Connector_Api_Servers"
+	CHILD_CLOUD_CONNECTOR_HTTP_TIMEOUT           = "Child_Cloud_Connector_Http_Timeout"
 )
 
 type Config struct {
@@ -177,6 +179,8 @@ type Config struct {
 	TenantTranslatorMockMapping             map[string]interface{}
 	TenantTranslatorURL                     string
 	TenantTranslatorTimeout                 time.Duration
+	ChildCloudConnectorApiServers           []string
+	ChildCloudConnectorHttpTimeout          time.Duration
 }
 
 func (c Config) String() string {
@@ -252,6 +256,8 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", TENANT_TRANSLATOR_URL, c.TenantTranslatorURL)
 	fmt.Fprintf(&b, "%s: %s\n", TENANT_TRANSLATOR_TIMEOUT, c.TenantTranslatorTimeout)
 	fmt.Fprintf(&b, "%s: %s\n", PROMETHEUS_PUSH_GATEWAY, c.PrometheusPushGateway)
+	fmt.Fprintf(&b, "%s: %s\n", CHILD_CLOUD_CONNECTOR_API_SERVERS, c.ChildCloudConnectorApiServers)
+	fmt.Fprintf(&b, "%s: %s\n", CHILD_CLOUD_CONNECTOR_HTTP_TIMEOUT, c.ChildCloudConnectorHttpTimeout)
 	return b.String()
 }
 
@@ -328,6 +334,9 @@ func GetConfig() *Config {
 	options.SetDefault(TENANT_TRANSLATOR_URL, "http://gateway.3scale-dev.svc.cluster.local:8892")
 	options.SetDefault(TENANT_TRANSLATOR_TIMEOUT, 5)
 	options.SetDefault(PROMETHEUS_PUSH_GATEWAY, "prometheus-push.insights-push-stage.svc.cluster.local:9091")
+	options.SetDefault(CHILD_CLOUD_CONNECTOR_API_SERVERS, []string{"http://cloud-connector-api:10000", "http://cloud-connector-aws-api:10000"})
+	options.SetDefault(CHILD_CLOUD_CONNECTOR_HTTP_TIMEOUT, 5*time.Second)
+
 	options.SetEnvPrefix(ENV_PREFIX)
 	options.AutomaticEnv()
 
@@ -411,6 +420,8 @@ func GetConfig() *Config {
 		TenantTranslatorMockMapping:             options.GetStringMap(TENANT_TRANSLATOR_MOCK_MAPPING),
 		TenantTranslatorURL:                     options.GetString(TENANT_TRANSLATOR_URL),
 		TenantTranslatorTimeout:                 options.GetDuration(TENANT_TRANSLATOR_TIMEOUT) * time.Second,
+		ChildCloudConnectorApiServers:           options.GetStringSlice(CHILD_CLOUD_CONNECTOR_API_SERVERS),
+		ChildCloudConnectorHttpTimeout:          options.GetDuration(CHILD_CLOUD_CONNECTOR_HTTP_TIMEOUT) * time.Second,
 	}
 
 	if clowder.IsClowderEnabled() {
