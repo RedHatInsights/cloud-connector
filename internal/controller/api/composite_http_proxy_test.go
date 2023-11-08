@@ -46,6 +46,8 @@ func TestCompositeHttpProxy(t *testing.T) {
 	cache.Add(targetClientId, server.URL)
 
 	cfg := config.GetConfig()
+	cfg.CompositeServiceToServiceClientId = expectedHttpHeaders["x-rh-cloud-connector-client-id"]
+	cfg.CompositeServiceToServicePsk = expectedHttpHeaders["x-rh-cloud-connector-psk"]
 
 	ctx := createContextWithRequestId(expectedHttpHeaders)
 

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	//"io/ioutil"
 	"net/http"
-	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
@@ -41,10 +40,10 @@ func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []strin
 
 		cachedConnectionLocationUrl, ok := connectionLocationCache.Get(clientId)
 		if ok {
-			return getConnectionState(ctx, log, orgId, clientId, cachedConnectionLocationUrl, cfg.ChildCloudConnectorHttpTimeout)
+			return getConnectionState(ctx, log, orgId, clientId, cachedConnectionLocationUrl, cfg)
 		}
 
-		url, connectionState, err := lookupConnectionState(ctx, log, orgId, clientId, urls, cfg.ChildCloudConnectorHttpTimeout)
+		url, connectionState, err := lookupConnectionState(ctx, log, orgId, clientId, urls, cfg)
 		if err == nil {
 			connectionLocationCache.Add(clientId, url)
 			return connectionState, err
@@ -54,9 +53,9 @@ func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []strin
 	}, nil
 }
 
-func lookupConnectionState(ctx context.Context, log *logrus.Entry, orgId domain.OrgID, clientId domain.ClientID, urls []string, httpTimeout time.Duration) (string, domain.ConnectorClientState, error) {
+func lookupConnectionState(ctx context.Context, log *logrus.Entry, orgId domain.OrgID, clientId domain.ClientID, urls []string, cfg *config.Config) (string, domain.ConnectorClientState, error) {
 	for i := 0; i < len(urls); i++ {
-		clientState, err := getConnectionState(ctx, log, orgId, clientId, urls[i], httpTimeout)
+		clientState, err := getConnectionState(ctx, log, orgId, clientId, urls[i], cfg)
 		if err == nil {
 			return urls[i], clientState, nil
 		}
@@ -65,7 +64,7 @@ func lookupConnectionState(ctx context.Context, log *logrus.Entry, orgId domain.
 	return "", domain.ConnectorClientState{}, NotFoundError
 }
 
-func getConnectionState(ctx context.Context, log *logrus.Entry, orgID domain.OrgID, clientID domain.ClientID, url string, httpTimeout time.Duration) (domain.ConnectorClientState, error) {
+func getConnectionState(ctx context.Context, log *logrus.Entry, orgID domain.OrgID, clientID domain.ClientID, url string, cfg *config.Config) (domain.ConnectorClientState, error) {
 
 	var clientState domain.ConnectorClientState
 	var err error
@@ -77,7 +76,7 @@ func getConnectionState(ctx context.Context, log *logrus.Entry, orgID domain.Org
 	logger.Infof("Searching for connection - org id: %s, client id: %s", orgID, clientID)
 
 	client := &http.Client{
-		Timeout: httpTimeout,
+		Timeout: cfg.ChildCloudConnectorHttpTimeout,
 	}
 
 	u := fmt.Sprintf("%s/api/cloud-connector/v2/connections/%s/status", url, clientID)
@@ -90,8 +89,8 @@ func getConnectionState(ctx context.Context, log *logrus.Entry, orgID domain.Org
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("x-rh-insights-request-id", requestID)
 	req.Header.Add("x-rh-cloud-connector-org-id", string(orgID))
-	req.Header.Add("x-rh-cloud-connector-client-id", "cloud-connector-composite")
-	req.Header.Add("x-rh-cloud-connector-psk", "secret_used_by_composite")
+	req.Header.Add("x-rh-cloud-connector-client-id", cfg.CompositeServiceToServiceClientId)
+	req.Header.Add("x-rh-cloud-connector-psk", cfg.CompositeServiceToServicePsk)
 
 	logger.Debug("About to call child Cloud-Connector")
 	r, err := client.Do(req)

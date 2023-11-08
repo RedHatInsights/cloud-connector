@@ -69,8 +69,8 @@ func (this *ConnectorClientHTTPProxy) SendMessage(ctx context.Context, directive
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("x-rh-insights-request-id", requestID)
 	req.Header.Add("x-rh-cloud-connector-org-id", string(this.OrgID))
-	req.Header.Add("x-rh-cloud-connector-client-id", "cloud-connector-composite")
-	req.Header.Add("x-rh-cloud-connector-psk", "secret_used_by_composite")
+	req.Header.Add("x-rh-cloud-connector-client-id", this.Config.CompositeServiceToServiceClientId)
+	req.Header.Add("x-rh-cloud-connector-psk", this.Config.CompositeServiceToServicePsk)
 
 	logger.Debug("About to call child Cloud-Connector")
 	r, err := client.Do(req)

@@ -50,6 +50,8 @@ func TestCompositeConnectionLocatorNoConnectionFound(t *testing.T) {
 	cache := expirable.NewLRU[domain.ClientID, string](10, nil, 10*time.Millisecond)
 
 	cfg := config.GetConfig()
+	cfg.CompositeServiceToServiceClientId = expectedHttpHeaders["x-rh-cloud-connector-client-id"]
+	cfg.CompositeServiceToServicePsk = expectedHttpHeaders["x-rh-cloud-connector-psk"]
 
 	urls := []string{notFoundServer1.URL, notFoundServer2.URL}
 
@@ -104,6 +106,8 @@ func TestCompositeConnectionLocatorConnectionFoundOnSecondInstance(t *testing.T)
 	cache := expirable.NewLRU[domain.ClientID, string](10, nil, 10*time.Millisecond)
 
 	cfg := config.GetConfig()
+	cfg.CompositeServiceToServiceClientId = expectedHttpHeaders["x-rh-cloud-connector-client-id"]
+	cfg.CompositeServiceToServicePsk = expectedHttpHeaders["x-rh-cloud-connector-psk"]
 
 	urls := []string{notFoundServer.URL, foundServer.URL}
 
@@ -157,6 +161,8 @@ func TestCompositeConnectionLocatorConnectionFoundOnFirstInstance(t *testing.T) 
 	cache := expirable.NewLRU[domain.ClientID, string](10, nil, 10*time.Millisecond)
 
 	cfg := config.GetConfig()
+	cfg.CompositeServiceToServiceClientId = expectedHttpHeaders["x-rh-cloud-connector-client-id"]
+	cfg.CompositeServiceToServicePsk = expectedHttpHeaders["x-rh-cloud-connector-psk"]
 
 	urls := []string{foundServer.URL, notFoundServer.URL}
 

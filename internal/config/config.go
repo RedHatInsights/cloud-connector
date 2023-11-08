@@ -96,6 +96,8 @@ const (
 	TENANT_TRANSLATOR_TIMEOUT                    = "Tenant_Translator_Timeout"
 	CHILD_CLOUD_CONNECTOR_API_SERVERS            = "Child_Cloud_Connector_Api_Servers"
 	CHILD_CLOUD_CONNECTOR_HTTP_TIMEOUT           = "Child_Cloud_Connector_Http_Timeout"
+	COMPOSITE_SERVICE_TO_SERVICE_CLIENT_ID       = "Composite_Service_To_Service_Client_ID"
+	COMPOSITE_SERVICE_TO_SERVICE_PSK             = "Composite_Service_To_Service_PSK"
 )
 
 type Config struct {
@@ -181,6 +183,8 @@ type Config struct {
 	TenantTranslatorTimeout                 time.Duration
 	ChildCloudConnectorApiServers           []string
 	ChildCloudConnectorHttpTimeout          time.Duration
+	CompositeServiceToServiceClientId       string
+	CompositeServiceToServicePsk            string
 }
 
 func (c Config) String() string {
@@ -422,6 +426,8 @@ func GetConfig() *Config {
 		TenantTranslatorTimeout:                 options.GetDuration(TENANT_TRANSLATOR_TIMEOUT) * time.Second,
 		ChildCloudConnectorApiServers:           options.GetStringSlice(CHILD_CLOUD_CONNECTOR_API_SERVERS),
 		ChildCloudConnectorHttpTimeout:          options.GetDuration(CHILD_CLOUD_CONNECTOR_HTTP_TIMEOUT) * time.Second,
+		CompositeServiceToServiceClientId:       options.GetString(COMPOSITE_SERVICE_TO_SERVICE_CLIENT_ID),
+		CompositeServiceToServicePsk:            options.GetString(COMPOSITE_SERVICE_TO_SERVICE_PSK),
 	}
 
 	if clowder.IsClowderEnabled() {
