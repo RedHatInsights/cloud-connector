@@ -258,14 +258,14 @@ func (ecar *ExpirableCachedAccountIdResolver) MapClientIdToAccountId(ctx context
 		//Check if cached result is still valid
 		if result.err == nil {
 			metrics.accountLookupCacheHit.Inc()
-			logger.Debugf("Found cached account mapping results")
+			logger.Tracef("Found cached account mapping results")
 			return result.identity, result.accountID, result.orgID, nil
 		}
 
 		now := time.Now()
 		if now.Sub(result.timestamp) < ecar.errorTTL && result.err != nil {
 			metrics.accountLookupCacheHit.Inc()
-			logger.Debugf("Found cached account mapping results (error: %s)", result.err)
+			logger.Tracef("Found cached account mapping results (error: %s)", result.err)
 			//if cache error is within the error ttl return it
 			return "", "", "", result.err
 		}
