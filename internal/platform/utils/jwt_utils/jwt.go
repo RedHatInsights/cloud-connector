@@ -9,7 +9,7 @@ import (
 
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/sirupsen/logrus"
 )
 

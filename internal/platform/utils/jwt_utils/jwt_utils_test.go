@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/go-playground/assert/v2"
+	"github.com/golang-jwt/jwt"
 )
 
 var verifyKey *rsa.PublicKey
