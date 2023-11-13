@@ -40,12 +40,16 @@ func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []strin
 
 		cachedConnectionLocationUrl, ok := connectionLocationCache.Get(clientId)
 		if ok {
-			return getConnectionState(ctx, log, orgId, clientId, cachedConnectionLocationUrl, cfg)
+			log.Debug("Found connection")
+			state, err := getConnectionState(ctx, log, orgId, clientId, cachedConnectionLocationUrl, cfg)
+			log.Debugf("Found connection (state: %s) (err: %s)", state, err)
+			return state, err
 		}
 
 		url, connectionState, err := lookupConnectionState(ctx, log, orgId, clientId, urls, cfg)
 		if err == nil {
 			connectionLocationCache.Add(clientId, url)
+			log.Debugf("Found connection (state: %s) (err: %s)", connectionState, err)
 			return connectionState, err
 		}
 
