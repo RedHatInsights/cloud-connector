@@ -26,6 +26,8 @@ func NewCompositeGetConnectionByClientID(cfg *config.Config, urls []string, conn
 func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []string, connectionLocationCache *expirable.LRU[domain.ClientID, string]) (GetConnectionByClientID, error) {
 
 	return func(ctx context.Context, log *logrus.Entry, orgId domain.OrgID, clientId domain.ClientID) (domain.ConnectorClientState, error) {
+		log.Debug("================= Entering ================================")
+		defer func() { log.Debug("====================== Leaving ===========================") }()
 		var err error
 
 		err = verifyOrgId(orgId)
