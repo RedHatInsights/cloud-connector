@@ -26,8 +26,6 @@ func NewCompositeGetConnectionByClientID(cfg *config.Config, urls []string, conn
 func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []string, connectionLocationCache *expirable.LRU[domain.ClientID, string]) (GetConnectionByClientID, error) {
 
 	return func(ctx context.Context, log *logrus.Entry, orgId domain.OrgID, clientId domain.ClientID) (domain.ConnectorClientState, error) {
-		log.Debug("================= Entering ================================")
-		defer func() { log.Debug("====================== Leaving ===========================") }()
 		var err error
 
 		err = verifyOrgId(orgId)
@@ -42,16 +40,12 @@ func createGetConnectionByClientIDCompositeImpl(cfg *config.Config, urls []strin
 
 		cachedConnectionLocationUrl, ok := connectionLocationCache.Get(clientId)
 		if ok {
-			log.Debug("Found connection")
-			state, err := getConnectionState(ctx, log, orgId, clientId, cachedConnectionLocationUrl, cfg)
-			log.Debugf("Found connection (state: %s) (err: %s)", state, err)
-			return state, err
+			return getConnectionState(ctx, log, orgId, clientId, cachedConnectionLocationUrl, cfg)
 		}
 
 		url, connectionState, err := lookupConnectionState(ctx, log, orgId, clientId, urls, cfg)
 		if err == nil {
 			connectionLocationCache.Add(clientId, url)
-			log.Debugf("Found connection (state: %s) (err: %s)", connectionState, err)
 			return connectionState, err
 		}
 
