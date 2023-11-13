@@ -74,6 +74,16 @@ objects:
             secretKeyRef:
               key: connector-psk-map
               name: cloud-connector-psks
+        - name: CLOUD_CONNECTOR_COMPOSITE_SERVICE_TO_SERVICE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              key: composite-api-service-to-service-client-id
+              name: cloud-connector-psks
+        - name: CLOUD_CONNECTOR_COMPOSITE_SERVICE_TO_SERVICE_PSK
+          valueFrom:
+            secretKeyRef:
+              key: composite-api-service-to-service-psk
+              name: cloud-connector-psks
 
         - name: CLOUD_CONNECTOR_API_SERVER_CONNECTION_LOOKUP_IMPL
           value: ${{API_SERVER_CONNECTION_LOOKUP_IMPL}}

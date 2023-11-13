@@ -465,6 +465,8 @@ objects:
       app: cloud-connector
   data:
     connector-psk-map: eyJqb2JfcmVjZWl2ZXIiOiAiMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEiLCAicGxheWJvb2stZGlzcGF0Y2hlciI6ICJjbG91ZF9jb25uZWN0b3IiLCAiY29uZmlnLW1hbmFnZXIiOiAic3dvcmRmaXNoIiwgImNsb3VkLWNvbm5lY3Rvci1jb21wb3NpdGUiOiAic2VjcmV0X3VzZWRfYnlfY29tcG9zaXRlIn0=
+    composite-api-service-to-service-client-id: "Y2xvdWQtY29ubmVjdG9yLWNvbXBvc2l0ZQ=="
+    composite-api-service-to-service-psk: "c2VjcmV0X3VzZWRfYnlfY29tcG9zaXRl"
   type: Opaque
 
 
