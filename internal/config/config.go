@@ -428,12 +428,6 @@ func GetConfig() *Config {
 		config.RhcMessageKafkaBrokers = clowder.KafkaServers
 		config.RhcMessageKafkaTopic = clowder.KafkaTopics[RHC_MESSAGE_KAFKA_TOPIC_DEFAULT].Name
 
-		if config.RhcMessageKafkaTopic == "" {
-			fmt.Println("WARNING:  RHC Message kafka topic is not set within clowder!!")
-			// FIXME:  this is a hack!!
-			config.RhcMessageKafkaTopic = RHC_MESSAGE_KAFKA_TOPIC_DEFAULT
-		}
-
 		if broker.Authtype != nil {
 			config.KafkaUsername = *broker.Sasl.Username
 			config.KafkaPassword = *broker.Sasl.Password
