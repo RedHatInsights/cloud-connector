@@ -94,6 +94,10 @@ const (
 	TENANT_TRANSLATOR_MOCK_MAPPING               = "Tenant_Translator_Mock_Mapping"
 	TENANT_TRANSLATOR_URL                        = "Tenant_Translator_URL"
 	TENANT_TRANSLATOR_TIMEOUT                    = "Tenant_Translator_Timeout"
+	CHILD_CLOUD_CONNECTOR_API_SERVERS            = "Child_Cloud_Connector_Api_Servers"
+	CHILD_CLOUD_CONNECTOR_HTTP_TIMEOUT           = "Child_Cloud_Connector_Http_Timeout"
+	COMPOSITE_SERVICE_TO_SERVICE_CLIENT_ID       = "Composite_Service_To_Service_Client_ID"
+	COMPOSITE_SERVICE_TO_SERVICE_PSK             = "Composite_Service_To_Service_PSK"
 )
 
 type Config struct {
@@ -177,6 +181,10 @@ type Config struct {
 	TenantTranslatorMockMapping             map[string]interface{}
 	TenantTranslatorURL                     string
 	TenantTranslatorTimeout                 time.Duration
+	ChildCloudConnectorApiServers           []string
+	ChildCloudConnectorHttpTimeout          time.Duration
+	CompositeServiceToServiceClientId       string
+	CompositeServiceToServicePsk            string
 }
 
 func (c Config) String() string {
@@ -252,6 +260,8 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", TENANT_TRANSLATOR_URL, c.TenantTranslatorURL)
 	fmt.Fprintf(&b, "%s: %s\n", TENANT_TRANSLATOR_TIMEOUT, c.TenantTranslatorTimeout)
 	fmt.Fprintf(&b, "%s: %s\n", PROMETHEUS_PUSH_GATEWAY, c.PrometheusPushGateway)
+	fmt.Fprintf(&b, "%s: %s\n", CHILD_CLOUD_CONNECTOR_API_SERVERS, c.ChildCloudConnectorApiServers)
+	fmt.Fprintf(&b, "%s: %s\n", CHILD_CLOUD_CONNECTOR_HTTP_TIMEOUT, c.ChildCloudConnectorHttpTimeout)
 	return b.String()
 }
 
@@ -328,6 +338,9 @@ func GetConfig() *Config {
 	options.SetDefault(TENANT_TRANSLATOR_URL, "http://gateway.3scale-dev.svc.cluster.local:8892")
 	options.SetDefault(TENANT_TRANSLATOR_TIMEOUT, 5)
 	options.SetDefault(PROMETHEUS_PUSH_GATEWAY, "prometheus-push.insights-push-stage.svc.cluster.local:9091")
+	options.SetDefault(CHILD_CLOUD_CONNECTOR_API_SERVERS, []string{"http://cloud-connector-api:10000", "http://cloud-connector-aws-api:10000"})
+	options.SetDefault(CHILD_CLOUD_CONNECTOR_HTTP_TIMEOUT, 5*time.Second)
+
 	options.SetEnvPrefix(ENV_PREFIX)
 	options.AutomaticEnv()
 
@@ -411,6 +424,10 @@ func GetConfig() *Config {
 		TenantTranslatorMockMapping:             options.GetStringMap(TENANT_TRANSLATOR_MOCK_MAPPING),
 		TenantTranslatorURL:                     options.GetString(TENANT_TRANSLATOR_URL),
 		TenantTranslatorTimeout:                 options.GetDuration(TENANT_TRANSLATOR_TIMEOUT) * time.Second,
+		ChildCloudConnectorApiServers:           options.GetStringSlice(CHILD_CLOUD_CONNECTOR_API_SERVERS),
+		ChildCloudConnectorHttpTimeout:          options.GetDuration(CHILD_CLOUD_CONNECTOR_HTTP_TIMEOUT) * time.Second,
+		CompositeServiceToServiceClientId:       options.GetString(COMPOSITE_SERVICE_TO_SERVICE_CLIENT_ID),
+		CompositeServiceToServicePsk:            options.GetString(COMPOSITE_SERVICE_TO_SERVICE_PSK),
 	}
 
 	if clowder.IsClowderEnabled() {
@@ -423,10 +440,10 @@ func GetConfig() *Config {
 		fmt.Println("Cloud-Connector is running in a Clowderized environment...overriding configuration!!")
 
 		config.InventoryKafkaBrokers = clowder.KafkaServers
-		config.InventoryKafkaTopic = clowder.KafkaTopics["platform.inventory.host-ingress-p1"].Name
+		config.InventoryKafkaTopic = clowder.KafkaTopics[config.InventoryKafkaTopic].Name
 
 		config.RhcMessageKafkaBrokers = clowder.KafkaServers
-		config.RhcMessageKafkaTopic = clowder.KafkaTopics[RHC_MESSAGE_KAFKA_TOPIC_DEFAULT].Name
+		config.RhcMessageKafkaTopic = clowder.KafkaTopics[config.RhcMessageKafkaTopic].Name
 
 		if broker.Authtype != nil {
 			config.KafkaUsername = *broker.Sasl.Username
@@ -442,20 +459,22 @@ func GetConfig() *Config {
 			config.KafkaCA = caPath
 		}
 
-		config.ConnectionDatabaseHost = cfg.Database.Hostname
-		config.ConnectionDatabasePort = cfg.Database.Port
-		config.ConnectionDatabaseName = cfg.Database.Name
-		config.ConnectionDatabaseUser = cfg.Database.Username
-		config.ConnectionDatabasePassword = cfg.Database.Password
+		if cfg.Database != nil {
+			config.ConnectionDatabaseHost = cfg.Database.Hostname
+			config.ConnectionDatabasePort = cfg.Database.Port
+			config.ConnectionDatabaseName = cfg.Database.Name
+			config.ConnectionDatabaseUser = cfg.Database.Username
+			config.ConnectionDatabasePassword = cfg.Database.Password
 
-		config.ConnectionDatabaseSslMode = cfg.Database.SslMode
-		if cfg.Database.RdsCa != nil {
-			pathToDBCertFile, err := cfg.RdsCa()
-			if err != nil {
-				panic(err)
+			config.ConnectionDatabaseSslMode = cfg.Database.SslMode
+			if cfg.Database.RdsCa != nil {
+				pathToDBCertFile, err := cfg.RdsCa()
+				if err != nil {
+					panic(err)
+				}
+
+				config.ConnectionDatabaseSslRootCert = pathToDBCertFile
 			}
-
-			config.ConnectionDatabaseSslRootCert = pathToDBCertFile
 		}
 	}
 

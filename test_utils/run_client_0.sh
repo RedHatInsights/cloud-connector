@@ -4,6 +4,7 @@
 
 BROKER="ssl://mosquitto-route-connector-ci.5a9f.insights-dev.openshiftapps.com:443"
 BROKER="ssl://localhost:8883"
+BROKER="tcp://localhost:9883"
 
 WORKING_DIR=/home/dehort/dev/go/src/github.com/RedHatInsights/cloud-connector
 WORKING_DIR=./dev/test_client
