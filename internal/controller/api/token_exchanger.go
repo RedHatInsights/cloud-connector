@@ -1,7 +1,7 @@
 package api
 
 import (
-	"context"
+	//"context"
 	"fmt"
 	"net/http"
 
@@ -15,58 +15,47 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-
-type TokenExchangerServer struct {
-	router                  *mux.Router
-	config                  *config.Config
-	urlPrefix               string
+type TokenGeneratorServer struct {
+	router    *mux.Router
+	config    *config.Config
+	urlPrefix string
 }
 
-func NewTokenExchangerServer(r *mux.Router, urlPrefix string, cfg *config.Config) *TokenExchangerServer {
-
-	return &TokenExchangerServer{
-		router:                  r,
-		config:                  cfg,
-		urlPrefix:               urlPrefix,
+func NewTokenGeneratorServer(r *mux.Router, urlPrefix string, cfg *config.Config) *TokenGeneratorServer {
+	return &TokenGeneratorServer{
+		router:    r,
+		config:    cfg,
+		urlPrefix: urlPrefix,
 	}
 }
 
-func (s *TokenExchangerServer) Routes() {
+func (s *TokenGeneratorServer) Routes() {
 	mmw := &middlewares.MetricsMiddleware{}
-    /*
-	amw := &middlewares.AuthMiddleware{
-		Secrets: s.config.ServiceToServiceCredentials,
-		IdentityAuth: func(next http.Handler) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				identity.EnforceIdentity(middlewares.EnforceTurnpikeAuthentication(next)).ServeHTTP(w, r)
-				return
-			})
-		},
-		RequiredTenantIdentifier: middlewares.Account, // Account is the required tenant identifier for v1 rest interface
-	}
-*/
 
 	pathPrefix := fmt.Sprintf("%s/v1/token", s.urlPrefix)
 
 	securedSubRouter := s.router.PathPrefix(pathPrefix).Subrouter()
 	securedSubRouter.Use(logger.AccessLoggerMiddleware,
 		mmw.RecordHTTPMetrics,
-    )
-//		amw.Authenticate)
+		identity.EnforceIdentity,
+		middlewares.EnforceCertAuthentication,
+	)
 
 	securedSubRouter.HandleFunc("/token", s.handleGenerateToken()).Methods(http.MethodPost)
 }
 
 type tokenRequest struct {
-	Account string `json:"account" validate:"required"`
-	NodeID  string `json:"node_id" validate:"required"`
+	NotSure string `json:"placeholder"` // FIXME
 }
 
 type tokenResponse struct {
-	Status         string      `json:"status"`
+	// FIXME
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+	ExpiresIn   string `json:"expires_in"`
 }
 
-func (s *TokenExchangerServer) handleGenerateToken() http.HandlerFunc {
+func (s *TokenGeneratorServer) handleGenerateToken() http.HandlerFunc {
 
 	return func(w http.ResponseWriter, req *http.Request) {
 
@@ -76,6 +65,8 @@ func (s *TokenExchangerServer) handleGenerateToken() http.HandlerFunc {
 			"account":    principal.GetAccount(),
 			"org_id":     principal.GetOrgID(),
 			"request_id": requestId})
+
+		logger.Debug("MADE IT HERE!!")
 
 		body := http.MaxBytesReader(w, req.Body, 1048576)
 
@@ -88,7 +79,7 @@ func (s *TokenExchangerServer) handleGenerateToken() http.HandlerFunc {
 			return
 		}
 
-        var tokenResp tokenResponse
+		var tokenResp tokenResponse
 		writeJSONResponse(w, http.StatusOK, tokenResp)
 	}
 }
