@@ -4,19 +4,16 @@ import (
 	//"context"
 	"crypto/rsa"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"path/filepath"
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/jwt_utils"
-	"github.com/redhatinsights/platform-go-middlewares/identity"
+	//	"github.com/redhatinsights/platform-go-middlewares/identity"
 	"github.com/redhatinsights/platform-go-middlewares/request_id"
 
-	"github.com/golang-jwt/jwt"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )
@@ -29,43 +26,37 @@ type TokenGeneratorServer struct {
 	signingKey  *rsa.PrivateKey
 }
 
-func NewTokenGeneratorServer(r *mux.Router, urlPrefix string, cfg *config.Config) *TokenGeneratorServer {
+func NewTokenGeneratorServer(r *mux.Router, urlPrefix string, signingKey *rsa.PrivateKey, cfg *config.Config) *TokenGeneratorServer {
 
-	privateKeyFile := "newkey.pem"
-	privateKeyFile = filepath.Clean(privateKeyFile)
-	signBytes, err := ioutil.ReadFile(privateKeyFile)
-	if err != nil {
-		panic(err)
-	}
-	signKey, err := jwt.ParseRSAPrivateKeyFromPEM(signBytes)
-	if err != nil {
-		panic(err)
-	}
-
-	tokenExpiry := 10
+	tokenExpiry := 10 // FIXME: make this configurable
 
 	return &TokenGeneratorServer{
 		router:      r,
 		config:      cfg,
 		urlPrefix:   urlPrefix,
 		tokenExpiry: tokenExpiry,
-		signingKey:  signKey,
+		signingKey:  signingKey,
 	}
 }
 
 func (s *TokenGeneratorServer) Routes() {
-	mmw := &middlewares.MetricsMiddleware{}
+	//	mmw := &middlewares.MetricsMiddleware{}
 
 	pathPrefix := fmt.Sprintf("%s/v1/token", s.urlPrefix)
+	fmt.Println("*** pathPrefix: ", pathPrefix)
 
-	securedSubRouter := s.router.PathPrefix(pathPrefix).Subrouter()
-	securedSubRouter.Use(logger.AccessLoggerMiddleware,
-		mmw.RecordHTTPMetrics,
-		identity.EnforceIdentity,
-		middlewares.EnforceCertAuthentication,
-	)
+	/*
+		securedSubRouter := s.router.PathPrefix(pathPrefix).Subrouter()
+		securedSubRouter.Use(logger.AccessLoggerMiddleware,
+			mmw.RecordHTTPMetrics,
+			identity.EnforceIdentity,
+			middlewares.EnforceCertAuthentication,
+		)
+		//securedSubRouter.HandleFunc("/token", s.handleGenerateToken()).Methods(http.MethodPost)
+	*/
 
-	securedSubRouter.HandleFunc("/token", s.handleGenerateToken()).Methods(http.MethodPost)
+	s.router.HandleFunc("/token", s.handleGenerateToken()).Methods(http.MethodPost)
+
 }
 
 type tokenRequest struct {
@@ -90,7 +81,7 @@ func (s *TokenGeneratorServer) handleGenerateToken() http.HandlerFunc {
 			"org_id":     principal.GetOrgID(),
 			"request_id": requestId})
 
-		logger.Debug("MADE IT HERE!!")
+		logger.Trace("Generating a token")
 
 		body := http.MaxBytesReader(w, req.Body, 1048576)
 

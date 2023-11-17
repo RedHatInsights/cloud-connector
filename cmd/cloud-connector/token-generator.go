@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"crypto/rsa"
+	"io/ioutil"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -12,6 +15,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils"
 	"github.com/redhatinsights/platform-go-middlewares/request_id"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/gorilla/mux"
 )
 
@@ -22,15 +26,15 @@ func startCloudConnectorTokenGeneratorServer(mgmtAddr string) {
 	cfg := config.GetConfig()
 	logger.Log.Info("Cloud-Connector configuration:\n", cfg)
 
+	tokenSigningKey, err := loadPrivateKeyFromFile("newkey.pem") // FIXME:  make the file name configurable
+	if err != nil {
+		logger.LogFatalError("Unable to load token signing key: ", err)
+	}
+
 	apiMux := mux.NewRouter()
 	apiMux.Use(request_id.ConfiguredRequestID("x-rh-insights-request-id"))
 
-	/*
-		apiSpecServer := api.NewApiSpecServer(apiMux, cfg.UrlBasePath, cfg.OpenApiSpecFilePath)
-		apiSpecServer.Routes()
-	*/
-
-	monitoringServer := api.NewTokenGeneratorServer(apiMux, cfg.UrlBasePath, cfg)
+	monitoringServer := api.NewTokenGeneratorServer(apiMux, cfg.UrlBasePath, tokenSigningKey, cfg)
 	monitoringServer.Routes()
 
 	apiSrv := utils.StartHTTPServer(mgmtAddr, "management", apiMux)
@@ -49,4 +53,14 @@ func startCloudConnectorTokenGeneratorServer(mgmtAddr string) {
 	utils.ShutdownHTTPServer(ctx, "management", apiSrv)
 
 	logger.Log.Info("Cloud-Connector shutting down")
+}
+
+func loadPrivateKeyFromFile(pathToKey string) (*rsa.PrivateKey, error) {
+	privateKeyFile := filepath.Clean(pathToKey)
+	signBytes, err := ioutil.ReadFile(privateKeyFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return jwt.ParseRSAPrivateKeyFromPEM(signBytes)
 }
