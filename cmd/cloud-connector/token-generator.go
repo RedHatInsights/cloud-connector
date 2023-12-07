@@ -34,6 +34,12 @@ func startCloudConnectorTokenGeneratorServer(mgmtAddr string) {
 	apiMux := mux.NewRouter()
 	apiMux.Use(request_id.ConfiguredRequestID("x-rh-insights-request-id"))
 
+	tokenServiceUrlBasePath := cfg.UrlBasePath + "/auth"
+	tokenServiceOpenApiSpecFilePath := "/tmp/apispec.json"
+
+	apiSpecServer := api.NewApiSpecServer(apiMux, tokenServiceUrlBasePath, tokenServiceOpenApiSpecFilePath)
+	apiSpecServer.Routes()
+
 	monitoringServer := api.NewTokenGeneratorServer(apiMux, cfg.UrlBasePath, tokenSigningKey, cfg)
 	monitoringServer.Routes()
 
