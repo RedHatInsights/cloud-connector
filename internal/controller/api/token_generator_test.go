@@ -27,12 +27,12 @@ func TestTokenGeneratorEndpoints(t *testing.T) {
 		verifyResponse func(*testing.T, crypto.PublicKey, *bytes.Buffer)
 	}{
 		{
-			endpoint:       "/token",
+			endpoint:       "api/cloud-connector/v1/auth/token",
 			httpMethod:     "GET",
 			expectedStatus: http.StatusMethodNotAllowed,
 		},
 		{
-			endpoint:       "/token",
+			endpoint:       "api/cloud-connector/v1/auth/token",
 			httpMethod:     "POST",
 			expectedStatus: http.StatusOK,
 			verifyResponse: verifyToken,
@@ -64,7 +64,7 @@ func TestTokenGeneratorEndpoints(t *testing.T) {
 
 			cfg := config.GetConfig()
 			apiMux := mux.NewRouter()
-			tokenGeneratorServer := NewTokenGeneratorServer(apiMux, "ugh", privateKey, cfg)
+			tokenGeneratorServer := NewTokenGeneratorServer(apiMux, "api/cloud-connector", privateKey, cfg)
 			tokenGeneratorServer.Routes()
 
 			tokenGeneratorServer.router.ServeHTTP(rr, req)

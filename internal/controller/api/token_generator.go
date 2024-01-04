@@ -11,7 +11,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/jwt_utils"
-	//	"github.com/redhatinsights/platform-go-middlewares/identity"
+	"github.com/redhatinsights/platform-go-middlewares/identity"
 	"github.com/redhatinsights/platform-go-middlewares/request_id"
 
 	"github.com/gorilla/mux"
@@ -40,23 +40,18 @@ func NewTokenGeneratorServer(r *mux.Router, urlPrefix string, signingKey *rsa.Pr
 }
 
 func (s *TokenGeneratorServer) Routes() {
-	//	mmw := &middlewares.MetricsMiddleware{}
+	mmw := &middlewares.MetricsMiddleware{}
 
-	pathPrefix := fmt.Sprintf("%s/v1/token", s.urlPrefix)
-	fmt.Println("*** pathPrefix: ", pathPrefix)
+	pathPrefix := fmt.Sprintf("%s/v1/auth", s.urlPrefix)
+    fmt.Println("pathPrefix: ", pathPrefix)
 
-	/*
-		securedSubRouter := s.router.PathPrefix(pathPrefix).Subrouter()
-		securedSubRouter.Use(logger.AccessLoggerMiddleware,
-			mmw.RecordHTTPMetrics,
-			identity.EnforceIdentity,
-			middlewares.EnforceCertAuthentication,
-		)
-		//securedSubRouter.HandleFunc("/token", s.handleGenerateToken()).Methods(http.MethodPost)
-	*/
-
-	s.router.HandleFunc("/token", s.handleGenerateToken()).Methods(http.MethodPost)
-
+	securedSubRouter := s.router.PathPrefix(pathPrefix).Subrouter()
+	securedSubRouter.Use(logger.AccessLoggerMiddleware,
+		mmw.RecordHTTPMetrics,
+		identity.EnforceIdentity,
+		middlewares.EnforceCertAuthentication,
+	)
+	securedSubRouter.HandleFunc("/token", s.handleGenerateToken()).Methods(http.MethodPost)
 }
 
 type tokenRequest struct {
