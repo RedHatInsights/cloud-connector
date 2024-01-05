@@ -16,6 +16,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/config"
 
 	"github.com/go-playground/assert/v2"
+	"github.com/golang-jwt/jwt"
 	"github.com/gorilla/mux"
 )
 
@@ -27,12 +28,12 @@ func TestTokenGeneratorEndpoints(t *testing.T) {
 		verifyResponse func(*testing.T, crypto.PublicKey, *bytes.Buffer)
 	}{
 		{
-			endpoint:       "api/cloud-connector/v1/auth/token",
+			endpoint:       "/api/cloud-connector/v1/auth/token",
 			httpMethod:     "GET",
 			expectedStatus: http.StatusMethodNotAllowed,
 		},
 		{
-			endpoint:       "api/cloud-connector/v1/auth/token",
+			endpoint:       "/api/cloud-connector/v1/auth/token",
 			httpMethod:     "POST",
 			expectedStatus: http.StatusOK,
 			verifyResponse: verifyToken,
@@ -50,8 +51,6 @@ func TestTokenGeneratorEndpoints(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.httpMethod+" "+tc.endpoint, func(t *testing.T) {
-			fmt.Println("method: ", tc.httpMethod)
-			fmt.Println("endpoint: ", tc.endpoint)
 
 			postBody := createTokenGeneratorPostBody()
 
@@ -64,7 +63,7 @@ func TestTokenGeneratorEndpoints(t *testing.T) {
 
 			cfg := config.GetConfig()
 			apiMux := mux.NewRouter()
-			tokenGeneratorServer := NewTokenGeneratorServer(apiMux, "api/cloud-connector", privateKey, cfg)
+			tokenGeneratorServer := NewTokenGeneratorServer(apiMux, "/api/cloud-connector", privateKey, cfg)
 			tokenGeneratorServer.Routes()
 
 			tokenGeneratorServer.router.ServeHTTP(rr, req)
@@ -103,4 +102,16 @@ func verifyToken(t *testing.T, publicKey crypto.PublicKey, body *bytes.Buffer) {
 	if err != nil {
 		t.Fatal("Failed to unmarshal token response:", err)
 	}
+
+	token, err := jwt.Parse(tokenResp.AccessToken, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodRSA); !ok {
+			t.Fatalf("Unexpected signing method: %v", token.Header["alg"])
+		}
+		return publicKey, nil
+	})
+	if err != nil {
+		t.Fatalf("Invalid token format")
+	}
+
+	fmt.Println("token: ", token)
 }

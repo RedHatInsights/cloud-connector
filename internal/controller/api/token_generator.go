@@ -43,7 +43,6 @@ func (s *TokenGeneratorServer) Routes() {
 	mmw := &middlewares.MetricsMiddleware{}
 
 	pathPrefix := fmt.Sprintf("%s/v1/auth", s.urlPrefix)
-    fmt.Println("pathPrefix: ", pathPrefix)
 
 	securedSubRouter := s.router.PathPrefix(pathPrefix).Subrouter()
 	securedSubRouter.Use(logger.AccessLoggerMiddleware,
@@ -98,8 +97,9 @@ func (s *TokenGeneratorServer) handleGenerateToken() http.HandlerFunc {
 		tokenResp := tokenResponse{
 			AccessToken: token,
 			TokenType:   "its_a_secret",
-			ExpiresIn:   "time.Minute * time.Duration(s.tokenExpiry).String()",
+			ExpiresIn:   (time.Minute * time.Duration(s.tokenExpiry)).String(),
 		}
+
 		writeJSONResponse(w, http.StatusOK, tokenResp)
 	}
 }
