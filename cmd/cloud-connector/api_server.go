@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"net/url"
 	"os"
 	"os/signal"
 	"sync"
@@ -63,12 +62,6 @@ func buildMqttClientId(cfg *config.Config) (string, error) {
 
 func buildDefaultMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Config, cfg *config.Config) ([]mqtt.MqttClientOptionsFunc, error) {
 
-	u, err := url.Parse(brokerUrl)
-	if err != nil {
-		logger.Log.WithFields(logrus.Fields{"error": err}).Error("Unable to determine protocol for the MQTT connection")
-		return nil, err
-	}
-
 	brokerConfigFuncs := []mqtt.MqttClientOptionsFunc{}
 
 	if tlsConfig != nil {
@@ -82,7 +75,7 @@ func buildDefaultMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Confi
 
 	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithClientID(mqttClientId))
 
-	if u.Scheme == "wss" { //Rethink this check - jwt also works over TLS
+	if cfg.MqttBrokerAuthType == "jwt" {
 
 		jwtGenerator, err := buildJwtGenerator(cfg, mqttClientId)
 
@@ -93,6 +86,8 @@ func buildDefaultMqttBrokerConfigFuncList(brokerUrl string, tlsConfig *tls.Confi
 
 		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithJwtAsHttpHeader(jwtGenerator))
 		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithJwtReconnectingHandler(jwtGenerator))
+	} else if cfg.MqttBrokerAuthType == "password" {
+		brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithUsernameAndPassword(cfg.MqttBrokerUsername, cfg.MqttBrokerPassword))
 	}
 
 	brokerConfigFuncs = append(brokerConfigFuncs, mqtt.WithProtocolVersion(4))
