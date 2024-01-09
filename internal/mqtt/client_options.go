@@ -74,6 +74,15 @@ func WithClientID(clientID string) MqttClientOptionsFunc {
 	}
 }
 
+func WithUsernameAndPassword(username string, password string) MqttClientOptionsFunc {
+	return func(opts *MQTT.ClientOptions) error {
+		logger.Log.Trace("Setting the MQTT username: ", username)
+		opts.SetUsername(username)
+		opts.SetPassword(password)
+		return nil
+	}
+}
+
 func WithCleanSession(cleanSession bool) MqttClientOptionsFunc {
 	return func(opts *MQTT.ClientOptions) error {
 		logger.Log.Tracef("Setting the clean session: %v\n", cleanSession)
