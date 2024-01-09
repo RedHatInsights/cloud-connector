@@ -83,7 +83,7 @@ func createGetConnectionByClientIDImpl(cfg *config.Config, database *sql.DB, sql
 		statement, err := database.Prepare(sqlQuery)
 		if err != nil {
 			logger.LogWithError(log, "SQL Prepare failed", err)
-			return clientState, nil
+			return clientState, err
 		}
 		defer statement.Close()
 
