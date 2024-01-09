@@ -29,6 +29,9 @@ const (
 	MQTT_BROKER_TLS_KEY_FILE                     = "MQTT_Broker_Tls_Key_File"
 	MQTT_BROKER_TLS_CA_CERT_FILE                 = "MQTT_Broker_Tls_CA_Cert_File"
 	MQTT_BROKER_TLS_SKIP_VERIFY                  = "MQTT_Broker_Tls_Skip_Verify"
+	MQTT_BROKER_AUTH_TYPE                        = "MQTT_Broker_Auth_Type"
+	MQTT_BROKER_USERNAME                         = "MQTT_Broker_Username"
+	MQTT_BROKER_PASSWORD                         = "MQTT_Broker_Password"
 	MQTT_BROKER_JWT_GENERATOR_IMPL               = "MQTT_Broker_JWT_Generator_Impl"
 	MQTT_BROKER_JWT_FILE                         = "MQTT_Broker_JWT_File"
 	MQTT_TOPIC_PREFIX                            = "MQTT_Topic_Prefix"
@@ -113,6 +116,9 @@ type Config struct {
 	MqttBrokerTlsKeyFile                    string
 	MqttBrokerTlsCACertFile                 string
 	MqttBrokerTlsSkipVerify                 bool
+	MqttBrokerAuthType                      string
+	MqttBrokerUsername                      string
+	MqttBrokerPassword                      string
 	MqttBrokerJwtGeneratorImpl              string
 	MqttBrokerJwtFile                       string
 	MqttTopicPrefix                         string
@@ -196,6 +202,8 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_TLS_KEY_FILE, c.MqttBrokerTlsKeyFile)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_TLS_CA_CERT_FILE, c.MqttBrokerTlsCACertFile)
 	fmt.Fprintf(&b, "%s: %v\n", MQTT_BROKER_TLS_SKIP_VERIFY, c.MqttBrokerTlsSkipVerify)
+	fmt.Fprintf(&b, "%s: %v\n", MQTT_BROKER_AUTH_TYPE, c.MqttBrokerAuthType)
+	fmt.Fprintf(&b, "%s: %v\n", MQTT_BROKER_USERNAME, c.MqttBrokerUsername)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_JWT_GENERATOR_IMPL, c.MqttBrokerJwtGeneratorImpl)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_BROKER_JWT_FILE, c.MqttBrokerJwtFile)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_TOPIC_PREFIX, c.MqttTopicPrefix)
@@ -269,6 +277,7 @@ func GetConfig() *Config {
 	options.SetDefault(MQTT_CLEAN_SESSION, false)
 	options.SetDefault(MQTT_RESUME_SUBS, true)
 	options.SetDefault(MQTT_BROKER_TLS_SKIP_VERIFY, false)
+	options.SetDefault(MQTT_BROKER_AUTH_TYPE, "jwt")
 	options.SetDefault(MQTT_BROKER_JWT_GENERATOR_IMPL, "jwt_file_reader")
 	options.SetDefault(MQTT_BROKER_JWT_FILE, "cloud-connector-mqtt-jwt.txt")
 	options.SetDefault(MQTT_TOPIC_PREFIX, "redhat")
@@ -348,6 +357,9 @@ func GetConfig() *Config {
 		MqttBrokerTlsKeyFile:                    options.GetString(MQTT_BROKER_TLS_KEY_FILE),
 		MqttBrokerTlsCACertFile:                 options.GetString(MQTT_BROKER_TLS_CA_CERT_FILE),
 		MqttBrokerTlsSkipVerify:                 options.GetBool(MQTT_BROKER_TLS_SKIP_VERIFY),
+		MqttBrokerAuthType:                      options.GetString(MQTT_BROKER_AUTH_TYPE),
+		MqttBrokerUsername:                      options.GetString(MQTT_BROKER_USERNAME),
+		MqttBrokerPassword:                      options.GetString(MQTT_BROKER_PASSWORD),
 		MqttBrokerJwtGeneratorImpl:              options.GetString(MQTT_BROKER_JWT_GENERATOR_IMPL),
 		MqttBrokerJwtFile:                       options.GetString(MQTT_BROKER_JWT_FILE),
 		MqttTopicPrefix:                         options.GetString(MQTT_TOPIC_PREFIX),
