@@ -88,10 +88,25 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
           value: ${{MQTT_BROKER_ADDRESS}}
-        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
-          value: jwt_rsa_generator
-        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
-          value: /tmp/jwt_keys/jwt_signing_key.pem
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_AUTH_TYPE
+          value: "password"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_USERNAME
+          value: "api-server"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: api-server
+              name: cloud-connector-passwords
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
+          valueFrom:
+            secretKeyRef:
+              key: key.pem
+              name: cloud-connector-mqtt-consumer-cert
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
+          valueFrom:
+            secretKeyRef:
+              key: cert.pem
+              name: cloud-connector-mqtt-consumer-cert
         - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
           value: "true"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
@@ -190,10 +205,25 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
           value: ${{MQTT_BROKER_ADDRESS}}
-        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
-          value: jwt_rsa_generator
-        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
-          value: /tmp/jwt_keys/jwt_signing_key.pem
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_AUTH_TYPE
+          value: "password"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_USERNAME
+          value: "mqtt-consumer"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: mqtt-consumer
+              name: cloud-connector-passwords
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
+          valueFrom:
+            secretKeyRef:
+              key: key.pem
+              name: cloud-connector-mqtt-consumer-cert
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
+          valueFrom:
+            secretKeyRef:
+              key: cert.pem
+              name: cloud-connector-mqtt-consumer-cert
         - name: CLOUD_CONNECTOR_MQTT_CLIENT_ID
           valueFrom:
             secretKeyRef:
@@ -300,10 +330,25 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
           value: ${{MQTT_BROKER_ADDRESS}}
-        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
-          value: jwt_rsa_generator
-        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
-          value: /tmp/jwt_keys/jwt_signing_key.pem
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_AUTH_TYPE
+          value: "password"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_USERNAME
+          value: "mqtt-consumer"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: mqtt-consumer
+              name: cloud-connector-passwords
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
+          valueFrom:
+            secretKeyRef:
+              key: key.pem
+              name: cloud-connector-mqtt-consumer-cert
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
+          valueFrom:
+            secretKeyRef:
+              key: cert.pem
+              name: cloud-connector-mqtt-consumer-cert
         - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
           value: ${{MQTT_TOPIC_PREFIX}}
         - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
