@@ -72,14 +72,14 @@ objects:
             cpu: ${CPU_REQUEST}
             memory: ${MEMORY_REQUEST}
         volumeMounts:
-        - mountPath: /tmp/jwt_keys
-          name: volume-mqtt-jwt-keys
+        - mountPath: /tmp/tls
+          name: volume-mqtt-cert
           readOnly: true
         volumes:
-        - name: volume-mqtt-jwt-keys
+        - name: volume-mqtt-cert
           secret:
             defaultMode: 420
-            secretName: cloud-connector-mqtt-credentials
+            secretName: cloud-connector-mqtt-consumer-cert
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -98,15 +98,9 @@ objects:
               key: api-server
               name: cloud-connector-passwords
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
-          valueFrom:
-            secretKeyRef:
-              key: key.pem
-              name: cloud-connector-mqtt-consumer-cert
+          value: /tmp/tls/key.pem
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
-          valueFrom:
-            secretKeyRef:
-              key: cert.pem
-              name: cloud-connector-mqtt-consumer-cert
+          value: /tmp/tls/cert.pem
         - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
           value: "true"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
@@ -189,14 +183,14 @@ objects:
             cpu: ${CPU_REQUEST}
             memory: ${MEMORY_REQUEST}
         volumeMounts:
-        - mountPath: /tmp/jwt_keys
-          name: volume-mqtt-jwt-keys
+        - mountPath: /tmp/tls
+          name: volume-mqtt-cert
           readOnly: true
         volumes:
-        - name: volume-mqtt-jwt-keys
+        - name: volume-mqtt-cert
           secret:
             defaultMode: 420
-            secretName: cloud-connector-mqtt-credentials
+            secretName: cloud-connector-mqtt-consumer-cert
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -215,15 +209,9 @@ objects:
               key: mqtt-consumer
               name: cloud-connector-passwords
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
-          valueFrom:
-            secretKeyRef:
-              key: key.pem
-              name: cloud-connector-mqtt-consumer-cert
+          value: /tmp/tls/key.pem
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
-          valueFrom:
-            secretKeyRef:
-              key: cert.pem
-              name: cloud-connector-mqtt-consumer-cert
+          value: /tmp/tls/cert.pem
         - name: CLOUD_CONNECTOR_MQTT_CLIENT_ID
           valueFrom:
             secretKeyRef:
@@ -308,16 +296,16 @@ objects:
             cpu: ${CPU_REQUEST}
             memory: ${MEMORY_REQUEST}
         volumeMounts:
-        - mountPath: /tmp/jwt_keys
-          name: volume-mqtt-jwt-keys
-          readOnly: true
         - mountPath: /tmp/cloud-connector-config
           name: client-id-to-account-id-map
+        - mountPath: /tmp/tls
+          name: volume-mqtt-cert
+          readOnly: true
         volumes:
-        - name: volume-mqtt-jwt-keys
+        - name: volume-mqtt-cert
           secret:
             defaultMode: 420
-            secretName: cloud-connector-mqtt-credentials
+            secretName: cloud-connector-mqtt-consumer-cert
         - name: client-id-to-account-id-map
           secret:
             defaultMode: 420
@@ -340,15 +328,9 @@ objects:
               key: mqtt-consumer
               name: cloud-connector-passwords
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
-          valueFrom:
-            secretKeyRef:
-              key: key.pem
-              name: cloud-connector-mqtt-consumer-cert
+          value: /tmp/tls/key.pem
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
-          valueFrom:
-            secretKeyRef:
-              key: cert.pem
-              name: cloud-connector-mqtt-consumer-cert
+          value: /tmp/tls/cert.pem
         - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
           value: ${{MQTT_TOPIC_PREFIX}}
         - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
