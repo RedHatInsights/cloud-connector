@@ -23,21 +23,21 @@ func NewConnectorClientMQTTProxyFactory(cfg *config.Config, mqttClient MQTT.Clie
 	return &proxyFactory, nil
 }
 
-func (ccpf *ConnectorClientMQTTProxyFactory) CreateProxy(ctx context.Context, orgID domain.OrgID, account domain.AccountID, client_id domain.ClientID, canonicalFacts domain.CanonicalFacts, dispatchers domain.Dispatchers, tags domain.Tags) (controller.ConnectorClient, error) {
+func (ccpf *ConnectorClientMQTTProxyFactory) CreateProxy(ctx context.Context, clientState domain.ConnectorClientState) (controller.ConnectorClient, error) {
 
-	logger := logger.Log.WithFields(logrus.Fields{"org_id": orgID, "account": account, "client_id": client_id})
+	logger := logger.Log.WithFields(logrus.Fields{"org_id": clientState.OrgID, "account": clientState.Account, "client_id": clientState.ClientID})
 
 	proxy := ConnectorClientMQTTProxy{
 		Logger:         logger,
 		Config:         ccpf.config,
-		OrgID:          orgID,
-		AccountID:      account,
-		ClientID:       client_id,
+		OrgID:          clientState.OrgID,
+		AccountID:      clientState.Account,
+		ClientID:       clientState.ClientID,
 		Client:         ccpf.mqttClient,
 		TopicBuilder:   ccpf.topicBuilder,
-		CanonicalFacts: canonicalFacts,
-		Dispatchers:    dispatchers,
-		Tags:           tags,
+		CanonicalFacts: clientState.CanonicalFacts,
+		Dispatchers:    clientState.Dispatchers,
+		Tags:           clientState.Tags,
 	}
 
 	return &proxy, nil
