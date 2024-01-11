@@ -10,6 +10,8 @@ IQE_CJI_TIMEOUT="30m"
 EXTRA_DEPLOY_ARGS="-p playbook-dispatcher/CLOUD_CONNECTOR_IMPL=impl"
 IQE_MARKER_EXPRESSION="not e2e"
 
+
+AVAILABLE_CLUSTERS=('ephemeral' 'crcd')
 # Install bonfire repo/initialize
 CICD_URL=https://raw.githubusercontent.com/RedHatInsights/bonfire/master/cicd
 curl -s $CICD_URL/bootstrap.sh > .cicd_bootstrap.sh && source .cicd_bootstrap.sh
