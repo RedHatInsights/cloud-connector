@@ -21,7 +21,9 @@ import (
 )
 
 const (
-    identityHeader = "eyJpZGVudGl0eSI6IHsiYWNjb3VudF9udW1iZXIiOiAiMTExMDAwIiwgIm9yZ19pZCI6ICIxMDAwMCIsICJpbnRlcm5hbCI6IHt9LCAic2VydmljZV9hY2NvdW50IjogeyJjbGllbnRfaWQiOiAiMDAwMCIsICJ1c2VybmFtZSI6ICJqZG9lIn0sICJ0eXBlIjogIkFzc29jaWF0ZSJ9fQ=="
+//    identityHeader = "eyJpZGVudGl0eSI6IHsiYWNjb3VudF9udW1iZXIiOiAiMTExMDAwIiwgIm9yZ19pZCI6ICIxMDAwMCIsICJpbnRlcm5hbCI6IHt9LCAic2VydmljZV9hY2NvdW50IjogeyJjbGllbnRfaWQiOiAiMDAwMCIsICJ1c2VybmFtZSI6ICJqZG9lIn0sICJ0eXBlIjogIkFzc29jaWF0ZSJ9fQ=="
+
+    identityHeader = "eyJpZGVudGl0eSI6IHsiYWNjb3VudF9udW1iZXIiOiAiMDEwMTAxIiwgIm9yZ19pZCI6ICIxMDAwMSIsICJpbnRlcm5hbCI6IHt9LCAic2VydmljZV9hY2NvdW50IjogeyJjbGllbnRfaWQiOiAiMDAwMCIsICJ1c2VybmFtZSI6ICJqZG9lIn0sICJ0eXBlIjogIkFzc29jaWF0ZSJ9fQ=="
 )
 
 func NewTLSConfig(certFile string, keyFile string) (*tls.Config, string) {
@@ -104,11 +106,13 @@ var m MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
 func startTestClient(certFile string, keyFile string, broker string, cloudConnectorUrl string, i int) {
     var numMessagesSent int
     var messageReceived chan string
+    messageReceived = make(chan string)
 
     onMessageReceived := notifyOnMessageReceived(messageReceived)
 
     clientId, mqttClient, _ := startProducer(certFile, keyFile, broker, onMessageReceived, i)
 
+    time.Sleep(1 * time.Second)
     verifyClientIsRegistered(cloudConnectorUrl, clientId)
 
     rand.Seed(time.Now().UnixNano())
@@ -122,6 +126,7 @@ func startTestClient(certFile string, keyFile string, broker string, cloudConnec
         if numMessagesSent > 10 {
             disconnectMqttClient(mqttClient)
             verifyClientIsUnregistered(cloudConnectorUrl, clientId)
+            time.Sleep(2 * time.Second)
             clientId, mqttClient, _ = startProducer(certFile, keyFile, broker, onMessageReceived, i)
             verifyClientIsRegistered(cloudConnectorUrl, clientId)
             numMessagesSent = 0
@@ -243,28 +248,29 @@ func publishConnectionStatusMessage(client MQTT.Client, topic string, qos byte, 
 
 func notifyOnMessageReceived(messageReceived chan string) func(MQTT.Client, MQTT.Message) {
     return func(client MQTT.Client, message MQTT.Message) {
-        fmt.Printf("Received message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
+        fmt.Printf("**** Received message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
 
-        var connMsg Connector.ControlMessage
+        var dataMsg Connector.DataMessage
 
         if message.Payload() == nil || len(message.Payload()) == 0 {
             fmt.Println("empty payload")
             return
         }
 
-        if err := json.Unmarshal(message.Payload(), &connMsg); err != nil {
+        if err := json.Unmarshal(message.Payload(), &dataMsg); err != nil {
             fmt.Println("unmarshal of message failed, err:", err)
             panic(err)
         }
 
-        fmt.Println("Got a message:", connMsg)
+        fmt.Println("Got a message:", dataMsg)
 
-        messageReceived <- "GOT A MESSAGE"
+        messageReceived <- dataMsg.MessageID
     }
 }
 
-func disconnectMqttClient(client MQTT.Client) {
+func disconnectMqttClient(mqttClient MQTT.Client) {
     fmt.Println("DISCONNECTING!!")
+	mqttClient.Disconnect(1000)
 }
 
 func verifyMessageWasReceived(messageReceived chan string, expectedMessageId uuid.UUID) {
@@ -276,8 +282,8 @@ func verifyMessageWasReceived(messageReceived chan string, expectedMessageId uui
             if receivedMessageId != expectedMessageId.String() {
                 fmt.Println("Epic fail...got wrong message!")
             }
-        case <- time.After(time.Second):
-            fmt.Println("Epic Fail...did not get message after 1 second")
+        case <- time.After(10 * time.Second):
+            fmt.Println("Epic Fail...did not get message after 10 second")
     }
 }
 
@@ -331,10 +337,14 @@ func sendMessageToClient(cloudConnectorUrl string, clientId string) (uuid.UUID, 
 
     url := fmt.Sprintf("%s/api/cloud-connector/v2/connections/%s/message", cloudConnectorUrl, clientId)
 
-    req, err := http.NewRequest(http.MethodGet, url, bodyReader)
+    req, err := http.NewRequest(http.MethodPost, url, bodyReader)
+
+    requestId := fmt.Sprint(time.Now().Unix())
+
+    fmt.Println("request id:", requestId)
 
     req.Header.Set("x-rh-identity", identityHeader)
-    req.Header.Set("x-rh-insights-request-id", string(time.Now().Unix()))
+    req.Header.Set("x-rh-insights-request-id", requestId)
 
     client := http.Client{
         Timeout: 2 * time.Second,
