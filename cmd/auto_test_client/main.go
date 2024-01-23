@@ -301,6 +301,8 @@ func getClientStatusFromCloudConnector(cloudConnectorUrl string, clientId string
 
     req, err := http.NewRequest(http.MethodGet, url, nil)
 
+    req.Close = true
+
     req.Header.Set("x-rh-identity", identityHeader)
     req.Header.Set("x-rh-insights-request-id", string(time.Now().Unix()))
 
@@ -338,6 +340,8 @@ func sendMessageToClient(cloudConnectorUrl string, clientId string) (uuid.UUID, 
     url := fmt.Sprintf("%s/api/cloud-connector/v2/connections/%s/message", cloudConnectorUrl, clientId)
 
     req, err := http.NewRequest(http.MethodPost, url, bodyReader)
+
+    req.Close = true
 
     requestId := fmt.Sprint(time.Now().Unix())
 
