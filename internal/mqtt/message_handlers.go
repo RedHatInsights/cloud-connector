@@ -41,8 +41,6 @@ func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topic
 			"duplicate":       message.Duplicate(),
 			"topic":           message.Topic()})
 
-        fmt.Println("payload:", string(message.Payload()))
-
 		if len(message.Payload()) == 0 {
 			// This will happen when a retained message is removed
 			// This can also happen when rhcd is "priming the pump" as required by the akamai broker
