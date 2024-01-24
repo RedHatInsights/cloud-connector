@@ -126,8 +126,9 @@ func startTestClient(certFile string, keyFile string, broker string, cloudConnec
         if numMessagesSent > 10 {
             disconnectMqttClient(mqttClient)
             verifyClientIsUnregistered(cloudConnectorUrl, clientId)
-            time.Sleep(2 * time.Second)
+            time.Sleep(10 * time.Second)
             clientId, mqttClient, _ = startProducer(certFile, keyFile, broker, onMessageReceived, i)
+            time.Sleep(1 * time.Second)
             verifyClientIsRegistered(cloudConnectorUrl, clientId)
             numMessagesSent = 0
         }
@@ -312,6 +313,9 @@ func getClientStatusFromCloudConnector(cloudConnectorUrl string, clientId string
 
     res, err := client.Do(req)
     if err != nil {
+        fmt.Println("res: ", res)
+        fmt.Println("err: ", err)
+        time.Sleep(2*time.Second)
         panic(err)
     }
 
@@ -356,6 +360,10 @@ func sendMessageToClient(cloudConnectorUrl string, clientId string) (uuid.UUID, 
 
     res, err := client.Do(req)
     if err != nil {
+        fmt.Println("res: ", res)
+        fmt.Println("err: ", err)
+        time.Sleep(2*time.Second)
+
         panic(err)
     }
 
