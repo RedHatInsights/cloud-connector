@@ -316,8 +316,10 @@ func getClientStatusFromCloudConnector(cloudConnectorUrl string, clientId string
 
 	req.Close = true
 
+	requestId := fmt.Sprint(time.Now().Unix())
+
 	req.Header.Set("x-rh-identity", identityHeader)
-	req.Header.Set("x-rh-insights-request-id", string(time.Now().Unix()))
+	req.Header.Set("x-rh-insights-request-id", requestId)
 
 	client := http.Client{
 		Timeout: 2 * time.Second,
