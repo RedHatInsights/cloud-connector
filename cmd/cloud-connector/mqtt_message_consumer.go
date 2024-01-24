@@ -72,13 +72,13 @@ func startMqttMessageConsumer(mgmtAddr string) {
 			EntryPoint: defaultMsgHandler,
 			Qos:        cfg.MqttControlSubscriptionQoS,
 		},
-/*
-		mqtt.Subscriber{
-			Topic:      mqttTopicBuilder.BuildIncomingWildcardDataTopic(),
-			EntryPoint: dataMsgHandler,
-			Qos:        cfg.MqttDataSubscriptionQoS,
-		},
-*/
+		/*
+			mqtt.Subscriber{
+				Topic:      mqttTopicBuilder.BuildIncomingWildcardDataTopic(),
+				EntryPoint: dataMsgHandler,
+				Qos:        cfg.MqttDataSubscriptionQoS,
+			},
+		*/
 	}
 
 	brokerOptions, err := buildMessageHandlerMqttBrokerConfigFuncList(cfg.MqttBrokerAddress, tlsConfig, cfg)

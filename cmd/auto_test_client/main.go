@@ -1,15 +1,16 @@
 package main
 
 import (
-    "bytes"
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
-    "math/rand"
-    "net/http"
+	"math/rand"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -20,11 +21,18 @@ import (
 	"github.com/google/uuid"
 )
 
+/*
 const (
 //    identityHeader = "eyJpZGVudGl0eSI6IHsiYWNjb3VudF9udW1iZXIiOiAiMTExMDAwIiwgIm9yZ19pZCI6ICIxMDAwMCIsICJpbnRlcm5hbCI6IHt9LCAic2VydmljZV9hY2NvdW50IjogeyJjbGllbnRfaWQiOiAiMDAwMCIsICJ1c2VybmFtZSI6ICJqZG9lIn0sICJ0eXBlIjogIkFzc29jaWF0ZSJ9fQ=="
 
     identityHeader = "eyJpZGVudGl0eSI6IHsiYWNjb3VudF9udW1iZXIiOiAiMDEwMTAxIiwgIm9yZ19pZCI6ICIxMDAwMSIsICJpbnRlcm5hbCI6IHt9LCAic2VydmljZV9hY2NvdW50IjogeyJjbGllbnRfaWQiOiAiMDAwMCIsICJ1c2VybmFtZSI6ICJqZG9lIn0sICJ0eXBlIjogIkFzc29jaWF0ZSJ9fQ=="
 )
+*/
+
+func buildIdentityHeader(orgId string, accountNumber string) string {
+	s := fmt.Sprintf(`{"identity": {"account_number": "%s", "org_id": "%s", "internal": {}, "service_account": {"client_id": "0000", "username": "jdoe"}, "type": "Associate"}}`, accountNumber, orgId)
+	return base64.StdEncoding.EncodeToString([]byte(s))
+}
 
 func NewTLSConfig(certFile string, keyFile string) (*tls.Config, string) {
 	// Import trusted certificates from CAfile.pem.
@@ -86,13 +94,17 @@ func main() {
 	certFile := flag.String("cert", "cert.pem", "path to cert file")
 	keyFile := flag.String("key", "key.pem", "path to key file")
 	cloudConnectorUrl := flag.String("cloud-connector", "http://localhost:10000", "protocol / hostname / port of cloud-connector")
+	orgId := flag.String("org-id", "10001", "org-id")
+	accountNumber := flag.String("account", "010101", "account number")
 	flag.Parse()
+
+	identityHeader := buildIdentityHeader(*orgId, *accountNumber)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	for i := 0; i < *connectionCount; i++ {
-		go startTestClient(*certFile, *keyFile, *broker, *cloudConnectorUrl, i)
+		go startTestClient(*certFile, *keyFile, *broker, *cloudConnectorUrl, i, identityHeader)
 	}
 
 	<-c
@@ -103,40 +115,40 @@ var m MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
 	fmt.Printf("default handler rec TOPIC: %s MSG:%s\n", msg.Topic(), msg.Payload())
 }
 
-func startTestClient(certFile string, keyFile string, broker string, cloudConnectorUrl string, i int) {
-    var numMessagesSent int
-    var messageReceived chan string
-    messageReceived = make(chan string)
+func startTestClient(certFile string, keyFile string, broker string, cloudConnectorUrl string, i int, identityHeader string) {
+	var numMessagesSent int
+	var messageReceived chan string
+	messageReceived = make(chan string)
 
-    onMessageReceived := notifyOnMessageReceived(messageReceived)
+	onMessageReceived := notifyOnMessageReceived(messageReceived)
 
-    clientId, mqttClient, _ := startProducer(certFile, keyFile, broker, onMessageReceived, i)
+	clientId, mqttClient, _ := startProducer(certFile, keyFile, broker, onMessageReceived, i)
 
-    time.Sleep(1 * time.Second)
-    verifyClientIsRegistered(cloudConnectorUrl, clientId)
+	time.Sleep(1 * time.Second)
+	verifyClientIsRegistered(cloudConnectorUrl, clientId, identityHeader)
 
-    rand.Seed(time.Now().UnixNano())
+	rand.Seed(time.Now().UnixNano())
 
-    for {
-        randomSleepTime := rand.Intn(1000)
-        randomSleepTime = 10
-        fmt.Println("Sleeping for ", randomSleepTime)
-        time.Sleep(time.Duration(randomSleepTime) * time.Second)
+	for {
+		randomSleepTime := rand.Intn(1000)
+		randomSleepTime = 10
+		fmt.Println("Sleeping for ", randomSleepTime)
+		time.Sleep(time.Duration(randomSleepTime) * time.Second)
 
-        if numMessagesSent > 10 {
-            disconnectMqttClient(mqttClient)
-            verifyClientIsUnregistered(cloudConnectorUrl, clientId)
-            time.Sleep(10 * time.Second)
-            clientId, mqttClient, _ = startProducer(certFile, keyFile, broker, onMessageReceived, i)
-            time.Sleep(1 * time.Second)
-            verifyClientIsRegistered(cloudConnectorUrl, clientId)
-            numMessagesSent = 0
-        }
+		if numMessagesSent > 10 {
+			disconnectMqttClient(mqttClient)
+			verifyClientIsUnregistered(cloudConnectorUrl, clientId, identityHeader)
+			time.Sleep(10 * time.Second)
+			clientId, mqttClient, _ = startProducer(certFile, keyFile, broker, onMessageReceived, i)
+			time.Sleep(1 * time.Second)
+			verifyClientIsRegistered(cloudConnectorUrl, clientId, identityHeader)
+			numMessagesSent = 0
+		}
 
-        messageId, _ := sendMessageToClient(cloudConnectorUrl, clientId)
-        verifyMessageWasReceived(messageReceived, messageId)
-        numMessagesSent++
-    }
+		messageId, _ := sendMessageToClient(cloudConnectorUrl, clientId, identityHeader)
+		verifyMessageWasReceived(messageReceived, messageId)
+		numMessagesSent++
+	}
 }
 
 func startProducer(certFile string, keyFile string, broker string, onMessageReceived func(MQTT.Client, MQTT.Message), i int) (string, MQTT.Client, error) {
@@ -211,7 +223,7 @@ func startProducer(certFile string, keyFile string, broker string, onMessageRece
 
 	publishConnectionStatusMessage(client, controlWriteTopic, qos, retained, "1234", cf, dispatchers, tags, sentTime)
 
-    return clientID, client, nil
+	return clientID, client, nil
 }
 
 func publishConnectionStatusMessage(client MQTT.Client, topic string, qos byte, retained bool, messageID string, cf Connector.CanonicalFacts, dispatchers Connector.Dispatchers, tags Connector.Tags, sentTime time.Time) {
@@ -248,131 +260,131 @@ func publishConnectionStatusMessage(client MQTT.Client, topic string, qos byte, 
 }
 
 func notifyOnMessageReceived(messageReceived chan string) func(MQTT.Client, MQTT.Message) {
-    return func(client MQTT.Client, message MQTT.Message) {
-        fmt.Printf("**** Received message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
+	return func(client MQTT.Client, message MQTT.Message) {
+		fmt.Printf("**** Received message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
 
-        var dataMsg Connector.DataMessage
+		var dataMsg Connector.DataMessage
 
-        if message.Payload() == nil || len(message.Payload()) == 0 {
-            fmt.Println("empty payload")
-            return
-        }
+		if message.Payload() == nil || len(message.Payload()) == 0 {
+			fmt.Println("empty payload")
+			return
+		}
 
-        if err := json.Unmarshal(message.Payload(), &dataMsg); err != nil {
-            fmt.Println("unmarshal of message failed, err:", err)
-            panic(err)
-        }
+		if err := json.Unmarshal(message.Payload(), &dataMsg); err != nil {
+			fmt.Println("unmarshal of message failed, err:", err)
+			panic(err)
+		}
 
-        fmt.Println("Got a message:", dataMsg)
+		fmt.Println("Got a message:", dataMsg)
 
-        messageReceived <- dataMsg.MessageID
-    }
+		messageReceived <- dataMsg.MessageID
+	}
 }
 
 func disconnectMqttClient(mqttClient MQTT.Client) {
-    fmt.Println("DISCONNECTING!!")
+	fmt.Println("DISCONNECTING!!")
 	mqttClient.Disconnect(1000)
 }
 
 func verifyMessageWasReceived(messageReceived chan string, expectedMessageId uuid.UUID) {
-    fmt.Println("Checking to see if message was received")
+	fmt.Println("Checking to see if message was received")
 
-    select {
-        case receivedMessageId := <- messageReceived:
-            fmt.Println("Got message: ", receivedMessageId)
-            if receivedMessageId != expectedMessageId.String() {
-                fmt.Println("Epic fail...got wrong message!")
-            }
-        case <- time.After(10 * time.Second):
-            fmt.Println("Epic Fail...did not get message after 10 second")
-    }
+	select {
+	case receivedMessageId := <-messageReceived:
+		fmt.Println("Got message: ", receivedMessageId)
+		if receivedMessageId != expectedMessageId.String() {
+			fmt.Println("Epic fail...got wrong message!")
+		}
+	case <-time.After(10 * time.Second):
+		fmt.Println("Epic Fail...did not get message after 10 second")
+	}
 }
 
-func verifyClientIsRegistered(cloudConnectorUrl string, clientId string) {
-    fmt.Printf("Verifying client (%s) is registered with cloud-connector!!", clientId)
-    getClientStatusFromCloudConnector(cloudConnectorUrl, clientId)
+func verifyClientIsRegistered(cloudConnectorUrl string, clientId string, identityHeader string) {
+	fmt.Printf("Verifying client (%s) is registered with cloud-connector!!", clientId)
+	getClientStatusFromCloudConnector(cloudConnectorUrl, clientId, identityHeader)
 }
 
-func getClientStatusFromCloudConnector(cloudConnectorUrl string, clientId string) string {
-    type connectionStatus struct {
-        Status string `json:"status"`
-    }
+func getClientStatusFromCloudConnector(cloudConnectorUrl string, clientId string, identityHeader string) string {
+	type connectionStatus struct {
+		Status string `json:"status"`
+	}
 
-    url := fmt.Sprintf("%s/api/cloud-connector/v2/connections/%s/status", cloudConnectorUrl, clientId)
+	url := fmt.Sprintf("%s/api/cloud-connector/v2/connections/%s/status", cloudConnectorUrl, clientId)
 
-    req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 
-    req.Close = true
+	req.Close = true
 
-    req.Header.Set("x-rh-identity", identityHeader)
-    req.Header.Set("x-rh-insights-request-id", string(time.Now().Unix()))
+	req.Header.Set("x-rh-identity", identityHeader)
+	req.Header.Set("x-rh-insights-request-id", string(time.Now().Unix()))
 
-    client := http.Client{
-        Timeout: 2 * time.Second,
-    }
+	client := http.Client{
+		Timeout: 2 * time.Second,
+	}
 
-    res, err := client.Do(req)
-    if err != nil {
-        fmt.Println("res: ", res)
-        fmt.Println("err: ", err)
-        time.Sleep(2*time.Second)
-        panic(err)
-    }
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println("res: ", res)
+		fmt.Println("err: ", err)
+		time.Sleep(2 * time.Second)
+		panic(err)
+	}
 
-    connStatus := connectionStatus{}
-    json.NewDecoder(res.Body).Decode(&connStatus)
+	connStatus := connectionStatus{}
+	json.NewDecoder(res.Body).Decode(&connStatus)
 
-    fmt.Println("Connection Status: ", connStatus.Status)
-    return connStatus.Status
+	fmt.Println("Connection Status: ", connStatus.Status)
+	return connStatus.Status
 }
 
-func verifyClientIsUnregistered(cloudConnectorUrl string, clientId string) {
-    fmt.Printf("Verifying client (%s) is unregistered with cloud-connector!!", clientId)
-    getClientStatusFromCloudConnector(cloudConnectorUrl, clientId)
+func verifyClientIsUnregistered(cloudConnectorUrl string, clientId string, identityHeader string) {
+	fmt.Printf("Verifying client (%s) is unregistered with cloud-connector!!", clientId)
+	getClientStatusFromCloudConnector(cloudConnectorUrl, clientId, identityHeader)
 }
 
-func sendMessageToClient(cloudConnectorUrl string, clientId string) (uuid.UUID, error) {
-    fmt.Printf("Sending message to client (%s)!!", clientId)
+func sendMessageToClient(cloudConnectorUrl string, clientId string, identityHeader string) (uuid.UUID, error) {
+	fmt.Printf("Sending message to client (%s)!!", clientId)
 
-    jsonBody := []byte(`{"directive": "imadirective", "payload": "imapayload"}`)
-    bodyReader := bytes.NewReader(jsonBody)
+	jsonBody := []byte(`{"directive": "imadirective", "payload": "imapayload"}`)
+	bodyReader := bytes.NewReader(jsonBody)
 
-    type sendMessageResponse struct {
-        Id string `json:"id"`
-    }
+	type sendMessageResponse struct {
+		Id string `json:"id"`
+	}
 
-    url := fmt.Sprintf("%s/api/cloud-connector/v2/connections/%s/message", cloudConnectorUrl, clientId)
+	url := fmt.Sprintf("%s/api/cloud-connector/v2/connections/%s/message", cloudConnectorUrl, clientId)
 
-    req, err := http.NewRequest(http.MethodPost, url, bodyReader)
+	req, err := http.NewRequest(http.MethodPost, url, bodyReader)
 
-    req.Close = true
+	req.Close = true
 
-    requestId := fmt.Sprint(time.Now().Unix())
+	requestId := fmt.Sprint(time.Now().Unix())
 
-    fmt.Println("request id:", requestId)
+	fmt.Println("request id:", requestId)
 
-    req.Header.Set("x-rh-identity", identityHeader)
-    req.Header.Set("x-rh-insights-request-id", requestId)
+	req.Header.Set("x-rh-identity", identityHeader)
+	req.Header.Set("x-rh-insights-request-id", requestId)
 
-    client := http.Client{
-        Timeout: 2 * time.Second,
-    }
+	client := http.Client{
+		Timeout: 2 * time.Second,
+	}
 
-    res, err := client.Do(req)
-    if err != nil {
-        fmt.Println("res: ", res)
-        fmt.Println("err: ", err)
-        time.Sleep(2*time.Second)
+	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println("res: ", res)
+		fmt.Println("err: ", err)
+		time.Sleep(2 * time.Second)
 
-        panic(err)
-    }
+		panic(err)
+	}
 
-    sendMsgResponse := sendMessageResponse{}
-    json.NewDecoder(res.Body).Decode(&sendMsgResponse)
+	sendMsgResponse := sendMessageResponse{}
+	json.NewDecoder(res.Body).Decode(&sendMsgResponse)
 
-    fmt.Println("Message response: ", sendMsgResponse)
+	fmt.Println("Message response: ", sendMsgResponse)
 
-    return uuid.Parse(sendMsgResponse.Id)
+	return uuid.Parse(sendMsgResponse.Id)
 }
 
 func generateUUID() string {
