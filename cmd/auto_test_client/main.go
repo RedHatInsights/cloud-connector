@@ -21,7 +21,6 @@ import (
 	"github.com/google/uuid"
 )
 
-
 func buildIdentityHeader(orgId string, accountNumber string) string {
 	s := fmt.Sprintf(`{"identity": {"account_number": "%s", "org_id": "%s", "internal": {}, "service_account": {"client_id": "0000", "username": "jdoe"}, "type": "Associate"}}`, accountNumber, orgId)
 	return base64.StdEncoding.EncodeToString([]byte(s))
@@ -286,18 +285,18 @@ func verifyMessageWasReceived(messageReceived chan string, expectedMessageId uui
 
 func verifyClientIsRegistered(cloudConnectorUrl string, clientId string, identityHeader string) {
 	fmt.Printf("Verifying client (%s) is registered with cloud-connector!!", clientId)
-    status := getClientStatusFromCloudConnector(cloudConnectorUrl, clientId, identityHeader)
-    if status != "connected" {
-        fmt.Println("***  ERROR:  status should have been connected")
-    }
+	status := getClientStatusFromCloudConnector(cloudConnectorUrl, clientId, identityHeader)
+	if status != "connected" {
+		fmt.Println("***  ERROR:  status should have been connected")
+	}
 }
 
 func verifyClientIsUnregistered(cloudConnectorUrl string, clientId string, identityHeader string) {
 	fmt.Printf("Verifying client (%s) is unregistered with cloud-connector!!", clientId)
-    status := getClientStatusFromCloudConnector(cloudConnectorUrl, clientId, identityHeader)
-    if status != "disconnected" {
-        fmt.Println("***  ERROR:  status should have been disconnected")
-    }
+	status := getClientStatusFromCloudConnector(cloudConnectorUrl, clientId, identityHeader)
+	if status != "disconnected" {
+		fmt.Println("***  ERROR:  status should have been disconnected")
+	}
 }
 
 func getClientStatusFromCloudConnector(cloudConnectorUrl string, clientId string, identityHeader string) string {
