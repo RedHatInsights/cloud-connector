@@ -21,13 +21,6 @@ import (
 	"github.com/google/uuid"
 )
 
-/*
-const (
-//    identityHeader = "eyJpZGVudGl0eSI6IHsiYWNjb3VudF9udW1iZXIiOiAiMTExMDAwIiwgIm9yZ19pZCI6ICIxMDAwMCIsICJpbnRlcm5hbCI6IHt9LCAic2VydmljZV9hY2NvdW50IjogeyJjbGllbnRfaWQiOiAiMDAwMCIsICJ1c2VybmFtZSI6ICJqZG9lIn0sICJ0eXBlIjogIkFzc29jaWF0ZSJ9fQ=="
-
-    identityHeader = "eyJpZGVudGl0eSI6IHsiYWNjb3VudF9udW1iZXIiOiAiMDEwMTAxIiwgIm9yZ19pZCI6ICIxMDAwMSIsICJpbnRlcm5hbCI6IHt9LCAic2VydmljZV9hY2NvdW50IjogeyJjbGllbnRfaWQiOiAiMDAwMCIsICJ1c2VybmFtZSI6ICJqZG9lIn0sICJ0eXBlIjogIkFzc29jaWF0ZSJ9fQ=="
-)
-*/
 
 func buildIdentityHeader(orgId string, accountNumber string) string {
 	s := fmt.Sprintf(`{"identity": {"account_number": "%s", "org_id": "%s", "internal": {}, "service_account": {"client_id": "0000", "username": "jdoe"}, "type": "Associate"}}`, accountNumber, orgId)
@@ -35,16 +28,6 @@ func buildIdentityHeader(orgId string, accountNumber string) string {
 }
 
 func NewTLSConfig(certFile string, keyFile string) (*tls.Config, string) {
-	// Import trusted certificates from CAfile.pem.
-	// Alternatively, manually add CA certificates to
-	// default openssl CA bundle.
-	/*
-	   certpool := x509.NewCertPool()
-	   pemCerts, err := ioutil.ReadFile("samplecerts/CAfile.pem")
-	   if err == nil {
-	       certpool.AppendCertsFromPEM(pemCerts)
-	   }
-	*/
 
 	// Import client certificate/key pair
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
@@ -137,8 +120,8 @@ func startTestClient(certFile string, keyFile string, broker string, cloudConnec
 
 		if numMessagesSent > 10 {
 			disconnectMqttClient(mqttClient)
+			time.Sleep(1 * time.Second)
 			verifyClientIsUnregistered(cloudConnectorUrl, clientId, identityHeader)
-			time.Sleep(10 * time.Second)
 			clientId, mqttClient, _ = startProducer(certFile, keyFile, broker, onMessageReceived, i)
 			time.Sleep(1 * time.Second)
 			verifyClientIsRegistered(cloudConnectorUrl, clientId, identityHeader)
@@ -163,11 +146,12 @@ func startProducer(certFile string, keyFile string, broker string, onMessageRece
 	connOpts.AddBroker(broker)
 	connOpts.SetClientID(clientID)
 	connOpts.SetTLSConfig(tlsconfig)
+	connOpts.SetAutoReconnect(false)
 
 	connectionStatusMsgPayload := Connector.ConnectionStatusMessageContent{ConnectionState: "offline"}
 	lastWillMsg := Connector.ControlMessage{
 		MessageType: "connection-status",
-		MessageID:   "5678",
+		MessageID:   generateUUID(),
 		Version:     1,
 		Sent:        time.Now(),
 		Content:     connectionStatusMsgPayload,
@@ -221,7 +205,7 @@ func startProducer(certFile string, keyFile string, broker string, onMessageRece
 	dispatchers := make(Connector.Dispatchers)
 	tags := make(Connector.Tags)
 
-	publishConnectionStatusMessage(client, controlWriteTopic, qos, retained, "1234", cf, dispatchers, tags, sentTime)
+	publishConnectionStatusMessage(client, controlWriteTopic, qos, retained, generateUUID(), cf, dispatchers, tags, sentTime)
 
 	return clientID, client, nil
 }
@@ -302,7 +286,18 @@ func verifyMessageWasReceived(messageReceived chan string, expectedMessageId uui
 
 func verifyClientIsRegistered(cloudConnectorUrl string, clientId string, identityHeader string) {
 	fmt.Printf("Verifying client (%s) is registered with cloud-connector!!", clientId)
-	getClientStatusFromCloudConnector(cloudConnectorUrl, clientId, identityHeader)
+    status := getClientStatusFromCloudConnector(cloudConnectorUrl, clientId, identityHeader)
+    if status != "connected" {
+        fmt.Println("***  ERROR:  status should have been connected")
+    }
+}
+
+func verifyClientIsUnregistered(cloudConnectorUrl string, clientId string, identityHeader string) {
+	fmt.Printf("Verifying client (%s) is unregistered with cloud-connector!!", clientId)
+    status := getClientStatusFromCloudConnector(cloudConnectorUrl, clientId, identityHeader)
+    if status != "disconnected" {
+        fmt.Println("***  ERROR:  status should have been disconnected")
+    }
 }
 
 func getClientStatusFromCloudConnector(cloudConnectorUrl string, clientId string, identityHeader string) string {
@@ -338,11 +333,6 @@ func getClientStatusFromCloudConnector(cloudConnectorUrl string, clientId string
 
 	fmt.Println("Connection Status: ", connStatus.Status)
 	return connStatus.Status
-}
-
-func verifyClientIsUnregistered(cloudConnectorUrl string, clientId string, identityHeader string) {
-	fmt.Printf("Verifying client (%s) is unregistered with cloud-connector!!", clientId)
-	getClientStatusFromCloudConnector(cloudConnectorUrl, clientId, identityHeader)
 }
 
 func sendMessageToClient(cloudConnectorUrl string, clientId string, identityHeader string) (uuid.UUID, error) {
