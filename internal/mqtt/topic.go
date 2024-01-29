@@ -10,9 +10,9 @@ import (
 
 const (
 	defaultTopicPrefix          string = "redhat"
-	controlMessageIncomingTopic string = "insights/#"
+	controlMessageIncomingTopic string = "insights/+/control/out"
 	controlMessageOutgoingTopic string = "insights/%s/control/in"
-	dataMessageIncomingTopic    string = "insights/#"
+	dataMessageIncomingTopic    string = "insights/+/data/out"
 	dataMessageOutgoingTopic    string = "insights/%s/data/in"
 )
 
