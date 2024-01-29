@@ -69,7 +69,7 @@ func startMqttMessageConsumer(mgmtAddr string) {
 	subscribers := []mqtt.Subscriber{
 		mqtt.Subscriber{
 			Topic:      mqttTopicBuilder.BuildIncomingWildcardControlTopic(),
-			EntryPoint: defaultMsgHandler,
+			EntryPoint: controlMsgHandler,
 			Qos:        cfg.MqttControlSubscriptionQoS,
 		},
 		mqtt.Subscriber{
