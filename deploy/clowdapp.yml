@@ -19,7 +19,7 @@ objects:
     inMemoryDb: false
     database:
        name: cloud-connector
-       version: 10
+       version: 12
     kafkaTopics:
     - replicas: 3
       partitions: 16
