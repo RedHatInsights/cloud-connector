@@ -201,7 +201,7 @@ func verifyMessageWasReceived(messageReceived chan string, expectedMessageId uui
 }
 
 func verifyClientIsRegistered(cloudConnectorUrl string, clientId string, identityHeader string) {
-	fmt.Printf("Verifying client (%s) is registered with cloud-connector!!", clientId)
+	fmt.Printf("Verifying client (%s) is registered with cloud-connector!!\n", clientId)
 	status := getClientStatusFromCloudConnector(cloudConnectorUrl, clientId, identityHeader)
 	if status != "connected" {
 		fmt.Println("***  ERROR:  status should have been connected")
@@ -209,7 +209,7 @@ func verifyClientIsRegistered(cloudConnectorUrl string, clientId string, identit
 }
 
 func verifyClientIsUnregistered(cloudConnectorUrl string, clientId string, identityHeader string) {
-	fmt.Printf("Verifying client (%s) is unregistered with cloud-connector!!", clientId)
+	fmt.Printf("Verifying client (%s) is unregistered with cloud-connector!!\n", clientId)
 	status := getClientStatusFromCloudConnector(cloudConnectorUrl, clientId, identityHeader)
 	if status != "disconnected" {
 		fmt.Println("***  ERROR:  status should have been disconnected")
@@ -252,7 +252,7 @@ func getClientStatusFromCloudConnector(cloudConnectorUrl string, clientId string
 }
 
 func sendMessageToClient(cloudConnectorUrl string, clientId string, identityHeader string) (uuid.UUID, error) {
-	fmt.Printf("Sending message to client (%s)!!", clientId)
+	fmt.Printf("Sending message to client (%s)!!\n", clientId)
 
 	jsonBody := []byte(`{"directive": "imadirective", "payload": "imapayload"}`)
 	bodyReader := bytes.NewReader(jsonBody)
