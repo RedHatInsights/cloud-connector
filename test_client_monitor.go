@@ -48,7 +48,6 @@ func startTest(cloudConnectorUrl string, identityHeader string, endTest chan str
 	cmd, subProcessOutput, subProcessDied := startTestProcess()
 
 	var messageIdExpected string
-	//var lastMessageIdReceived string
 
 	go func() {
 		var clientId string
@@ -64,31 +63,39 @@ func startTest(cloudConnectorUrl string, identityHeader string, endTest chan str
 			}
 			select {
 			case output := <-subProcessOutput:
-				fmt.Println("output: ", output)
+				//fmt.Println("output: ", output)
 
 				results := strings.Split(strings.Trim(output, "\n"), " ")
 
 				if results[0] == "CONNECTED" {
 					clientId = results[1]
+
 					fmt.Println("Client is connected!  ClientId - ", clientId)
+
 					currentClientStatus = "CONNECTED"
+
 					time.Sleep(2 * time.Second)
-					verifyClientIsRegistered(cloudConnectorUrl, clientId, identityHeader)
-				} else if results[0] == "MESSAGE_RECEIVED" {
-					fmt.Println("Client received a message! ", results[1])
-					if messageIdExpected != results[1] {
-						fmt.Println("ERROR! message recieved doesn't match expected!")
+
+					clientIsConnected := verifyClientIsRegistered(cloudConnectorUrl, clientId, identityHeader)
+
+					if clientIsConnected == false {
+						stopProcessing = true
+						break
 					}
-				} else {
-					fmt.Println("CLIENT OUTPUT: ", output)
+
+				} else if results[0] == "MESSAGE_RECEIVED" {
+					messageIdReceived := results[1]
+
+					fmt.Println("Client received the expected message: ", messageIdReceived)
+
+					if messageIdExpected != messageIdReceived {
+						fmt.Println("ERROR! message id recieved (%s) doesn't match expected message id (%s)!", messageIdReceived, messageIdExpected)
+						stopProcessing = true
+						break
+					}
 				}
 
-				// if connected start timer to send message connection check messages
-				// and start a timer for sending "send message" messages
-				// and receving "message received" messages
-
 			case <-ticker.C:
-				fmt.Println("ticker !")
 
 				if currentClientStatus == "CONNECTED" {
 					msgID, _ := sendMessageToClient(cloudConnectorUrl, clientId, identityHeader)
@@ -98,16 +105,18 @@ func startTest(cloudConnectorUrl string, identityHeader string, endTest chan str
 				}
 
 			case <-subProcessDied:
-				fmt.Println("subprocess died!")
+				fmt.Println("MQTT client died!")
 
 				currentClientStatus = "DISCONNECTED"
 
 				time.Sleep(2 * time.Second)
-				// check cloud-connector for disconnected state
 
-				// stop messaging timers
+				clientIsDisconnected := verifyClientIsUnregistered(cloudConnectorUrl, clientId, identityHeader)
 
-				verifyClientIsUnregistered(cloudConnectorUrl, clientId, identityHeader)
+				if clientIsDisconnected == false {
+					stopProcessing = true
+					break
+				}
 
 				fmt.Println("Starting new process")
 				cmd, subProcessOutput, subProcessDied = startTestProcess()
@@ -186,34 +195,28 @@ func buildIdentityHeader(orgId string, accountNumber string) string {
 	return base64.StdEncoding.EncodeToString([]byte(s))
 }
 
-func verifyMessageWasReceived(messageReceived chan string, expectedMessageId uuid.UUID) {
-	fmt.Println("Checking to see if message was received")
-
-	select {
-	case receivedMessageId := <-messageReceived:
-		fmt.Println("Got message: ", receivedMessageId)
-		if receivedMessageId != expectedMessageId.String() {
-			fmt.Println("Epic fail...got wrong message!")
-		}
-	case <-time.After(10 * time.Second):
-		fmt.Println("Epic Fail...did not get message after 10 second")
-	}
-}
-
-func verifyClientIsRegistered(cloudConnectorUrl string, clientId string, identityHeader string) {
+func verifyClientIsRegistered(cloudConnectorUrl string, clientId string, identityHeader string) bool {
 	fmt.Printf("Verifying client (%s) is registered with cloud-connector!!\n", clientId)
 	status := getClientStatusFromCloudConnector(cloudConnectorUrl, clientId, identityHeader)
-	if status != "connected" {
-		fmt.Println("***  ERROR:  status should have been connected")
+
+	if status == "connected" {
+		return true
 	}
+
+	fmt.Println("***  ERROR:  status should have been connected")
+	return false
 }
 
-func verifyClientIsUnregistered(cloudConnectorUrl string, clientId string, identityHeader string) {
+func verifyClientIsUnregistered(cloudConnectorUrl string, clientId string, identityHeader string) bool {
 	fmt.Printf("Verifying client (%s) is unregistered with cloud-connector!!\n", clientId)
 	status := getClientStatusFromCloudConnector(cloudConnectorUrl, clientId, identityHeader)
-	if status != "disconnected" {
-		fmt.Println("***  ERROR:  status should have been disconnected")
+
+	if status == "disconnected" {
+		return true
 	}
+
+	fmt.Println("***  ERROR:  status should have been disconnected")
+	return false
 }
 
 func getClientStatusFromCloudConnector(cloudConnectorUrl string, clientId string, identityHeader string) string {
@@ -269,7 +272,7 @@ func sendMessageToClient(cloudConnectorUrl string, clientId string, identityHead
 
 	requestId := fmt.Sprint(time.Now().Unix())
 
-	fmt.Println("request id:", requestId)
+	//fmt.Println("request id:", requestId)
 
 	req.Header.Set("x-rh-identity", identityHeader)
 	req.Header.Set("x-rh-insights-request-id", requestId)
@@ -290,7 +293,7 @@ func sendMessageToClient(cloudConnectorUrl string, clientId string, identityHead
 	sendMsgResponse := sendMessageResponse{}
 	json.NewDecoder(res.Body).Decode(&sendMsgResponse)
 
-	fmt.Println("Message response: ", sendMsgResponse)
+	fmt.Println("Message ID to expect: ", sendMsgResponse)
 
 	return uuid.Parse(sendMsgResponse.Id)
 }
