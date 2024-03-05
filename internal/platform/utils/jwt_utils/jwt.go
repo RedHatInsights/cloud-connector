@@ -27,7 +27,7 @@ const (
 	FileTokenGenerator = "jwt_file_reader"
 )
 
-func createRsaToken(client string, group string, exp time.Time, signKey *rsa.PrivateKey) (string, error) {
+func CreateRsaToken(client string, group string, exp time.Time, signKey *rsa.PrivateKey) (string, error) {
 	t := jwt.New(jwt.GetSigningMethod("RS256"))
 	t.Claims = &customClaims{
 		&jwt.StandardClaims{
@@ -71,6 +71,6 @@ func NewRSABasedJwtGenerator(privateKeyFile string, clientId string, tokenExpiry
 	return func(context context.Context) (string, error) {
 		expiryDate := time.Now().Add(time.Minute * time.Duration(tokenExpiry))
 		logger.Log.Debugf("Generating an RSA JWT token with client-id %s and expiry: %s\n", clientId, expiryDate)
-		return createRsaToken(clientId, "admin", expiryDate, signKey)
+		return CreateRsaToken(clientId, "admin", expiryDate, signKey)
 	}, nil
 }

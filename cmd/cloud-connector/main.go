@@ -66,6 +66,15 @@ func NewRootCommand() *cobra.Command {
 	}
 	apiServerCmd.Flags().StringVarP(&listenAddr, "listen-addr", "l", ":8081", "Hostname:port")
 
+	var tokenGeneratorServerCmd = &cobra.Command{
+		Use:   "token_server",
+		Short: "Run the Cloud-Connector Token Generator Server",
+		Run: func(cmd *cobra.Command, args []string) {
+			startCloudConnectorTokenGeneratorServer(listenAddr)
+		},
+	}
+	tokenGeneratorServerCmd.Flags().StringVarP(&listenAddr, "listen-addr", "l", ":8081", "Hostname:port")
+
 	var connectedAccountReportCmd = &cobra.Command{
 		Use:   "connection_count_per_account_reporter",
 		Short: "Generate a report on the number of connections per account",
@@ -84,6 +93,7 @@ func NewRootCommand() *cobra.Command {
 	rootCmd.AddCommand(mqttMessageConsumerCmd)
 	rootCmd.AddCommand(inventoryStaleTimestampeUpdaterCmd)
 	rootCmd.AddCommand(apiServerCmd)
+	rootCmd.AddCommand(tokenGeneratorServerCmd)
 	rootCmd.AddCommand(kafkaMessageConsumerCmd)
 	rootCmd.AddCommand(connectedAccountReportCmd)
 	rootCmd.AddCommand(connectionCountCmd)
