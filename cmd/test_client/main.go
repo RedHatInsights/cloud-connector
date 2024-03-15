@@ -165,6 +165,7 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 
 	publishConnectionStatusMessage(client, controlWriteTopic, qos, retained, "1234", cf, dispatchers, tags, sentTime)
 
+/*
 	go func() {
 
 		// Publish a message afterward to original message which has empty dispatcher and tags
@@ -220,6 +221,7 @@ func startProducer(certFile string, keyFile string, broker string, i int) {
 
 		publishConnectionStatusMessage(client, controlWriteTopic, qos, retained, "1233", cf, dispatchers, tags, sentTime.Add(-10*time.Second))
 	}()
+*/
 }
 
 func publishConnectionStatusMessage(client MQTT.Client, topic string, qos byte, retained bool, messageID string, cf Connector.CanonicalFacts, dispatchers Connector.Dispatchers, tags Connector.Tags, sentTime time.Time) {
@@ -248,7 +250,7 @@ func publishConnectionStatusMessage(client MQTT.Client, topic string, qos byte, 
 		panic(err)
 	}
 
-	fmt.Println("publishing to topic:", topic)
+	fmt.Println("** publishing to topic:", topic)
 	fmt.Println("retained: ", retained)
 	fmt.Println("qos: ", qos)
 

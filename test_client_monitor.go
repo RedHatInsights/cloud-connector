@@ -29,23 +29,40 @@ func main() {
 
 	identityHeader := buildIdentityHeader(*orgId, *accountNumber)
 
-	endTest := make(chan struct{})
+	stopTest := make(chan struct{})
+	testGoRoutineDone := make(chan struct{})
 
-	startTest(*cloudConnectorUrl, identityHeader, endTest)
+    err := startTest(*cloudConnectorUrl, identityHeader, stopTest, testGoRoutineDone)
+    
+    if err != nil {
+        panic(err)
+    }
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
 	fmt.Println("Blocking, press ctrl+c to continue...")
-	<-done // Will block here until user hits ctrl+c
 
-	endTest <- struct{}{}
+    // Will block here until user hits ctrl+c or the test fails
+    select {
+    case <-done:
+        go func() {  // Very gross
+            stopTest <- struct{}{}
+        }()
+        break
+    case <- testGoRoutineDone:
+        break
+    }
 
 	time.Sleep(1 * time.Second)
 }
 
-func startTest(cloudConnectorUrl string, identityHeader string, endTest chan struct{}) {
+func startTest(cloudConnectorUrl string, identityHeader string, stopTest chan struct{}, testGoRoutineDone chan struct{}) (error) {
 
-	cmd, subProcessOutput, subProcessDied := startTestProcess()
+	cmd, subProcessOutput, subProcessDied, err := startTestProcess()
+
+    if err != nil {
+        return err
+    }
 
 	var messageIdExpected string
 
@@ -59,7 +76,7 @@ func startTest(cloudConnectorUrl string, identityHeader string, endTest chan str
 
 		for {
 			if stopProcessing {
-				return
+                break
 			}
 			select {
 			case output := <-subProcessOutput:
@@ -91,7 +108,6 @@ func startTest(cloudConnectorUrl string, identityHeader string, endTest chan str
 					if messageIdExpected != messageIdReceived {
 						fmt.Println("ERROR! message id recieved (%s) doesn't match expected message id (%s)!", messageIdReceived, messageIdExpected)
 						stopProcessing = true
-						break
 					}
 				}
 
@@ -107,6 +123,15 @@ func startTest(cloudConnectorUrl string, identityHeader string, endTest chan str
 			case <-subProcessDied:
 				fmt.Println("MQTT client died!")
 
+                if clientId == "" {
+                    fmt.Println("Looks like process never cleanly started...stop the tests")
+                    // Client process must not have started cleanly...stop testing
+                    stopProcessing = true
+                    fmt.Println("HERE")
+                    break
+                    fmt.Println("THERE")
+                }
+
 				currentClientStatus = "DISCONNECTED"
 
 				time.Sleep(2 * time.Second)
@@ -115,14 +140,17 @@ func startTest(cloudConnectorUrl string, identityHeader string, endTest chan str
 
 				if clientIsDisconnected == false {
 					stopProcessing = true
-					break
 				}
 
 				fmt.Println("Starting new process")
-				cmd, subProcessOutput, subProcessDied = startTestProcess()
+				cmd, subProcessOutput, subProcessDied, err = startTestProcess()
+                if err != nil {
+                    stopProcessing = true
+                }
+
 				fmt.Println("new process started")
 
-			case <-endTest:
+			case <-stopTest:
 				fmt.Println("Testing is over...")
 				fmt.Println("Killing process...")
 				if err := cmd.Process.Kill(); err != nil {
@@ -132,27 +160,43 @@ func startTest(cloudConnectorUrl string, identityHeader string, endTest chan str
 				stopProcessing = true
 			}
 		}
+
+        fmt.Println("Go routine is leaving...")
+        testGoRoutineDone <- struct{}{}
+        fmt.Println("Go routine is OUT!!")
 	}()
+
+    return nil
 }
 
-func startTestProcess() (*exec.Cmd, chan string, chan struct{}) {
+func startTestProcess() (*exec.Cmd, chan string, chan struct{}, error) {
 	ctx := context.TODO()
 	//cmd := exec.CommandContext(ctx, "sh", "HARPERDB/run_192.168.131.16_client.sh")
 	//cmd := exec.CommandContext(ctx, "echo", "HARPERDB/run_192.168.131.16_client.sh")
 	//cmd := exec.CommandContext(ctx, "echo", "hiya Fred!")
+
 	cmd := exec.CommandContext(ctx, "sh", "test_script.sh")
+
 	//cmd := exec.CommandContext(ctx, "go", "run simple_test_client.go -broker wss://rh-gtm.harperdbcloud.com:443 -cert HARPERDB/192.168.131.16/cert.pem -key HARPERDB/192.168.131.16/key.pem")
 	//cmd := exec.CommandContext(ctx, "go", "run simple_test_client.go -broker ssl://localhost:8883 -cert dev/test_client/client-0-cert.pem -key dev/test_client/client-0-key.pem")
+
+    /*
+CERT=HARPERDB/192.168.131.16/cert.pem
+KEY=HARPERDB/192.168.131.16/key.pem
+BROKER="wss://rh-gtm.harperdbcloud.com:443"
+
+go run simple_test_client.go -broker $BROKER -cert $CERT -key $KEY
+*/
 
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
 		fmt.Println("Unable to get stdout pipe")
-		panic(err)
+        return nil, nil, nil, err
 	}
 
 	if err = cmd.Start(); err != nil {
 		fmt.Println("Unable to start process")
-		panic(err)
+        return nil, nil, nil, err
 	}
 
 	subProcessOutput := make(chan string)
@@ -161,7 +205,7 @@ func startTestProcess() (*exec.Cmd, chan string, chan struct{}) {
 	go readSubprocessOutput(stdoutPipe, subProcessOutput)
 	go notifyOfSubprocessDeath(cmd, subProcessDied)
 
-	return cmd, subProcessOutput, subProcessDied
+	return cmd, subProcessOutput, subProcessDied, nil
 }
 
 func readSubprocessOutput(stdoutPipe io.ReadCloser, output chan string) {

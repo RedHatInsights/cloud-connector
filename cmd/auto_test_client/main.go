@@ -206,6 +206,8 @@ func startProducer(certFile string, keyFile string, broker string, onMessageRece
 
 	publishConnectionStatusMessage(client, controlWriteTopic, qos, retained, generateUUID(), cf, dispatchers, tags, sentTime)
 
+    fmt.Println("CONNECTED ", clientID)
+
 	return clientID, client, nil
 }
 
@@ -258,7 +260,9 @@ func notifyOnMessageReceived(messageReceived chan string) func(MQTT.Client, MQTT
 			panic(err)
 		}
 
-		fmt.Println("Got a message:", dataMsg)
+		//fmt.Println("Got a message:", dataMsg)
+
+        fmt.Println("MESSAGE_RECEIVED ", dataMsg.MessageID)
 
 		messageReceived <- dataMsg.MessageID
 	}
@@ -382,3 +386,5 @@ func generateUUID() string {
 	id, _ := uuid.NewUUID()
 	return id.String()
 }
+
+
