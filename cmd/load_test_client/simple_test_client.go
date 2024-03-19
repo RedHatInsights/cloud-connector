@@ -63,12 +63,12 @@ func startLoadTestClient(broker string, certFile string, keyFile string) {
 	*/
 	MQTT.DEBUG = logger
 
-    /*
-	broker := flag.String("broker", "tcp://eclipse-mosquitto:1883", "hostname / port of broker")
-	certFile := flag.String("cert", "cert.pem", "path to cert file")
-	keyFile := flag.String("key", "key.pem", "path to key file")
-	flag.Parse()
-    */
+	/*
+		broker := flag.String("broker", "tcp://eclipse-mosquitto:1883", "hostname / port of broker")
+		certFile := flag.String("cert", "cert.pem", "path to cert file")
+		keyFile := flag.String("key", "key.pem", "path to key file")
+		flag.Parse()
+	*/
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)

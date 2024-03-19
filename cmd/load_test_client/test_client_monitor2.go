@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-    "math/rand"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -21,76 +21,65 @@ import (
 	"github.com/google/uuid"
 )
 
-/*
-func main() {
-
-	cloudConnectorUrl := flag.String("cloud-connector", "http://localhost:10000", "protocol / hostname / port of cloud-connector")
-	orgId := flag.String("org-id", "10001", "org-id")
-	accountNumber := flag.String("account", "010101", "account number")
-	flag.Parse()
-
-    startController(cloudConnectorUrl string, orgId string, account string)
-}
-*/
 
 func startController(cloudConnectorUrl string, orgId string, accountNumber string, numberOfClients int) {
-    rand.Seed(time.Now().UnixNano())
+	rand.Seed(time.Now().UnixNano())
 
 	identityHeader := buildIdentityHeader(orgId, accountNumber)
 
 	stopTest := make(chan struct{})
 	testGoRoutineDone := make(chan struct{})
 
-    connectedClients := make(map[string]bool)
-    clientConnected := recordClientConnected(connectedClients)
+	connectedClients := make(map[string]bool)
+	clientConnected := recordClientConnected(connectedClients)
 
-    messagesSent := make(map[string]map[string]bool)
-    messageSent := recordMessageSent(messagesSent)
+	messagesSent := make(map[string]map[string]bool)
+	messageSent := recordMessageSent(messagesSent)
 
-    messagesReceived := make(map[string]map[string]bool)
-    messageReceived := recordMessageReceived(messagesReceived)
+	messagesReceived := make(map[string]map[string]bool)
+	messageReceived := recordMessageReceived(messagesReceived)
 
-    for i := 0; i < numberOfClients; i++ {
-        err := startTest(cloudConnectorUrl, identityHeader, stopTest, testGoRoutineDone, clientConnected, messageSent, messageReceived)
+	for i := 0; i < numberOfClients; i++ {
+		err := startTest(cloudConnectorUrl, identityHeader, stopTest, testGoRoutineDone, clientConnected, messageSent, messageReceived)
 
-        if err != nil {
-            panic(err)
-        }
-    }
+		if err != nil {
+			panic(err)
+		}
+	}
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, syscall.SIGINT, syscall.SIGTERM)
 	fmt.Println("Blocking, press ctrl+c to continue...")
 
-    // Will block here until user hits ctrl+c or the test fails
-    select {
-    case <-done:
-        go func() {  // Very gross
-            stopTest <- struct{}{}
-        }()
-        break
-    case <- testGoRoutineDone:
-        break
-    }
+	// Will block here until user hits ctrl+c or the test fails
+	select {
+	case <-done:
+		go func() { // Very gross
+			stopTest <- struct{}{}
+		}()
+		break
+	case <-testGoRoutineDone:
+		break
+	}
 
 	time.Sleep(1 * time.Second)
 
-    fmt.Println("connected clients:", connectedClients)
-    fmt.Println("number of connected clients:", len(connectedClients))
+	fmt.Println("connected clients:", connectedClients)
+	fmt.Println("number of connected clients:", len(connectedClients))
 
-    calculateMissingMessages(messagesSent, messagesReceived)
+	calculateMissingMessages(messagesSent, messagesReceived)
 }
 
-func startTest(cloudConnectorUrl string, identityHeader string, stopTest chan struct{}, testGoRoutineDone chan struct{}, clientConnected func(string) error, messageSent func(string, string) error, messageReceived func(string, string) error) (error) {
+func startTest(cloudConnectorUrl string, identityHeader string, stopTest chan struct{}, testGoRoutineDone chan struct{}, clientConnected func(string) error, messageSent func(string, string) error, messageReceived func(string, string) error) error {
 
 	subProcessOutput := make(chan string)
 	subProcessDied := make(chan struct{})
 
-    err := startTestProcess(subProcessOutput, subProcessDied,  stopTest)
+	err := startTestProcess(subProcessOutput, subProcessDied, stopTest)
 
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 
 	var messageIdExpected string
 
@@ -100,17 +89,17 @@ func startTest(cloudConnectorUrl string, identityHeader string, stopTest chan st
 
 		var currentClientStatus string
 
-        randomMessageSendingTime := rand.Intn(10)
-        if randomMessageSendingTime == 0 {
-          randomMessageSendingTime = 1
-        }
+		randomMessageSendingTime := rand.Intn(10)
+		if randomMessageSendingTime == 0 {
+			randomMessageSendingTime = 1
+		}
 
-        fmt.Printf("Sleep time: %d\n", randomMessageSendingTime)
+		fmt.Printf("Sleep time: %d\n", randomMessageSendingTime)
 		ticker := time.NewTicker(time.Duration(randomMessageSendingTime) * time.Second)
 
 		for {
 			if stopProcessing {
-                break
+				break
 			}
 			select {
 			case output := <-subProcessOutput:
@@ -134,12 +123,12 @@ func startTest(cloudConnectorUrl string, identityHeader string, stopTest chan st
 						break
 					}
 
-                    clientConnected(clientId)
+					clientConnected(clientId)
 
 				} else if results[0] == "MESSAGE_RECEIVED" {
 					messageIdReceived := results[1]
 
-                    messageReceived(clientId, messageIdReceived)
+					messageReceived(clientId, messageIdReceived)
 					fmt.Println("Client received the expected message: ", messageIdReceived)
 
 					if messageIdExpected != messageIdReceived {
@@ -156,18 +145,18 @@ func startTest(cloudConnectorUrl string, identityHeader string, stopTest chan st
 					// FIXME: COULD BE AN ERROR HERE
 					messageIdExpected = msgID.String()
 
-                    messageSent(clientId, messageIdExpected)
+					messageSent(clientId, messageIdExpected)
 				}
 
 			case <-subProcessDied:
 				fmt.Println("MQTT client died!")
 
-                if clientId == "" {
-                    fmt.Println("Looks like process never cleanly started...stop the tests")
-                    // Client process must not have started cleanly...stop testing
-                    stopProcessing = true
-                    break
-                }
+				if clientId == "" {
+					fmt.Println("Looks like process never cleanly started...stop the tests")
+					// Client process must not have started cleanly...stop testing
+					stopProcessing = true
+					break
+				}
 
 				currentClientStatus = "DISCONNECTED"
 
@@ -179,38 +168,37 @@ func startTest(cloudConnectorUrl string, identityHeader string, stopTest chan st
 					stopProcessing = true
 				}
 
-                /*
-				fmt.Println("Starting new process")
-				err = startTestProcess()
-                if err != nil {
-                    stopProcessing = true
-                }
-				fmt.Println("new process started")
-                */
+				/*
+								fmt.Println("Starting new process")
+								err = startTestProcess()
+				                if err != nil {
+				                    stopProcessing = true
+				                }
+								fmt.Println("new process started")
+				*/
 
-
-/*
-			case <-stopTest:
-				fmt.Println("Testing is over...")
-				fmt.Println("Killing process...")
-				if err := cmd.Process.Kill(); err != nil {
-					fmt.Println("error killing subprocess:", err)
-				}
-				fmt.Println("Killed process")
-				stopProcessing = true
-*/
+				/*
+					case <-stopTest:
+						fmt.Println("Testing is over...")
+						fmt.Println("Killing process...")
+						if err := cmd.Process.Kill(); err != nil {
+							fmt.Println("error killing subprocess:", err)
+						}
+						fmt.Println("Killed process")
+						stopProcessing = true
+				*/
 			}
 		}
 
-        fmt.Println("Go routine is leaving...")
-        testGoRoutineDone <- struct{}{}
-        fmt.Println("Go routine is OUT!!")
+		fmt.Println("Go routine is leaving...")
+		testGoRoutineDone <- struct{}{}
+		fmt.Println("Go routine is OUT!!")
 	}()
 
-    return nil
+	return nil
 }
 
-func startTestProcess(subProcessOutput chan string, subProcessDied chan struct{}, stopTest chan struct{}) (error) {
+func startTestProcess(subProcessOutput chan string, subProcessDied chan struct{}, stopTest chan struct{}) error {
 
 	ctx := context.TODO()
 	//cmd := exec.CommandContext(ctx, "sh", "HARPERDB/run_192.168.131.16_client.sh")
@@ -223,25 +211,23 @@ func startTestProcess(subProcessOutput chan string, subProcessDied chan struct{}
 	//cmd := exec.CommandContext(ctx, "go", "run simple_test_client.go -broker wss://rh-gtm.harperdbcloud.com:443 -cert HARPERDB/192.168.131.16/cert.pem -key HARPERDB/192.168.131.16/key.pem")
 	//cmd := exec.CommandContext(ctx, "go", "run simple_test_client.go -broker ssl://localhost:8883 -cert dev/test_client/client-0-cert.pem -key dev/test_client/client-0-key.pem")
 
-    /*
-CERT=HARPERDB/192.168.131.16/cert.pem
-KEY=HARPERDB/192.168.131.16/key.pem
-BROKER="wss://rh-gtm.harperdbcloud.com:443"
+	/*
+	CERT=HARPERDB/192.168.131.16/cert.pem
+	KEY=HARPERDB/192.168.131.16/key.pem
+	BROKER="wss://rh-gtm.harperdbcloud.com:443"
 
-go run simple_test_client.go -broker $BROKER -cert $CERT -key $KEY
-*/
-
-
+	go run simple_test_client.go -broker $BROKER -cert $CERT -key $KEY
+	*/
 
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
 		fmt.Println("Unable to get stdout pipe")
-        return err
+		return err
 	}
 
 	if err = cmd.Start(); err != nil {
 		fmt.Println("Unable to start process")
-        return err
+		return err
 	}
 
 	go readSubprocessOutput(stdoutPipe, subProcessOutput)
@@ -252,13 +238,13 @@ go run simple_test_client.go -broker $BROKER -cert $CERT -key $KEY
 }
 
 func stopProcess(cmd *exec.Cmd, stopTest chan struct{}) {
-    <- stopTest
-    fmt.Println("Testing is over...")
-    fmt.Println("Killing process...")
-    if err := cmd.Process.Kill(); err != nil {
-        fmt.Println("error killing subprocess:", err)
-    }
-    fmt.Println("Killed process")
+	<-stopTest
+	fmt.Println("Testing is over...")
+	fmt.Println("Killing process...")
+	if err := cmd.Process.Kill(); err != nil {
+		fmt.Println("error killing subprocess:", err)
+	}
+	fmt.Println("Killed process")
 }
 
 func readSubprocessOutput(stdoutPipe io.ReadCloser, output chan string) {
@@ -401,78 +387,78 @@ type messageReceived func(string, string) error
 
 func recordClientConnected(connectedClients map[string]bool) clientConnected {
 
-    var mutex sync.Mutex
+	var mutex sync.Mutex
 
-    return func(clientId string) error {
-        mutex.Lock()
-        connectedClients[clientId] = true
-        mutex.Unlock()
-        return nil
-    }
+	return func(clientId string) error {
+		mutex.Lock()
+		connectedClients[clientId] = true
+		mutex.Unlock()
+		return nil
+	}
 }
 
 func recordMessageSent(messagesSent map[string]map[string]bool) messageSent {
 
-    var mutex sync.Mutex
+	var mutex sync.Mutex
 
-    return func(clientId string, messageId string) error {
-        mutex.Lock()
+	return func(clientId string, messageId string) error {
+		mutex.Lock()
 
-        _, exist := messagesSent[clientId]
-        if !exist {
-          messagesSent[clientId] = make(map[string]bool)
-        }
+		_, exist := messagesSent[clientId]
+		if !exist {
+			messagesSent[clientId] = make(map[string]bool)
+		}
 
-        messagesSent[clientId][messageId] = true
+		messagesSent[clientId][messageId] = true
 
-        mutex.Unlock()
+		mutex.Unlock()
 
-        return nil
-    }
+		return nil
+	}
 }
 
 func recordMessageReceived(messagesReceived map[string]map[string]bool) messageReceived {
 
-    var mutex sync.Mutex
+	var mutex sync.Mutex
 
-    return func(clientId string, messageId string) error {
-        mutex.Lock()
+	return func(clientId string, messageId string) error {
+		mutex.Lock()
 
-        _, exist := messagesReceived[clientId]
-        if !exist {
-          messagesReceived[clientId] = make(map[string]bool)
-        }
+		_, exist := messagesReceived[clientId]
+		if !exist {
+			messagesReceived[clientId] = make(map[string]bool)
+		}
 
-        messagesReceived[clientId][messageId] = true
+		messagesReceived[clientId][messageId] = true
 
-        mutex.Unlock()
+		mutex.Unlock()
 
-        return nil
-    }
+		return nil
+	}
 }
 
 func calculateMissingMessages(messagesSent map[string]map[string]bool, messagesReceived map[string]map[string]bool) {
-    for clientId, _ := range messagesSent {
-        for messageId, _ := range messagesSent[clientId] {
+	for clientId, _ := range messagesSent {
+		for messageId, _ := range messagesSent[clientId] {
 
-            if _, ok := messagesReceived[clientId]; !ok {
-                fmt.Println("Client did not recieve any messages:", clientId)
-                break
-            }
+			if _, ok := messagesReceived[clientId]; !ok {
+				fmt.Println("Client did not recieve any messages:", clientId)
+				break
+			}
 
-            if _, ok := messagesReceived[clientId][messageId]; !ok {
-                fmt.Printf("Client %s did not recieve message %s\n", clientId, messageId)
-                continue
-            }
+			if _, ok := messagesReceived[clientId][messageId]; !ok {
+				fmt.Printf("Client %s did not recieve message %s\n", clientId, messageId)
+				continue
+			}
 
-            delete(messagesReceived[clientId], messageId)
+			delete(messagesReceived[clientId], messageId)
 
-            if len(messagesReceived[clientId]) == 0 {
-                delete(messagesReceived, clientId)
-            }
-        }
-    }
+			if len(messagesReceived[clientId]) == 0 {
+				delete(messagesReceived, clientId)
+			}
+		}
+	}
 
-//    fmt.Println("messagesSent:", messagesSent)
-    fmt.Println("missing messages:", messagesReceived)
+	//    fmt.Println("messagesSent:", messagesSent)
+	fmt.Println("missing messages:", messagesReceived)
 }
