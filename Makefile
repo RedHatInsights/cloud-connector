@@ -17,6 +17,7 @@ build:
 	go build -o $(DB_SCHEMA_DUMPER_BINARY) cmd/$(DB_SCHEMA_DUMPER_BINARY)/main.go
 	go build -o stage_db_fixer cmd/stage_db_fixer/main.go
 	go build -o auto_test_client cmd/auto_test_client/*.go
+	go build -o load_tester cmd/load_test_client/*.go
 
 run-pendo-transmitter:
 	./$(CONNECTOR_SERVICE_BINARY) connection_count_per_account_reporter -r pendo
