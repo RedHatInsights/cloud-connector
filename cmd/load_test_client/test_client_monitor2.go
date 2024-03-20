@@ -201,7 +201,7 @@ func startTest(cloudConnectorUrl string, identityHeader string, stopTest chan st
 func startTestProcess(subProcessOutput chan string, subProcessDied chan struct{}, stopTest chan struct{}) error {
 
 	ctx := context.TODO()
-	cmd := exec.CommandContext(ctx, "sh", "sleeper_script.sh")
+	cmd := exec.CommandContext(ctx, "sh", "test_script.sh")
 
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
