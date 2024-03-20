@@ -132,7 +132,7 @@ func startTest(cloudConnectorUrl string, identityHeader string, stopTest chan st
 					fmt.Println("Client received the expected message: ", messageIdReceived)
 
 					if messageIdExpected != messageIdReceived {
-						fmt.Println("ERROR! message id recieved (%s) doesn't match expected message id (%s)!", messageIdReceived, messageIdExpected)
+						fmt.Printf("ERROR! message id recieved (%s) doesn't match expected message id (%s)!\n", messageIdReceived, messageIdExpected)
 						stopProcessing = true
 					}
 				}
