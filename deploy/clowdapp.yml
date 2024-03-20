@@ -89,7 +89,7 @@ objects:
         - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
           value: ${{MQTT_BROKER_ADDRESS}}
         - name: CLOUD_CONNECTOR_MQTT_BROKER_AUTH_TYPE
-          value: "password"
+          value: "NOT_password"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_USERNAME
           value: "api-server"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_PASSWORD
@@ -454,6 +454,31 @@ objects:
             defaultMode: 420
             secretName: client-id-to-account-id-map-config
         concurrencyPolicy: Forbid
+        resources:
+          limits:
+            cpu: 300m
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 512Mi
+
+    - name: mqtt-broker-load-test
+      podSpec:
+        image: ${IMAGE}:${IMAGE_TAG}
+        command:
+          - ./load_tester
+          - controller
+          - -C
+          - "http://cloud-connector:8080"
+          - -O
+          - "10000"
+          - --number-of-clients
+          - "1"
+        env:
+          - name: LOG_FORMAT
+            value: ${POPULATOR_LOG_FORMAT}
+          - name: LOG_BATCH_FREQUENCY
+            value: '1s'
         resources:
           limits:
             cpu: 300m
