@@ -23,6 +23,10 @@ KEY="dev/test_client/client-0-key.pem"
 
 #go run simple_test_client.go -broker $BROKER -cert $CERT -key $KEY
 
+BROKER="tcp://mosquitto:1883"
+CERT="/tmp/tls/cert.pem"
+KEY="/tmp/tls/key.pem"
+
 echo "\$BROKER=$BROKER"
 echo "\$CERT=$CERT"
 echo "\$KEY=$KEY"
