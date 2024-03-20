@@ -201,23 +201,7 @@ func startTest(cloudConnectorUrl string, identityHeader string, stopTest chan st
 func startTestProcess(subProcessOutput chan string, subProcessDied chan struct{}, stopTest chan struct{}) error {
 
 	ctx := context.TODO()
-	//cmd := exec.CommandContext(ctx, "sh", "HARPERDB/run_192.168.131.16_client.sh")
-	//cmd := exec.CommandContext(ctx, "echo", "HARPERDB/run_192.168.131.16_client.sh")
-	//cmd := exec.CommandContext(ctx, "echo", "hiya Fred!")
-
-	cmd := exec.CommandContext(ctx, "sh", "test_script.sh")
-	//cmd := exec.CommandContext(ctx, "sh", "sleeper_script.sh")
-
-	//cmd := exec.CommandContext(ctx, "go", "run simple_test_client.go -broker wss://rh-gtm.harperdbcloud.com:443 -cert HARPERDB/192.168.131.16/cert.pem -key HARPERDB/192.168.131.16/key.pem")
-	//cmd := exec.CommandContext(ctx, "go", "run simple_test_client.go -broker ssl://localhost:8883 -cert dev/test_client/client-0-cert.pem -key dev/test_client/client-0-key.pem")
-
-	/*
-	CERT=HARPERDB/192.168.131.16/cert.pem
-	KEY=HARPERDB/192.168.131.16/key.pem
-	BROKER="wss://rh-gtm.harperdbcloud.com:443"
-
-	go run simple_test_client.go -broker $BROKER -cert $CERT -key $KEY
-	*/
+	cmd := exec.CommandContext(ctx, "sh", "sleeper_script.sh")
 
 	stdoutPipe, err := cmd.StdoutPipe()
 	if err != nil {
