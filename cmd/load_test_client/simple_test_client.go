@@ -91,11 +91,8 @@ var m MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
 	fmt.Printf("default handler rec TOPIC: %s MSG:%s\n", msg.Topic(), msg.Payload())
 }
 
-func startTestClient(certFile string, keyFile string, broker string) {
-	startProducer(certFile, keyFile, broker)
-}
+func startTestClient(certFile string, keyFile string, broker string) (string, MQTT.Client, error) {
 
-func startProducer(certFile string, keyFile string, broker string) (string, MQTT.Client, error) {
 	tlsconfig, _ := NewTLSConfig(certFile, keyFile)
 
 	clientID := generateUUID()

@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -255,11 +254,6 @@ func notifyOfSubprocessDeath(cmd *exec.Cmd, subProcessDied chan struct{}) {
 	fmt.Println("process died!", err)
 	subProcessDied <- struct{}{}
 	fmt.Println("Process death watcher stopped!")
-}
-
-func buildIdentityHeader(orgId string, accountNumber string) string {
-	s := fmt.Sprintf(`{"identity": {"account_number": "%s", "org_id": "%s", "internal": {}, "service_account": {"client_id": "0000", "username": "jdoe"}, "type": "Associate"}}`, accountNumber, orgId)
-	return base64.StdEncoding.EncodeToString([]byte(s))
 }
 
 func verifyClientIsRegistered(cloudConnectorUrl string, clientId string, identityHeader string) bool {
