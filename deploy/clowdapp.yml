@@ -481,11 +481,20 @@ objects:
             value: '1s'
         resources:
           limits:
+            cpu: 512m
+            memory: 2Gi
+          requests:
             cpu: 300m
             memory: 1Gi
-          requests:
-            cpu: 50m
-            memory: 512Mi
+        volumeMounts:
+        - mountPath: /tmp/tls
+          name: volume-mqtt-cert
+          readOnly: true
+        volumes:
+        - name: volume-mqtt-cert
+          secret:
+            defaultMode: 420
+            secretName: cloud-connector-mqtt-consumer-cert
 
 
 - apiVersion: v1
