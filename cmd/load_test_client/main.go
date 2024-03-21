@@ -45,8 +45,25 @@ func NewRootCommand() *cobra.Command {
 	mqttClientCmd.Flags().StringVarP(&certFile, "cert-file", "c", "dev/test_client/client-0-cert.pem", "path to cert")
 	mqttClientCmd.Flags().StringVarP(&keyFile, "key-file", "k", "dev/test_client/client-0-key.pem", "path to key")
 
+
+	var goRouteinBasedLoadTestCmd = &cobra.Command{
+		Use:   "go_routine_based_load_test",
+		Short: "go_routine_based_load_test",
+		Run: func(cmd *cobra.Command, args []string) {
+            startConcurrentLoadTestClient(broker, certFile, keyFile, numberOfClients, cloudConnectorUrl, orgId, account)
+		},
+	}
+	goRouteinBasedLoadTestCmd.Flags().StringVarP(&broker, "broker", "b", "ssl://localhost:8883", "broker url")
+	goRouteinBasedLoadTestCmd.Flags().StringVarP(&certFile, "cert-file", "c", "dev/test_client/client-0-cert.pem", "path to cert")
+	goRouteinBasedLoadTestCmd.Flags().StringVarP(&keyFile, "key-file", "k", "dev/test_client/client-0-key.pem", "path to key")
+	goRouteinBasedLoadTestCmd.Flags().StringVarP(&cloudConnectorUrl, "cloud-connector", "C", "http://localhost:8081", "cloud-connector url")
+	goRouteinBasedLoadTestCmd.Flags().StringVarP(&orgId, "org-id", "O", "10001", "org-id connections belong to")
+	goRouteinBasedLoadTestCmd.Flags().StringVarP(&account, "account", "A", "010101", "account number")
+	goRouteinBasedLoadTestCmd.Flags().IntVar(&numberOfClients, "number-of-clients", 10, "number of clients to spawn")
+
 	rootCmd.AddCommand(controllerCmd)
 	rootCmd.AddCommand(mqttClientCmd)
+	rootCmd.AddCommand(goRouteinBasedLoadTestCmd)
 
 	return rootCmd
 }
