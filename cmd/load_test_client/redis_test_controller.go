@@ -61,7 +61,7 @@ func watchForConnections(rdb *redis.Client) {
 
 func determineTargetClients(rdb *redis.Client, clientsToSendMessagesTo chan string) {
 
-    var chunkSize int64 = 5 // FIXME: make configurable
+    var chunkSize int64 = 20 // FIXME: make configurable
 
     // FIXME:  Polling to get a chunk of clients ...this is kinda gross.  Is there a better way?
 
