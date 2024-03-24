@@ -1,6 +1,7 @@
 package main
 
 import (
+    "context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -9,11 +10,13 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"sync"
 	"time"
 
 	Connector "github.com/RedHatInsights/cloud-connector/internal/cloud_connector/protocol"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
+    "github.com/redis/go-redis/v9"
 )
 
 func buildIdentityHeader(orgId string, accountNumber string) string {
@@ -25,9 +28,9 @@ func startConcurrentLoadTestClient(broker string, certFile string, keyFile strin
 
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 	/*
-	   MQTT.ERROR = logger
-	   MQTT.CRITICAL = logger
-	MQTT.DEBUG = logger
+		   MQTT.ERROR = logger
+		   MQTT.CRITICAL = logger
+		MQTT.DEBUG = logger
 	*/
 	MQTT.WARN = logger
 
@@ -37,21 +40,33 @@ func startConcurrentLoadTestClient(broker string, certFile string, keyFile strin
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	for i := 0; i < connectionCount; i++ {
-		go startConcurrentTestClient(certFile, keyFile, broker, cloudConnectorUrl, i, identityHeader)
+		go startClientRegisterWithRedisController(certFile, keyFile, broker, cloudConnectorUrl, i, identityHeader)
 	}
 
 	<-c
 	fmt.Println("Client going down...disconnecting from mqtt uncleanly")
 }
 
-func startConcurrentTestClient(certFile string, keyFile string, broker string, cloudConnectorUrl string, i int, identityHeader string) {
+func startClientRegisterWithRedisController(certFile string, keyFile string, broker string, cloudConnectorUrl string, i int, identityHeader string) {
+
+    redisClient := createRedisClient()
+
+	onClientConnected := registerClientConnectedWithRedis(redisClient)
+	onMessageReceived := registerMessageReceivedWithRedis(redisClient)
+
+    startProducer(certFile, keyFile, broker, onClientConnected, onMessageReceived, i)
+}
+
+func startLocalTestController(certFile string, keyFile string, broker string, cloudConnectorUrl string, i int, identityHeader string) {
 	var numMessagesSent int
 	var messageReceived chan string
 	messageReceived = make(chan string)
 
+	onClientConnected := printClientConnected()
 	onMessageReceived := notifyOnMessageReceived(messageReceived)
+	sendMessageToClient := sendMessageToClientViaCloudConnector(cloudConnectorUrl, identityHeader)
 
-	clientId, mqttClient, _ := startProducer(certFile, keyFile, broker, onMessageReceived, i)
+	clientId, mqttClient, _ := startProducer(certFile, keyFile, broker, onClientConnected, onMessageReceived, i)
 
 	time.Sleep(1 * time.Second)
 	verifyClientIsRegistered(cloudConnectorUrl, clientId, identityHeader)
@@ -68,19 +83,19 @@ func startConcurrentTestClient(certFile string, keyFile string, broker string, c
 			disconnectMqttClient(mqttClient)
 			time.Sleep(1 * time.Second)
 			verifyClientIsUnregistered(cloudConnectorUrl, clientId, identityHeader)
-			clientId, mqttClient, _ = startProducer(certFile, keyFile, broker, onMessageReceived, i)
+			clientId, mqttClient, _ = startProducer(certFile, keyFile, broker, onClientConnected, onMessageReceived, i)
 			time.Sleep(1 * time.Second)
 			verifyClientIsRegistered(cloudConnectorUrl, clientId, identityHeader)
 			numMessagesSent = 0
 		}
 
-		messageId, _ := sendMessageToClient(cloudConnectorUrl, clientId, identityHeader)
+		messageId, _ := sendMessageToClient(clientId)
 		verifyMessageWasReceived(messageReceived, messageId)
 		numMessagesSent++
 	}
 }
 
-func startProducer(certFile string, keyFile string, broker string, onMessageReceived func(MQTT.Client, MQTT.Message), i int) (string, MQTT.Client, error) {
+func startProducer(certFile string, keyFile string, broker string, onClientConnected func(string), onMessageReceived func(MQTT.Client, MQTT.Message), i int) (string, MQTT.Client, error) {
 	tlsconfig, _ := NewTLSConfig(certFile, keyFile)
 
 	clientID := generateUUID()
@@ -155,9 +170,19 @@ func startProducer(certFile string, keyFile string, broker string, onMessageRece
 
 	publishConnectionStatusMessage(client, controlWriteTopic, qos, retained, generateUUID(), cf, dispatchers, tags, sentTime)
 
-    fmt.Println("CONNECTED ", clientID)
+	onClientConnected(clientID)
 
 	return clientID, client, nil
+}
+
+type onClientConnectedFunc func(string)
+type onMessageReceivedFunc func(client MQTT.Client, message MQTT.Message)
+type sendMessageToClientFunc func(string) (uuid.UUID, error)
+
+func printClientConnected() func(string) {
+	return func(clientID string) {
+		fmt.Println("CONNECTED ", clientID)
+	}
 }
 
 func notifyOnMessageReceived(messageReceived chan string) func(MQTT.Client, MQTT.Message) {
@@ -178,10 +203,67 @@ func notifyOnMessageReceived(messageReceived chan string) func(MQTT.Client, MQTT
 
 		//fmt.Println("Got a message:", dataMsg)
 
-        fmt.Println("MESSAGE_RECEIVED ", dataMsg.MessageID)
+		fmt.Println("MESSAGE_RECEIVED ", dataMsg.MessageID)
 
 		messageReceived <- dataMsg.MessageID
 	}
+}
+
+func sendMessageToClientViaCloudConnector(cloudConnectorUrl string, identityHeader string) sendMessageToClientFunc {
+	return func(clientID string) (uuid.UUID, error) {
+		return sendMessageToClient(cloudConnectorUrl, clientID, identityHeader)
+	}
+}
+
+func createRedisClient() *redis.Client {
+    rdb := redis.NewClient(&redis.Options{
+        Addr:     "localhost:6379",
+        Password: "", // no password set
+        DB:       0,  // use default DB
+    })
+
+    fmt.Printf("%s\n", rdb.Ping(context.TODO()).String())
+
+    return rdb
+}
+
+var initRedisConnectionRegistrar sync.Once
+var connectedClientChan chan string
+
+func registerClientConnectedWithRedis(redisClient *redis.Client) func(string) {
+
+    initRedisConnectionRegistrar.Do(func() {
+        fmt.Println("Starting go routine to register connections with redis")
+        connectedClientChan = make(chan string)
+        go func() {
+            for clientId := range connectedClientChan {
+                fmt.Printf("Register client %s with redis\n", clientId)
+
+                event := ConnectionEvent{
+                    Event: "connected",
+                    ClientId: clientId,
+                }
+
+                msgPayload, _ := json.Marshal(event)
+
+//                msgPayload := fmt.Sprintf("{\"event\": \"connected\", \"client_id\": \"%s\"}", clientId)
+
+                redisClient.Publish(context.TODO(), "connections", msgPayload)
+            }
+        }()
+    })
+
+	return func(clientID string) {
+		fmt.Println("CONNECTED ", clientID)
+        connectedClientChan <- clientID
+	}
+}
+
+func registerMessageReceivedWithRedis(redisClient *redis.Client) func(MQTT.Client, MQTT.Message) {
+	return func(client MQTT.Client, message MQTT.Message) {
+		fmt.Printf("**** Received message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
+        fmt.Println("Registering message received with redis")
+    }
 }
 
 func disconnectMqttClient(mqttClient MQTT.Client) {

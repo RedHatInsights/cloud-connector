@@ -45,12 +45,11 @@ func NewRootCommand() *cobra.Command {
 	mqttClientCmd.Flags().StringVarP(&certFile, "cert-file", "c", "dev/test_client/client-0-cert.pem", "path to cert")
 	mqttClientCmd.Flags().StringVarP(&keyFile, "key-file", "k", "dev/test_client/client-0-key.pem", "path to key")
 
-
 	var goRouteinBasedLoadTestCmd = &cobra.Command{
 		Use:   "go_routine_based_load_test",
 		Short: "go_routine_based_load_test",
 		Run: func(cmd *cobra.Command, args []string) {
-            startConcurrentLoadTestClient(broker, certFile, keyFile, numberOfClients, cloudConnectorUrl, orgId, account)
+			startConcurrentLoadTestClient(broker, certFile, keyFile, numberOfClients, cloudConnectorUrl, orgId, account)
 		},
 	}
 	goRouteinBasedLoadTestCmd.Flags().StringVarP(&broker, "broker", "b", "ssl://localhost:8883", "broker url")
@@ -61,9 +60,22 @@ func NewRootCommand() *cobra.Command {
 	goRouteinBasedLoadTestCmd.Flags().StringVarP(&account, "account", "A", "010101", "account number")
 	goRouteinBasedLoadTestCmd.Flags().IntVar(&numberOfClients, "number-of-clients", 10, "number of clients to spawn")
 
+
+	var redisBasedTestControllerCmd = &cobra.Command{
+		Use:   "redis_based_test_controller",
+		Short: "redis_based_test_controller",
+		Run: func(cmd *cobra.Command, args []string) {
+			startRedisBasedTestController(cloudConnectorUrl, orgId, account)
+		},
+	}
+	redisBasedTestControllerCmd.Flags().StringVarP(&cloudConnectorUrl, "cloud-connector", "C", "http://localhost:8081", "cloud-connector url")
+	redisBasedTestControllerCmd.Flags().StringVarP(&orgId, "org-id", "O", "10001", "org-id connections belong to")
+	redisBasedTestControllerCmd.Flags().StringVarP(&account, "account", "A", "010101", "account number")
+
 	rootCmd.AddCommand(controllerCmd)
 	rootCmd.AddCommand(mqttClientCmd)
 	rootCmd.AddCommand(goRouteinBasedLoadTestCmd)
+	rootCmd.AddCommand(redisBasedTestControllerCmd)
 
 	return rootCmd
 }

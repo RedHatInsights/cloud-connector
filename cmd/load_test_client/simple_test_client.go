@@ -32,7 +32,7 @@ func NewTLSConfig(certFile string, keyFile string) (*tls.Config, string) {
 		panic(err)
 	}
 	//fmt.Println(cert.Leaf)
-	fmt.Println(cert.Leaf.Subject.CommonName)
+	//fmt.Println(cert.Leaf.Subject.CommonName)
 
 	tlsConfig := &tls.Config{
 		// RootCAs = certs used to verify server cert.
