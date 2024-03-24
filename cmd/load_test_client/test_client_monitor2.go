@@ -20,7 +20,6 @@ import (
 	"github.com/google/uuid"
 )
 
-
 func startController(cloudConnectorUrl string, orgId string, accountNumber string, numberOfClients int) {
 	rand.Seed(time.Now().UnixNano())
 
@@ -168,12 +167,12 @@ func startTest(cloudConnectorUrl string, identityHeader string, stopTest chan st
 				}
 
 				/*
-								fmt.Println("Starting new process")
-								err = startTestProcess()
-				                if err != nil {
-				                    stopProcessing = true
-				                }
-								fmt.Println("new process started")
+									fmt.Println("Starting new process")
+									err = startTestProcess()
+					                if err != nil {
+					                    stopProcessing = true
+					                }
+									fmt.Println("new process started")
 				*/
 
 				/*
