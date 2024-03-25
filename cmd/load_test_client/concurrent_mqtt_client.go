@@ -1,7 +1,7 @@
 package main
 
 import (
-    "context"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -9,14 +9,14 @@ import (
 	"math/rand"
 	"os"
 	"os/signal"
-	"syscall"
 	"sync"
+	"syscall"
 	"time"
 
 	Connector "github.com/RedHatInsights/cloud-connector/internal/cloud_connector/protocol"
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/google/uuid"
-    "github.com/redis/go-redis/v9"
+	"github.com/redis/go-redis/v9"
 )
 
 func buildIdentityHeader(orgId string, accountNumber string) string {
@@ -36,16 +36,16 @@ func startConcurrentLoadTestClient(broker string, certFile string, keyFile strin
 
 	identityHeader := buildIdentityHeader(orgId, accountNumber)
 
-    redisClient := createRedisClient()
+	redisClient := createRedisClient()
 
 	onClientConnected := registerClientConnectedWithRedis(redisClient)
 	onMessageReceived := registerMessageReceivedWithRedis(redisClient)
 
-    var credRetriever retrieveCredentialsFunc = retrieveFakeCredentials()
+	var credRetriever retrieveCredentialsFunc = retrieveFakeCredentials()
 
-    if credRetrieverImpl == "redis" {
-        credRetriever = retrieveCredentialsFromRedis(redisClient)
-    }
+	if credRetrieverImpl == "redis" {
+		credRetriever = retrieveCredentialsFromRedis(redisClient)
+	}
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
@@ -60,7 +60,7 @@ func startConcurrentLoadTestClient(broker string, certFile string, keyFile strin
 
 func startClientRegisterWithRedisController(certFile string, keyFile string, broker string, cloudConnectorUrl string, i int, identityHeader string, credRetriever retrieveCredentialsFunc, onClientConnected func(string), onMessageReceived func(MQTT.Client, MQTT.Message)) {
 
-    startProducer(certFile, keyFile, broker, onClientConnected, onMessageReceived, i, credRetriever)
+	startProducer(certFile, keyFile, broker, onClientConnected, onMessageReceived, i, credRetriever)
 }
 
 func startLocalTestController(certFile string, keyFile string, broker string, cloudConnectorUrl string, i int, identityHeader string, credRetriever retrieveCredentialsFunc, onClientConnected func(string), onMessageReceived func(MQTT.Client, MQTT.Message)) {
@@ -68,13 +68,13 @@ func startLocalTestController(certFile string, keyFile string, broker string, cl
 	var messageReceived chan string
 	messageReceived = make(chan string)
 
-    /*
-	onClientConnected := printClientConnected()
-	onMessageReceived := notifyOnMessageReceived(messageReceived)
-    */
+	/*
+		onClientConnected := printClientConnected()
+		onMessageReceived := notifyOnMessageReceived(messageReceived)
+	*/
 	sendMessageToClient := sendMessageToClientViaCloudConnector(cloudConnectorUrl, identityHeader)
 
-	clientId, mqttClient, _ := startProducer(certFile, keyFile, broker, onClientConnected, onMessageReceived, i, credRetriever )
+	clientId, mqttClient, _ := startProducer(certFile, keyFile, broker, onClientConnected, onMessageReceived, i, credRetriever)
 
 	time.Sleep(1 * time.Second)
 	verifyClientIsRegistered(cloudConnectorUrl, clientId, identityHeader)
@@ -108,8 +108,8 @@ func startProducer(certFile string, keyFile string, broker string, onClientConne
 
 	clientID := generateUUID()
 
-//    username, password := retrieveCredentials()
-    username, _ := retrieveCredentials()
+	//    username, password := retrieveCredentials()
+	username, _ := retrieveCredentials()
 
 	controlReadTopic := fmt.Sprintf("redhat/insights/%s/control/in", clientID)
 	controlWriteTopic := fmt.Sprintf("redhat/insights/%s/control/out", clientID)
@@ -122,13 +122,13 @@ func startProducer(certFile string, keyFile string, broker string, onClientConne
 	connOpts.SetTLSConfig(tlsconfig)
 	connOpts.SetAutoReconnect(false)
 
-    if username != "" {
-        fmt.Println("FIXME: Ignore username/password")
-    /*
-        connOpts.SetUsername(username)
-        connOpts.SetPassword(password)
-    */
-    }
+	if username != "" {
+		fmt.Println("FIXME: Ignore username/password")
+		/*
+		   connOpts.SetUsername(username)
+		   connOpts.SetPassword(password)
+		*/
+	}
 
 	connectionStatusMsgPayload := Connector.ConnectionStatusMessageContent{ConnectionState: "offline"}
 	lastWillMsg := Connector.ControlMessage{
@@ -199,7 +199,6 @@ type onMessageReceivedFunc func(client MQTT.Client, message MQTT.Message)
 type sendMessageToClientFunc func(string) (uuid.UUID, error)
 type retrieveCredentialsFunc func() (string, string)
 
-
 func printClientConnected() func(string) {
 	return func(clientID string) {
 		fmt.Println("CONNECTED ", clientID)
@@ -237,15 +236,15 @@ func sendMessageToClientViaCloudConnector(cloudConnectorUrl string, identityHead
 }
 
 func createRedisClient() *redis.Client {
-    rdb := redis.NewClient(&redis.Options{
-        Addr:     "localhost:6379",
-        Password: "", // no password set
-        DB:       0,  // use default DB
-    })
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
 
-    fmt.Printf("%s\n", rdb.Ping(context.TODO()).String())
+	fmt.Printf("%s\n", rdb.Ping(context.TODO()).String())
 
-    return rdb
+	return rdb
 }
 
 var initRedisConnectionRegistrar sync.Once
@@ -253,55 +252,54 @@ var connectedClientChan chan string
 
 func registerClientConnectedWithRedis(redisClient *redis.Client) func(string) {
 
-    initRedisConnectionRegistrar.Do(func() {
-        fmt.Println("Starting go routine to register connections with redis")
-        connectedClientChan = make(chan string)
-        go func() {
-            for clientId := range connectedClientChan {
-                fmt.Printf("Register client %s with redis\n", clientId)
+	initRedisConnectionRegistrar.Do(func() {
+		fmt.Println("Starting go routine to register connections with redis")
+		connectedClientChan = make(chan string)
+		go func() {
+			for clientId := range connectedClientChan {
+				fmt.Printf("Register client %s with redis\n", clientId)
 
-                event := ConnectionEvent{
-                    Event: "connected",
-                    ClientId: clientId,
-                }
+				event := ConnectionEvent{
+					Event:    "connected",
+					ClientId: clientId,
+				}
 
-                msgPayload, _ := json.Marshal(event)
+				msgPayload, _ := json.Marshal(event)
 
-//                msgPayload := fmt.Sprintf("{\"event\": \"connected\", \"client_id\": \"%s\"}", clientId)
+				//                msgPayload := fmt.Sprintf("{\"event\": \"connected\", \"client_id\": \"%s\"}", clientId)
 
-                redisClient.Publish(context.TODO(), "connections", msgPayload)
-            }
-        }()
-    })
+				redisClient.Publish(context.TODO(), "connections", msgPayload)
+			}
+		}()
+	})
 
 	return func(clientID string) {
 		fmt.Println("CONNECTED ", clientID)
-        connectedClientChan <- clientID
+		connectedClientChan <- clientID
 	}
 }
 
 func registerMessageReceivedWithRedis(redisClient *redis.Client) func(MQTT.Client, MQTT.Message) {
 	return func(client MQTT.Client, message MQTT.Message) {
 		fmt.Printf("**** Received message on topic: %s\nMessage: %s\n", message.Topic(), message.Payload())
-        fmt.Println("Registering message received with redis")
-    }
+		fmt.Println("Registering message received with redis")
+	}
 }
 
 func retrieveCredentialsFromRedis(redisClient *redis.Client) func() (string, string) {
 	return func() (string, string) {
-        fmt.Println("Retrieving creds from redis")
-        u, p, _ := retrieveUserFromRedis(redisClient)
-        return u, p
-    }
+		fmt.Println("Retrieving creds from redis")
+		u, p, _ := retrieveUserFromRedis(redisClient)
+		return u, p
+	}
 }
 
 func retrieveFakeCredentials() func() (string, string) {
 	return func() (string, string) {
-        fmt.Println("Retrieving fake creds from nowhere...")
-        return "", ""
-    }
+		fmt.Println("Retrieving fake creds from nowhere...")
+		return "", ""
+	}
 }
-
 
 func disconnectMqttClient(mqttClient MQTT.Client) {
 	fmt.Println("DISCONNECTING!!")
