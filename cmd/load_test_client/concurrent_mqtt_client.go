@@ -24,7 +24,7 @@ func buildIdentityHeader(orgId string, accountNumber string) string {
 	return base64.StdEncoding.EncodeToString([]byte(s))
 }
 
-func startConcurrentLoadTestClient(broker string, certFile string, keyFile string, connectionCount int, cloudConnectorUrl string, orgId string, accountNumber string) {
+func startConcurrentLoadTestClient(broker string, certFile string, keyFile string, connectionCount int, cloudConnectorUrl string, orgId string, accountNumber string, credRetrieverImpl string) {
 
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 	/*
@@ -36,37 +36,45 @@ func startConcurrentLoadTestClient(broker string, certFile string, keyFile strin
 
 	identityHeader := buildIdentityHeader(orgId, accountNumber)
 
+    redisClient := createRedisClient()
+
+	onClientConnected := registerClientConnectedWithRedis(redisClient)
+	onMessageReceived := registerMessageReceivedWithRedis(redisClient)
+
+    var credRetriever retrieveCredentialsFunc = retrieveFakeCredentials()
+
+    if credRetrieverImpl == "redis" {
+        credRetriever = retrieveCredentialsFromRedis(redisClient)
+    }
+
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
 	for i := 0; i < connectionCount; i++ {
-		go startClientRegisterWithRedisController(certFile, keyFile, broker, cloudConnectorUrl, i, identityHeader)
+		go startClientRegisterWithRedisController(certFile, keyFile, broker, cloudConnectorUrl, i, identityHeader, credRetriever, onClientConnected, onMessageReceived)
 	}
 
 	<-c
 	fmt.Println("Client going down...disconnecting from mqtt uncleanly")
 }
 
-func startClientRegisterWithRedisController(certFile string, keyFile string, broker string, cloudConnectorUrl string, i int, identityHeader string) {
+func startClientRegisterWithRedisController(certFile string, keyFile string, broker string, cloudConnectorUrl string, i int, identityHeader string, credRetriever retrieveCredentialsFunc, onClientConnected func(string), onMessageReceived func(MQTT.Client, MQTT.Message)) {
 
-    redisClient := createRedisClient()
-
-	onClientConnected := registerClientConnectedWithRedis(redisClient)
-	onMessageReceived := registerMessageReceivedWithRedis(redisClient)
-
-    startProducer(certFile, keyFile, broker, onClientConnected, onMessageReceived, i)
+    startProducer(certFile, keyFile, broker, onClientConnected, onMessageReceived, i, credRetriever)
 }
 
-func startLocalTestController(certFile string, keyFile string, broker string, cloudConnectorUrl string, i int, identityHeader string) {
+func startLocalTestController(certFile string, keyFile string, broker string, cloudConnectorUrl string, i int, identityHeader string, credRetriever retrieveCredentialsFunc, onClientConnected func(string), onMessageReceived func(MQTT.Client, MQTT.Message)) {
 	var numMessagesSent int
 	var messageReceived chan string
 	messageReceived = make(chan string)
 
+    /*
 	onClientConnected := printClientConnected()
 	onMessageReceived := notifyOnMessageReceived(messageReceived)
+    */
 	sendMessageToClient := sendMessageToClientViaCloudConnector(cloudConnectorUrl, identityHeader)
 
-	clientId, mqttClient, _ := startProducer(certFile, keyFile, broker, onClientConnected, onMessageReceived, i)
+	clientId, mqttClient, _ := startProducer(certFile, keyFile, broker, onClientConnected, onMessageReceived, i, credRetriever )
 
 	time.Sleep(1 * time.Second)
 	verifyClientIsRegistered(cloudConnectorUrl, clientId, identityHeader)
@@ -83,7 +91,7 @@ func startLocalTestController(certFile string, keyFile string, broker string, cl
 			disconnectMqttClient(mqttClient)
 			time.Sleep(1 * time.Second)
 			verifyClientIsUnregistered(cloudConnectorUrl, clientId, identityHeader)
-			clientId, mqttClient, _ = startProducer(certFile, keyFile, broker, onClientConnected, onMessageReceived, i)
+			clientId, mqttClient, _ = startProducer(certFile, keyFile, broker, onClientConnected, onMessageReceived, i, credRetriever)
 			time.Sleep(1 * time.Second)
 			verifyClientIsRegistered(cloudConnectorUrl, clientId, identityHeader)
 			numMessagesSent = 0
@@ -95,10 +103,12 @@ func startLocalTestController(certFile string, keyFile string, broker string, cl
 	}
 }
 
-func startProducer(certFile string, keyFile string, broker string, onClientConnected func(string), onMessageReceived func(MQTT.Client, MQTT.Message), i int) (string, MQTT.Client, error) {
+func startProducer(certFile string, keyFile string, broker string, onClientConnected func(string), onMessageReceived func(MQTT.Client, MQTT.Message), i int, retrieveCredentials retrieveCredentialsFunc) (string, MQTT.Client, error) {
 	tlsconfig, _ := NewTLSConfig(certFile, keyFile)
 
 	clientID := generateUUID()
+
+    username, password := retrieveCredentials()
 
 	controlReadTopic := fmt.Sprintf("redhat/insights/%s/control/in", clientID)
 	controlWriteTopic := fmt.Sprintf("redhat/insights/%s/control/out", clientID)
@@ -110,6 +120,11 @@ func startProducer(certFile string, keyFile string, broker string, onClientConne
 	connOpts.SetClientID(clientID)
 	connOpts.SetTLSConfig(tlsconfig)
 	connOpts.SetAutoReconnect(false)
+
+    if username != "" {
+        connOpts.SetUsername(username)
+        connOpts.SetPassword(password)
+    }
 
 	connectionStatusMsgPayload := Connector.ConnectionStatusMessageContent{ConnectionState: "offline"}
 	lastWillMsg := Connector.ControlMessage{
@@ -178,6 +193,8 @@ func startProducer(certFile string, keyFile string, broker string, onClientConne
 type onClientConnectedFunc func(string)
 type onMessageReceivedFunc func(client MQTT.Client, message MQTT.Message)
 type sendMessageToClientFunc func(string) (uuid.UUID, error)
+type retrieveCredentialsFunc func() (string, string)
+
 
 func printClientConnected() func(string) {
 	return func(clientID string) {
@@ -265,6 +282,21 @@ func registerMessageReceivedWithRedis(redisClient *redis.Client) func(MQTT.Clien
         fmt.Println("Registering message received with redis")
     }
 }
+
+func retrieveCredentialsFromRedis(redisClient *redis.Client) func() (string, string) {
+	return func() (string, string) {
+        fmt.Println("Retrieving creds from redis")
+        return "", ""
+    }
+}
+
+func retrieveFakeCredentials() func() (string, string) {
+	return func() (string, string) {
+        fmt.Println("Retrieving fake creds from nowhere...")
+        return "", ""
+    }
+}
+
 
 func disconnectMqttClient(mqttClient MQTT.Client) {
 	fmt.Println("DISCONNECTING!!")

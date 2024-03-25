@@ -12,6 +12,7 @@ func NewRootCommand() *cobra.Command {
 	var orgId string
 	var account string
 	var numberOfClients int
+    var credRetrieverImpl string
 
 	// rootCmd represents the base command when called without any subcommands
 	var rootCmd = &cobra.Command{
@@ -49,7 +50,7 @@ func NewRootCommand() *cobra.Command {
 		Use:   "go_routine_based_load_test",
 		Short: "go_routine_based_load_test",
 		Run: func(cmd *cobra.Command, args []string) {
-			startConcurrentLoadTestClient(broker, certFile, keyFile, numberOfClients, cloudConnectorUrl, orgId, account)
+			startConcurrentLoadTestClient(broker, certFile, keyFile, numberOfClients, cloudConnectorUrl, orgId, account, credRetrieverImpl)
 		},
 	}
 	goRouteinBasedLoadTestCmd.Flags().StringVarP(&broker, "broker", "b", "ssl://localhost:8883", "broker url")
@@ -59,6 +60,7 @@ func NewRootCommand() *cobra.Command {
 	goRouteinBasedLoadTestCmd.Flags().StringVarP(&orgId, "org-id", "O", "10001", "org-id connections belong to")
 	goRouteinBasedLoadTestCmd.Flags().StringVarP(&account, "account", "A", "010101", "account number")
 	goRouteinBasedLoadTestCmd.Flags().IntVar(&numberOfClients, "number-of-clients", 10, "number of clients to spawn")
+	goRouteinBasedLoadTestCmd.Flags().StringVarP(&credRetrieverImpl, "cred-retriever-impl", "R", "fake", "Credential retriever impl")
 
 
 	var redisBasedTestControllerCmd = &cobra.Command{
