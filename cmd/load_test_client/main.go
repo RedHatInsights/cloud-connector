@@ -13,6 +13,7 @@ func NewRootCommand() *cobra.Command {
 	var account string
 	var numberOfClients int
     var credRetrieverImpl string
+    var credFile string
 
 	// rootCmd represents the base command when called without any subcommands
 	var rootCmd = &cobra.Command{
@@ -74,10 +75,23 @@ func NewRootCommand() *cobra.Command {
 	redisBasedTestControllerCmd.Flags().StringVarP(&orgId, "org-id", "O", "10001", "org-id connections belong to")
 	redisBasedTestControllerCmd.Flags().StringVarP(&account, "account", "A", "010101", "account number")
 
+
+    var redisCredentialLoaderCmd = &cobra.Command{
+		Use:   "redis_credential_loader",
+		Short: "redis_credential_loader",
+		Run: func(cmd *cobra.Command, args []string) {
+            addCredentialsToRedis(credFile)
+
+		},
+	}
+    redisCredentialLoaderCmd.Flags().StringVarP(&credFile, "credentials-file", "p", "path/to/credfile.txt", "path to user list")
+
+
 	rootCmd.AddCommand(controllerCmd)
 	rootCmd.AddCommand(mqttClientCmd)
 	rootCmd.AddCommand(goRouteinBasedLoadTestCmd)
 	rootCmd.AddCommand(redisBasedTestControllerCmd)
+	rootCmd.AddCommand(redisCredentialLoaderCmd)
 
 	return rootCmd
 }
