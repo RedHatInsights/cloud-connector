@@ -33,31 +33,6 @@ func addCredentialsToRedis(credFile string) {
     }
 
     readFile.Close()
-
-    /*
-    pubsub := rdb.PSubscribe(context.TODO(), "connections")
-
-    _, _ = pubsub.Receive(context.TODO())
-
-    defer pubsub.Close()
-
-    ch := pubsub.Channel()
-    for msg := range ch {
-        fmt.Println(msg.Channel, msg.Payload)
-
-        var connection ConnectionEvent
-
-        err := json.Unmarshal([]byte(msg.Payload), &connection)
-        if err != nil {
-            fmt.Println("Unable to unmarshal message: ", msg.Payload)
-        }
-
-		_, err = rdb.ZAdd(context.TODO(), "messages_sent", redis.Z{0, connection.ClientId}).Result()
-		if err != nil {
-			fmt.Println("Error adding connection to sorted set %s", connection.ClientId)
-		}
-    }
-    */
 }
 
 func addUserToRedis(rdb *redis.Client, username string, password string) {
@@ -73,5 +48,21 @@ func addUserToRedis(rdb *redis.Client, username string, password string) {
     }
 }
 
+func retrieveUserFromRedis(rdb *redis.Client) (string, string, error) {
 
+    credsPayload, err := rdb.LPop(context.TODO(), "credentials_list").Result()
+    if err != nil {
+        fmt.Println("Error retrieving credentials from list - err: %s", err)
+        return "", "", err
+    }
 
+    var creds Credentials
+
+    err = json.Unmarshal([]byte(credsPayload), &creds)
+    if err != nil {
+        fmt.Println("Unable to unmarshal creds: ", credsPayload, " - err:", err)
+        return "", "", err
+    }
+
+    return creds.Username, creds.Password, nil
+}
