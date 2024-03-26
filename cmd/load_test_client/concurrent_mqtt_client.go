@@ -108,8 +108,7 @@ func startProducer(certFile string, keyFile string, broker string, onClientConne
 
 	clientID := generateUUID()
 
-	//    username, password := retrieveCredentials()
-	username, _ := retrieveCredentials()
+    username, password := retrieveCredentials()
 
 	controlReadTopic := fmt.Sprintf("redhat/insights/%s/control/in", clientID)
 	controlWriteTopic := fmt.Sprintf("redhat/insights/%s/control/out", clientID)
@@ -123,11 +122,8 @@ func startProducer(certFile string, keyFile string, broker string, onClientConne
 	connOpts.SetAutoReconnect(false)
 
 	if username != "" {
-		fmt.Println("FIXME: Ignore username/password")
-		/*
-		   connOpts.SetUsername(username)
-		   connOpts.SetPassword(password)
-		*/
+		connOpts.SetUsername(username)
+		connOpts.SetPassword(password)
 	}
 
 	connectionStatusMsgPayload := Connector.ConnectionStatusMessageContent{ConnectionState: "offline"}

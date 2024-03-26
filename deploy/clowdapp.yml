@@ -89,7 +89,7 @@ objects:
         - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
           value: ${{MQTT_BROKER_ADDRESS}}
         - name: CLOUD_CONNECTOR_MQTT_BROKER_AUTH_TYPE
-          value: "NOT_password"
+          value: "password"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_USERNAME
           value: "api-server"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_PASSWORD
