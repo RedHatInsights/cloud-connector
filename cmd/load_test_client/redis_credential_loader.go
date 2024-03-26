@@ -44,7 +44,7 @@ func addUserToRedis(rdb *redis.Client, username string, password string) {
 
 	_, err := rdb.RPush(context.TODO(), "credentials_list", msgPayload).Result()
 	if err != nil {
-		fmt.Println("Error adding credentials to list %s - err: %s", username, err)
+		fmt.Printf("Error adding credentials to list %s - err: %s\n", username, err)
 	}
 }
 
@@ -52,7 +52,7 @@ func retrieveUserFromRedis(rdb *redis.Client) (string, string, error) {
 
 	credsPayload, err := rdb.LPop(context.TODO(), "credentials_list").Result()
 	if err != nil {
-		fmt.Println("Error retrieving credentials from list - err: %s", err)
+		fmt.Printf("Error retrieving credentials from list - err: %s\n", err)
 		return "", "", err
 	}
 
@@ -60,7 +60,7 @@ func retrieveUserFromRedis(rdb *redis.Client) (string, string, error) {
 
 	err = json.Unmarshal([]byte(credsPayload), &creds)
 	if err != nil {
-		fmt.Println("Unable to unmarshal creds: ", credsPayload, " - err:", err)
+		fmt.Printf("Unable to unmarshal creds: %s - err: %s\n", credsPayload, err)
 		return "", "", err
 	}
 

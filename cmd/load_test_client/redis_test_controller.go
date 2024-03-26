@@ -51,7 +51,7 @@ func watchForConnections(rdb *redis.Client) {
 
 		_, err = rdb.ZAdd(context.TODO(), "messages_sent", redis.Z{0, connection.ClientId}).Result()
 		if err != nil {
-			fmt.Println("Error adding connection to sorted set %s", connection.ClientId)
+			fmt.Printf("Error adding connection to sorted set %s\n", connection.ClientId)
 		}
 	}
 }
@@ -93,7 +93,7 @@ func sendMessagesToClients(rdb *redis.Client, clientsToSendMessagesTo chan strin
 
 			_, err := rdb.ZIncrBy(context.TODO(), "messages_sent", 1, c).Result()
 			if err != nil {
-				fmt.Println("Error incrementing score in sorted set for client %s", c)
+				fmt.Printf("Error incrementing score in sorted set for client %s\n", c)
 			}
 
 		}(clientId)
