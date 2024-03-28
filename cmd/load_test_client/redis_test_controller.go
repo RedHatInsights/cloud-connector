@@ -32,28 +32,30 @@ func startRedisBasedTestController(cloudConnectorUrl string, orgId string, accou
 
 func watchForConnections(rdb *redis.Client) {
 
-	pubsub := rdb.PSubscribe(context.TODO(), "connections")
+    for {
+        result, err := rdb.BLPop(context.TODO(), 0, "connected_client_list").Result()
+        if err != nil {
+            fmt.Printf("Unable to read connected client list from redis - err: %s\n", err)
+            continue
+        }
 
-	_, _ = pubsub.Receive(context.TODO())
+        var connection ConnectionEvent
 
-	defer pubsub.Close()
-
-	ch := pubsub.Channel()
-	for msg := range ch {
-		fmt.Println(msg.Channel, msg.Payload)
-
-		var connection ConnectionEvent
-
-		err := json.Unmarshal([]byte(msg.Payload), &connection)
+		err = json.Unmarshal([]byte(result[1]), &connection)
 		if err != nil {
-			fmt.Println("Unable to unmarshal message: ", msg.Payload)
+			fmt.Println("Unable to unmarshal message: ", result[0])
+            continue
 		}
 
-		_, err = rdb.ZAdd(context.TODO(), "messages_sent", redis.Z{0, connection.ClientId}).Result()
-		if err != nil {
-			fmt.Printf("Error adding connection to sorted set %s\n", connection.ClientId)
-		}
-	}
+        addClientToScoreboard(rdb, connection.ClientId)
+    }
+}
+
+func addClientToScoreboard(rdb *redis.Client, clientId string) {
+    _, err := rdb.ZAdd(context.TODO(), "messages_sent", redis.Z{0, clientId}).Result()
+    if err != nil {
+        fmt.Printf("Error adding connection to sorted set %s\n", clientId)
+    }
 }
 
 func determineTargetClients(rdb *redis.Client, clientsToSendMessagesTo chan string) {
