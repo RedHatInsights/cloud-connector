@@ -108,7 +108,7 @@ func startProducer(certFile string, keyFile string, broker string, onClientConne
 
 	clientID := generateUUID()
 
-    username, password := retrieveCredentials()
+	username, password := retrieveCredentials()
 
 	controlReadTopic := fmt.Sprintf("redhat/insights/%s/control/in", clientID)
 	controlWriteTopic := fmt.Sprintf("redhat/insights/%s/control/out", clientID)
@@ -255,7 +255,7 @@ func registerClientConnectedWithRedis(redisClient *redis.Client) func(string) {
 			for clientId := range connectedClientChan {
 				fmt.Printf("Register client %s with redis\n", clientId)
 
-                notifyTestControllerOfNewConnection(redisClient, clientId)
+				notifyTestControllerOfNewConnection(redisClient, clientId)
 			}
 		}()
 	})
@@ -267,17 +267,17 @@ func registerClientConnectedWithRedis(redisClient *redis.Client) func(string) {
 }
 
 func notifyTestControllerOfNewConnection(rdb *redis.Client, clientId string) {
-    event := ConnectionEvent{
-        Event:    "connected",
-        ClientId: clientId,
-    }
+	event := ConnectionEvent{
+		Event:    "connected",
+		ClientId: clientId,
+	}
 
-    msgPayload, _ := json.Marshal(event)
+	msgPayload, _ := json.Marshal(event)
 
-    _, err := rdb.RPush(context.TODO(), "connected_client_list", msgPayload).Result()
-    if err != nil {
-        fmt.Printf("Error adding connected client id to list %s - err: %s\n", clientId, err)
-    }
+	_, err := rdb.RPush(context.TODO(), "connected_client_list", msgPayload).Result()
+	if err != nil {
+		fmt.Printf("Error adding connected client id to list %s - err: %s\n", clientId, err)
+	}
 }
 
 func registerMessageReceivedWithRedis(redisClient *redis.Client) func(MQTT.Client, MQTT.Message) {
