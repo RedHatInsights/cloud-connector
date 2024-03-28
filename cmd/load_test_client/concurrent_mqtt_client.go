@@ -255,16 +255,7 @@ func registerClientConnectedWithRedis(redisClient *redis.Client) func(string) {
 			for clientId := range connectedClientChan {
 				fmt.Printf("Register client %s with redis\n", clientId)
 
-				event := ConnectionEvent{
-					Event:    "connected",
-					ClientId: clientId,
-				}
-
-				msgPayload, _ := json.Marshal(event)
-
-				//                msgPayload := fmt.Sprintf("{\"event\": \"connected\", \"client_id\": \"%s\"}", clientId)
-
-				redisClient.Publish(context.TODO(), "connections", msgPayload)
+                notifyTestControllerOfNewConnection(redisClient, clientId)
 			}
 		}()
 	})
@@ -273,6 +264,20 @@ func registerClientConnectedWithRedis(redisClient *redis.Client) func(string) {
 		fmt.Println("CONNECTED ", clientID)
 		connectedClientChan <- clientID
 	}
+}
+
+func notifyTestControllerOfNewConnection(rdb *redis.Client, clientId string) {
+    event := ConnectionEvent{
+        Event:    "connected",
+        ClientId: clientId,
+    }
+
+    msgPayload, _ := json.Marshal(event)
+
+    _, err := rdb.RPush(context.TODO(), "connected_client_list", msgPayload).Result()
+    if err != nil {
+        fmt.Printf("Error adding connected client id to list %s - err: %s\n", clientId, err)
+    }
 }
 
 func registerMessageReceivedWithRedis(redisClient *redis.Client) func(MQTT.Client, MQTT.Message) {
