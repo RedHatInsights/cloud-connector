@@ -72,14 +72,14 @@ objects:
             cpu: ${CPU_REQUEST}
             memory: ${MEMORY_REQUEST}
         volumeMounts:
-        - mountPath: /tmp/jwt_keys
-          name: volume-mqtt-jwt-keys
+        - mountPath: /tmp/tls
+          name: volume-mqtt-cert
           readOnly: true
         volumes:
-        - name: volume-mqtt-jwt-keys
+        - name: volume-mqtt-cert
           secret:
             defaultMode: 420
-            secretName: cloud-connector-mqtt-credentials
+            secretName: cloud-connector-mqtt-consumer-cert
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -88,10 +88,19 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
           value: ${{MQTT_BROKER_ADDRESS}}
-        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
-          value: jwt_rsa_generator
-        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
-          value: /tmp/jwt_keys/jwt_signing_key.pem
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_AUTH_TYPE
+          value: "password"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_USERNAME
+          value: "api-server"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: api-server
+              name: cloud-connector-passwords
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
+          value: /tmp/tls/key.pem
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
+          value: /tmp/tls/cert.pem
         - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
           value: "true"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
@@ -174,14 +183,14 @@ objects:
             cpu: ${CPU_REQUEST}
             memory: ${MEMORY_REQUEST}
         volumeMounts:
-        - mountPath: /tmp/jwt_keys
-          name: volume-mqtt-jwt-keys
+        - mountPath: /tmp/tls
+          name: volume-mqtt-cert
           readOnly: true
         volumes:
-        - name: volume-mqtt-jwt-keys
+        - name: volume-mqtt-cert
           secret:
             defaultMode: 420
-            secretName: cloud-connector-mqtt-credentials
+            secretName: cloud-connector-mqtt-consumer-cert
         env:
         - name: CLOUD_CONNECTOR_LOG_LEVEL
           value: ${{LOG_LEVEL}}
@@ -190,10 +199,19 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
           value: ${{MQTT_BROKER_ADDRESS}}
-        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
-          value: jwt_rsa_generator
-        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
-          value: /tmp/jwt_keys/jwt_signing_key.pem
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_AUTH_TYPE
+          value: "password"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_USERNAME
+          value: "mqtt-consumer"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: mqtt-consumer
+              name: cloud-connector-passwords
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
+          value: /tmp/tls/key.pem
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
+          value: /tmp/tls/cert.pem
         - name: CLOUD_CONNECTOR_MQTT_CLIENT_ID
           valueFrom:
             secretKeyRef:
@@ -278,16 +296,16 @@ objects:
             cpu: ${CPU_REQUEST}
             memory: ${MEMORY_REQUEST}
         volumeMounts:
-        - mountPath: /tmp/jwt_keys
-          name: volume-mqtt-jwt-keys
-          readOnly: true
         - mountPath: /tmp/cloud-connector-config
           name: client-id-to-account-id-map
+        - mountPath: /tmp/tls
+          name: volume-mqtt-cert
+          readOnly: true
         volumes:
-        - name: volume-mqtt-jwt-keys
+        - name: volume-mqtt-cert
           secret:
             defaultMode: 420
-            secretName: cloud-connector-mqtt-credentials
+            secretName: cloud-connector-mqtt-consumer-cert
         - name: client-id-to-account-id-map
           secret:
             defaultMode: 420
@@ -300,10 +318,19 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
           value: ${{MQTT_BROKER_ADDRESS}}
-        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
-          value: jwt_rsa_generator
-        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
-          value: /tmp/jwt_keys/jwt_signing_key.pem
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_AUTH_TYPE
+          value: "password"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_USERNAME
+          value: "mqtt-consumer"
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: mqtt-consumer
+              name: cloud-connector-passwords
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
+          value: /tmp/tls/key.pem
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
+          value: /tmp/tls/cert.pem
         - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
           value: ${{MQTT_TOPIC_PREFIX}}
         - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
@@ -434,6 +461,40 @@ objects:
           requests:
             cpu: 50m
             memory: 512Mi
+
+    - name: mqtt-broker-load-test
+      podSpec:
+        image: ${IMAGE}:${IMAGE_TAG}
+        command:
+          - ./load_tester
+          - controller
+          - -C
+          - "http://cloud-connector:8080"
+          - -O
+          - "10000"
+          - --number-of-clients
+          - "1"
+        env:
+          - name: LOG_FORMAT
+            value: ${POPULATOR_LOG_FORMAT}
+          - name: LOG_BATCH_FREQUENCY
+            value: '1s'
+        resources:
+          limits:
+            cpu: 512m
+            memory: 2Gi
+          requests:
+            cpu: 300m
+            memory: 1Gi
+        volumeMounts:
+        - mountPath: /tmp/tls
+          name: volume-mqtt-cert
+          readOnly: true
+        volumes:
+        - name: volume-mqtt-cert
+          secret:
+            defaultMode: 420
+            secretName: cloud-connector-mqtt-consumer-cert
 
 
 - apiVersion: v1
