@@ -64,7 +64,7 @@ func NewRootCommand() *cobra.Command {
 	goRouteinBasedLoadTestCmd.Flags().StringVarP(&account, "account", "A", "010101", "account number")
 	goRouteinBasedLoadTestCmd.Flags().IntVar(&numberOfClients, "number-of-clients", 10, "number of clients to spawn")
 	goRouteinBasedLoadTestCmd.Flags().StringVarP(&credRetrieverImpl, "cred-retriever-impl", "R", "fake", "Credential retriever impl")
-	goRouteinBasedLoadTestCmd.Flags().StringVarP(&redisAddress, "redis-addr", "d", "localhost:6379", "Redis address")
+	goRouteinBasedLoadTestCmd.Flags().StringVarP(&redisAddress, "redis-address", "d", "localhost:6379", "Redis address")
 
 	var redisBasedTestControllerCmd = &cobra.Command{
 		Use:   "redis_based_test_controller",
@@ -76,7 +76,7 @@ func NewRootCommand() *cobra.Command {
 	redisBasedTestControllerCmd.Flags().StringVarP(&cloudConnectorUrl, "cloud-connector", "C", "http://localhost:8081", "cloud-connector url")
 	redisBasedTestControllerCmd.Flags().StringVarP(&orgId, "org-id", "O", "10001", "org-id connections belong to")
 	redisBasedTestControllerCmd.Flags().StringVarP(&account, "account", "A", "010101", "account number")
-	redisBasedTestControllerCmd.Flags().StringVarP(&redisAddress, "redis-addr", "d", "localhost:6379", "Redis address")
+	redisBasedTestControllerCmd.Flags().StringVarP(&redisAddress, "redis-address", "d", "localhost:6379", "Redis address")
 
 	var redisCredentialLoaderCmd = &cobra.Command{
 		Use:   "redis_credential_loader",
@@ -86,7 +86,7 @@ func NewRootCommand() *cobra.Command {
 		},
 	}
 	redisCredentialLoaderCmd.Flags().StringVarP(&credFile, "credentials-file", "p", "path/to/credfile.txt", "path to user list")
-	redisCredentialLoaderCmd.Flags().StringVarP(&redisAddress, "redis-addr", "d", "localhost:6379", "Redis address")
+	redisCredentialLoaderCmd.Flags().StringVarP(&redisAddress, "redis-address", "d", "localhost:6379", "Redis address")
 
 	rootCmd.AddCommand(controllerCmd)
 	rootCmd.AddCommand(mqttClientCmd)
