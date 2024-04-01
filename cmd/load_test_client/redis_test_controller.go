@@ -18,7 +18,7 @@ func startRedisBasedTestController(cloudConnectorUrl string, orgId string, accou
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	numberOfConcurrentCloudConnectorRequest := 10
+	numberOfConcurrentCloudConnectorRequest := 20
 
 	clientsToSendMessagesTo := make(chan string, numberOfConcurrentCloudConnectorRequest)
 
@@ -60,7 +60,7 @@ func addClientToScoreboard(rdb *redis.Client, clientId string) {
 
 func determineTargetClients(rdb *redis.Client, clientsToSendMessagesTo chan string) {
 
-	var chunkSize int64 = 20 // FIXME: make configurable
+	var chunkSize int64 = 100 // FIXME: make configurable
 
 	// FIXME:  Polling to get a chunk of clients ...this is kinda gross.  Is there a better way?
 
@@ -76,7 +76,7 @@ func determineTargetClients(rdb *redis.Client, clientsToSendMessagesTo chan stri
 			clientsToSendMessagesTo <- v
 		}
 
-		time.Sleep(10 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 }
 
