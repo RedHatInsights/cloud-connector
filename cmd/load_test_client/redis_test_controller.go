@@ -12,8 +12,8 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func startRedisBasedTestController(cloudConnectorUrl string, orgId string, accountNumber string) {
-	rdb := createRedisClient()
+func startRedisBasedTestController(cloudConnectorUrl string, orgId string, accountNumber string, redisAddr string) {
+	rdb := createRedisClient(redisAddr)
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)

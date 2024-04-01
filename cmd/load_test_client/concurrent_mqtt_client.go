@@ -24,7 +24,7 @@ func buildIdentityHeader(orgId string, accountNumber string) string {
 	return base64.StdEncoding.EncodeToString([]byte(s))
 }
 
-func startConcurrentLoadTestClient(broker string, certFile string, keyFile string, connectionCount int, cloudConnectorUrl string, orgId string, accountNumber string, credRetrieverImpl string) {
+func startConcurrentLoadTestClient(broker string, certFile string, keyFile string, connectionCount int, cloudConnectorUrl string, orgId string, accountNumber string, credRetrieverImpl string, redisAddr string) {
 
 	logger := log.New(os.Stderr, "", log.LstdFlags)
 	/*
@@ -36,7 +36,7 @@ func startConcurrentLoadTestClient(broker string, certFile string, keyFile strin
 
 	identityHeader := buildIdentityHeader(orgId, accountNumber)
 
-	redisClient := createRedisClient()
+	redisClient := createRedisClient(redisAddr)
 
 	onClientConnected := registerClientConnectedWithRedis(redisClient)
 	onMessageReceived := registerMessageReceivedWithRedis(redisClient)
@@ -231,9 +231,9 @@ func sendMessageToClientViaCloudConnector(cloudConnectorUrl string, identityHead
 	}
 }
 
-func createRedisClient() *redis.Client {
+func createRedisClient(addr string) *redis.Client {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     addr,
 		Password: "", // no password set
 		DB:       0,  // use default DB
 	})

@@ -11,11 +11,11 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func addCredentialsToRedis(credFile string) {
+func addCredentialsToRedis(credFile string, redisAddr string) {
 
 	var rdb *redis.Client
 
-	rdb = createRedisClient()
+	rdb = createRedisClient(redisAddr)
 
 	readFile, err := os.Open(credFile)
 

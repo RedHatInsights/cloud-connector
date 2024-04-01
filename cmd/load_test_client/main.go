@@ -36,6 +36,8 @@ func NewRootCommand() *cobra.Command {
 	var certFile string
 	var keyFile string
 
+	var redisAddress string
+
 	var mqttClientCmd = &cobra.Command{
 		Use:   "mqtt_client",
 		Short: "mqtt_client",
@@ -51,7 +53,7 @@ func NewRootCommand() *cobra.Command {
 		Use:   "go_routine_based_load_test",
 		Short: "go_routine_based_load_test",
 		Run: func(cmd *cobra.Command, args []string) {
-			startConcurrentLoadTestClient(broker, certFile, keyFile, numberOfClients, cloudConnectorUrl, orgId, account, credRetrieverImpl)
+			startConcurrentLoadTestClient(broker, certFile, keyFile, numberOfClients, cloudConnectorUrl, orgId, account, credRetrieverImpl, redisAddress)
 		},
 	}
 	goRouteinBasedLoadTestCmd.Flags().StringVarP(&broker, "broker", "b", "ssl://localhost:8883", "broker url")
@@ -62,27 +64,29 @@ func NewRootCommand() *cobra.Command {
 	goRouteinBasedLoadTestCmd.Flags().StringVarP(&account, "account", "A", "010101", "account number")
 	goRouteinBasedLoadTestCmd.Flags().IntVar(&numberOfClients, "number-of-clients", 10, "number of clients to spawn")
 	goRouteinBasedLoadTestCmd.Flags().StringVarP(&credRetrieverImpl, "cred-retriever-impl", "R", "fake", "Credential retriever impl")
+	goRouteinBasedLoadTestCmd.Flags().StringVarP(&redisAddress, "redis-addr", "d", "localhost:6379", "Redis address")
 
 	var redisBasedTestControllerCmd = &cobra.Command{
 		Use:   "redis_based_test_controller",
 		Short: "redis_based_test_controller",
 		Run: func(cmd *cobra.Command, args []string) {
-			startRedisBasedTestController(cloudConnectorUrl, orgId, account)
+			startRedisBasedTestController(cloudConnectorUrl, orgId, account, redisAddress)
 		},
 	}
 	redisBasedTestControllerCmd.Flags().StringVarP(&cloudConnectorUrl, "cloud-connector", "C", "http://localhost:8081", "cloud-connector url")
 	redisBasedTestControllerCmd.Flags().StringVarP(&orgId, "org-id", "O", "10001", "org-id connections belong to")
 	redisBasedTestControllerCmd.Flags().StringVarP(&account, "account", "A", "010101", "account number")
+	redisBasedTestControllerCmd.Flags().StringVarP(&redisAddress, "redis-addr", "d", "localhost:6379", "Redis address")
 
 	var redisCredentialLoaderCmd = &cobra.Command{
 		Use:   "redis_credential_loader",
 		Short: "redis_credential_loader",
 		Run: func(cmd *cobra.Command, args []string) {
-			addCredentialsToRedis(credFile)
-
+			addCredentialsToRedis(credFile, redisAddress)
 		},
 	}
 	redisCredentialLoaderCmd.Flags().StringVarP(&credFile, "credentials-file", "p", "path/to/credfile.txt", "path to user list")
+	redisCredentialLoaderCmd.Flags().StringVarP(&redisAddress, "redis-addr", "d", "localhost:6379", "Redis address")
 
 	rootCmd.AddCommand(controllerCmd)
 	rootCmd.AddCommand(mqttClientCmd)
