@@ -1,27 +1,74 @@
 package main
 
 import (
+	"archive/zip"
 	"bufio"
+	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
 	"github.com/redis/go-redis/v9"
 )
 
-func addCredentialsToRedis(credFile string, redisAddr string) {
+func addCredentialsToRedis(credFile string, redisAddr string, compressedFile bool) {
 
 	var rdb *redis.Client
 
 	rdb = createRedisClient(redisAddr)
 
-	readFile, err := os.Open(credFile)
+	if compressedFile {
+		readCompressedFile(credFile, rdb)
+	} else {
+		readFile, err := os.Open(credFile)
 
-	if err != nil {
-		fmt.Println(err)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		processCredFile(readFile, rdb)
+
+		readFile.Close()
 	}
+
+}
+
+func readCompressedFile(credFile string, rdb *redis.Client) {
+
+	readFile, err := os.Open(credFile)
+	if err != nil {
+		panic(err)
+	}
+
+	dec := base64.NewDecoder(base64.StdEncoding, readFile)
+	// read decoded data from dec to res
+	res, err := io.ReadAll(dec)
+
+	zipReader, err := zip.NewReader(bytes.NewReader(res), int64(len(res)))
+	if err != nil {
+		panic(err)
+	}
+
+	// Read all the files from zip archive
+	for _, zipFile := range zipReader.File {
+		fmt.Println("Reading file:", zipFile.Name)
+
+		f, e := zipFile.Open()
+		if e != nil {
+			panic(err)
+		}
+
+		processCredFile(f, rdb)
+
+		f.Close()
+	}
+}
+
+func processCredFile(readFile io.Reader, rdb *redis.Client) {
 	fileScanner := bufio.NewScanner(readFile)
 
 	fileScanner.Split(bufio.ScanLines)
@@ -31,8 +78,6 @@ func addCredentialsToRedis(credFile string, redisAddr string) {
 
 		addUserToRedis(rdb, creds[0], creds[1])
 	}
-
-	readFile.Close()
 }
 
 func addUserToRedis(rdb *redis.Client, username string, password string) {

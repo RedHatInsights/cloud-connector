@@ -14,6 +14,7 @@ func NewRootCommand() *cobra.Command {
 	var numberOfClients int
 	var credRetrieverImpl string
 	var credFile string
+	var compressedCredFile bool
 
 	// rootCmd represents the base command when called without any subcommands
 	var rootCmd = &cobra.Command{
@@ -82,11 +83,12 @@ func NewRootCommand() *cobra.Command {
 		Use:   "redis_credential_loader",
 		Short: "redis_credential_loader",
 		Run: func(cmd *cobra.Command, args []string) {
-			addCredentialsToRedis(credFile, redisAddress)
+			addCredentialsToRedis(credFile, redisAddress, compressedCredFile)
 		},
 	}
 	redisCredentialLoaderCmd.Flags().StringVarP(&credFile, "credentials-file", "p", "path/to/credfile.txt", "path to user list")
 	redisCredentialLoaderCmd.Flags().StringVarP(&redisAddress, "redis-address", "d", "localhost:6379", "Redis address")
+	redisCredentialLoaderCmd.Flags().BoolVarP(&compressedCredFile, "compressed", "C", false, "compressed cred file")
 
 	rootCmd.AddCommand(controllerCmd)
 	rootCmd.AddCommand(mqttClientCmd)
