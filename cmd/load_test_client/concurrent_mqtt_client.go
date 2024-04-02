@@ -290,7 +290,10 @@ func registerMessageReceivedWithRedis(redisClient *redis.Client) func(MQTT.Clien
 func retrieveCredentialsFromRedis(redisClient *redis.Client) func() (string, string) {
 	return func() (string, string) {
 		fmt.Println("Retrieving creds from redis")
-		u, p, _ := retrieveUserFromRedis(redisClient)
+		u, p, err := retrieveUserFromRedis(redisClient)
+		if err != nil {
+			panic(err)
+		}
 		return u, p
 	}
 }
