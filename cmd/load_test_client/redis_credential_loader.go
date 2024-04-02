@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -44,9 +43,7 @@ func readCompressedFile(credFile string, rdb *redis.Client) {
 		panic(err)
 	}
 
-	dec := base64.NewDecoder(base64.StdEncoding, readFile)
-	// read decoded data from dec to res
-	res, err := io.ReadAll(dec)
+	res, err := io.ReadAll(readFile)
 
 	zipReader, err := zip.NewReader(bytes.NewReader(res), int64(len(res)))
 	if err != nil {
