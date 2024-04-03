@@ -338,7 +338,7 @@ func sendMessageToClient(cloudConnectorUrl string, clientId string, identityHead
 	req.Header.Set("x-rh-insights-request-id", requestId)
 
 	client := http.Client{
-		Timeout: 2 * time.Second,
+		Timeout: 4 * time.Second,
 	}
 
 	res, err := client.Do(req)

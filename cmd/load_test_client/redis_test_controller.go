@@ -18,7 +18,7 @@ func startRedisBasedTestController(cloudConnectorUrl string, orgId string, accou
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 
-	numberOfConcurrentCloudConnectorRequest := 20
+	numberOfConcurrentCloudConnectorRequest := 40
 
 	clientsToSendMessagesTo := make(chan string, numberOfConcurrentCloudConnectorRequest)
 
