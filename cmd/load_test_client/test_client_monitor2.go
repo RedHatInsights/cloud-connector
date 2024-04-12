@@ -317,7 +317,30 @@ func getClientStatusFromCloudConnector(cloudConnectorUrl string, clientId string
 func sendMessageToClient(cloudConnectorUrl string, clientId string, identityHeader string) (uuid.UUID, error) {
 	fmt.Printf("Sending message to client (%s)!!\n", clientId)
 
-	jsonBody := []byte(`{"directive": "imadirective", "payload": "imapayload"}`)
+	jsonBody := []byte(`{"directive": "imadirective", "payload":
+       {
+        "recipient": "dd018b96-da04-4651-84d1-187fa5c23f6c",
+        "org_id": "5318290",
+        "url": "http://console.redhat.com/api/remediations/v1/remediations/ddf9196f-4df9-4c7d-9443-98a6f328e256/playbook",
+        "name":"Apply fix",
+        "principal": "jharting",
+        "web_console_url": "http://console.redhat.com/insights/remediations/ddf9196f-4df9-4c7d-9443-98a6f328e256",
+        "recipient_config": {
+            "sat_id":"16372e6f-1c18-4cdb-b780-50ab4b88e74b",
+            "sat_org_id":"6826"
+        },
+        "hosts": [
+            {
+                "inventory_id": "16372e6f-1c18-4cdb-b780-50ab4b88e74b",
+                "ansible_host": "01.example.com"
+            },
+            {
+                "inventory_id": "ed36792e-241d-4c12-a74a-a5adffbb436b",
+                "ansible_host": "02.example.com"
+            }
+        ]
+     }}`)
+
 	bodyReader := bytes.NewReader(jsonBody)
 
 	type sendMessageResponse struct {

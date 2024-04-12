@@ -185,6 +185,15 @@ func startProducer(certFile string, keyFile string, broker string, onClientConne
 
 	publishConnectionStatusMessage(client, controlWriteTopic, qos, retained, generateUUID(), cf, dispatchers, tags, sentTime)
 
+	tags["tag_key_1"] = "tag_value_1"
+	dispatchers["dispatcher_1"] = map[string]string{
+		"key_1": "value_1",
+	}
+
+	time.Sleep(1 * time.Second)
+
+	publishConnectionStatusMessage(client, controlWriteTopic, qos, retained, generateUUID(), cf, dispatchers, tags, sentTime)
+
 	onClientConnected(clientID)
 
 	return clientID, client, nil
