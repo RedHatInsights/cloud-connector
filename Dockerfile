@@ -8,7 +8,9 @@ COPY go.mod go.sum ./
 
 RUN go mod download
 
-COPY . .
+COPY internal/ .
+COPY cmd/ .
+COPY Makefile .
 
 USER root
 
