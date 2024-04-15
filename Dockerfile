@@ -11,6 +11,7 @@ RUN go mod download
 COPY internal/ internal/
 COPY cmd/ cmd/
 COPY db/ db/
+COPY dev/ dev/
 COPY Makefile .
 
 USER root
