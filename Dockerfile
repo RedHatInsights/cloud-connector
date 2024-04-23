@@ -20,6 +20,8 @@ RUN make build
 # Using ubi8-minimal due to its smaller footprint
 FROM registry.access.redhat.com/ubi8/ubi-minimal
 
+RUN microdnf update -y
+
 WORKDIR /
 
 # Copy executable files from the builder image
