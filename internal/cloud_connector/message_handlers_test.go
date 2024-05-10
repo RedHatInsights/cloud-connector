@@ -196,7 +196,8 @@ func TestHandleDuplicateAndOldOnlineMessages(t *testing.T) {
 
 func buildOnlineMessage(t *testing.T, messageID string, sentTime time.Time) protocol.ControlMessage {
 	var connectionStatusPayload = "{\"state\":\"online\"}"
-	var content map[string]interface{}
+	content := make(map[string]interface{})
+	content["canonical_facts"] = map[string]interface{}{"insights_id": "fred"}
 
 	if err := json.Unmarshal([]byte(connectionStatusPayload), &content); err != nil {
 		t.Fatal(err)
