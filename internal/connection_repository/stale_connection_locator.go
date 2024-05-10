@@ -45,8 +45,9 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 		var serializedCanonicalFacts sql.NullString
 		var serializedDispatchers sql.NullString
 		var serializedTags sql.NullString
+        var tenantLookupFailureCount int
 
-		if err := rows.Scan(&account, &orgId, &clientId, &serializedCanonicalFacts, &serializedTags, &serializedDispatchers); err != nil {
+		if err := rows.Scan(&account, &orgId, &clientId, &serializedCanonicalFacts, &serializedTags, &serializedDispatchers, &tenantLookupFailureCount); err != nil {
 			logger.LogError("SQL scan failed.  Skipping row.", err)
 			continue
 		}
@@ -63,6 +64,7 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 			CanonicalFacts: canonicalFacts,
 			Dispatchers:    dispatchers,
 			Tags:           tags,
+            TenantLookupFailureCount: tenantLookupFailureCount,
 		}
 
 		if account.Valid {
@@ -83,6 +85,8 @@ func UpdateStaleTimestampInDB(ctx context.Context, databaseConn *sql.DB, sqlTime
 
 	ctx, cancel := context.WithTimeout(ctx, sqlTimeout)
 	defer cancel()
+
+    // FIXME: set the tenant fialure count to zero
 
 	update := "UPDATE connections SET stale_timestamp = NOW() WHERE org_id=$1 AND client_id=$2"
 
