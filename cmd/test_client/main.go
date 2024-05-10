@@ -96,6 +96,11 @@ var m MQTT.MessageHandler = func(client MQTT.Client, msg MQTT.Message) {
 func startProducer(certFile string, keyFile string, broker string, i int) {
 	tlsconfig, clientID := NewTLSConfig(certFile, keyFile)
 
+    fmt.Println("FIXME!!  Spoofing a client")
+    fmt.Println("clientID should be: ", clientID)
+    clientID = "7ee69f48-1e01-4128-8070-671c985150ba"
+    fmt.Println("clientID is now: ", clientID)
+
 	controlReadTopic := fmt.Sprintf("redhat/insights/%s/control/in", clientID)
 	controlWriteTopic := fmt.Sprintf("redhat/insights/%s/control/out", clientID)
 	dataReadTopic := fmt.Sprintf("redhat/insights/%s/data/in", clientID)

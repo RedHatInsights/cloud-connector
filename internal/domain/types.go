@@ -42,4 +42,5 @@ type ConnectorClientState struct {
 	Dispatchers     Dispatchers
 	Tags            Tags
 	MessageMetadata MessageMetadata
+    TenantLookupFailureCount int
 }

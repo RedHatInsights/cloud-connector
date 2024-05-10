@@ -144,6 +144,7 @@ func handleOnlineMessage(logger *logrus.Entry, client MQTT.Client, clientID doma
 		Tags:           handshakePayload[tagsKey],
 		MessageMetadata: domain.MessageMetadata{LatestMessageID: msg.MessageID,
 			LatestTimestamp: msg.Sent},
+        TenantLookupFailureCount: 0, // Explicitly set the tenant lookup failure count to zero
 	}
 
 	err = connectionRegistrar.Register(context.Background(), rhcClient)

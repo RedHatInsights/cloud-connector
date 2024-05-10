@@ -85,10 +85,16 @@ func startInventoryStaleTimestampUpdater() {
 
 			identity, _, _, err := accountResolver.MapClientIdToAccountId(ctx, rhcClient.ClientID)
 			if err != nil {
+
+                handleTenantLookupFailures(rhcClient)
+
 				// FIXME: Send disconnect here??  Need to determine the type of failure!
 				logger.LogErrorWithAccountAndClientId("Unable to retrieve identity for connection", err, rhcClient.Account, rhcClient.OrgID, rhcClient.ClientID)
 				return err
 			}
+
+            // FIXME: reset the tenant lookup failure count
+            rhcClient.TenantLookupFailureCount = 0
 
 			err = connectedClientRecorder.RecordConnectedClient(ctx, identity, rhcClient)
 			if err != nil {
@@ -105,4 +111,11 @@ func startInventoryStaleTimestampUpdater() {
 	if err := kafkaProducer.Close(); err != nil {
 		logger.LogFatalError("Failed to close the kafka writer", err)
 	}
+}
+
+
+func handleTenantLookupFailures(clientState ConnectorClientState) {
+    clientState.TenantLookupFailureCount++
+
+    connection_repository.RecordFailedTenantLookup(clientState)
 }
