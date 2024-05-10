@@ -140,7 +140,7 @@ func handleOnlineMessage(logger *logrus.Entry, client MQTT.Client, clientID doma
 		Account:        account,
 		OrgID:          orgID,
 		Dispatchers:    handshakePayload[dispatchersKey],
-		CanonicalFacts: handshakePayload[canonicalFactsKey],
+		CanonicalFacts: sanitizeCanonicalFacts(handshakePayload[canonicalFactsKey]),
 		Tags:           handshakePayload[tagsKey],
 		MessageMetadata: domain.MessageMetadata{LatestMessageID: msg.MessageID,
 			LatestTimestamp: msg.Sent},
