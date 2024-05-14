@@ -6,14 +6,13 @@ WORKDIR /go/src/app
 
 COPY go.mod go.sum ./
 
-COPY licenses/LICENSE /licenses/LICENSE
-
 RUN go mod download
 
 COPY internal/ internal/
 COPY cmd/ cmd/
 COPY db/ db/
 COPY Makefile .
+COPY licenses/LICENSE /licenses/LICENSE
 
 USER root
 
