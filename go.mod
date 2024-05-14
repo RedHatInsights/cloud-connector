@@ -26,6 +26,7 @@ require (
 )
 
 require gopkg.in/yaml.v3 v3.0.1 // indirect
+require github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438 // indirect
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
