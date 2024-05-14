@@ -25,6 +25,8 @@ require (
 	github.com/spf13/viper v1.10.1
 )
 
+require github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438 // indirect
+
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect

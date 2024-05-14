@@ -12,6 +12,8 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/domain"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
+	"github.com/jackc/pgerrcode"
+	"github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
@@ -75,7 +77,12 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 	_, err = statement.ExecContext(ctx, dispatchersString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp, account, client_id, account, org_id, client_id, dispatchersString, canonicalFactsString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Insert/update failed")
-		return FatalError{err}
+
+		if pqErr, ok := err.(*pq.Error); ok && pgerrcode.IsConnectionException(pqErr.Code.Name()) {
+			return FatalError{err}
+		}
+
+		return err
 	}
 
 	logger.Debug("Registered a connection")
