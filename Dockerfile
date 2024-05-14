@@ -12,7 +12,6 @@ COPY internal/ internal/
 COPY cmd/ cmd/
 COPY db/ db/
 COPY Makefile .
-COPY licenses/LICENSE /licenses/LICENSE
 
 USER root
 
@@ -31,6 +30,8 @@ COPY --from=builder /go/src/app/migrate_db /migrate_db
 COPY --from=builder /go/src/app/db/migrations /db/migrations/
 COPY --from=builder /go/src/app/db_schema_dumper /db_schema_dumper
 COPY --from=builder /go/src/app/stage_db_fixer /stage_db_fixer
+
+COPY --from=builder licenses/LICENSE /licenses/LICENSE
 
 USER 1001
 
