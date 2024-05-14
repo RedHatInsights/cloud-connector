@@ -6,6 +6,8 @@ WORKDIR /go/src/app
 
 COPY go.mod go.sum ./
 
+COPY licenses/LICENSE /licenses/LICENSE
+
 RUN go mod download
 
 COPY internal/ internal/
