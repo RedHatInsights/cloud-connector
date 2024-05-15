@@ -95,14 +95,21 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
           value: ${{MQTT_BROKER_ADDRESS}}
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+          value: jwt_rsa_generator
+        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+          value: /tmp/jwt_keys/jwt_signing_key.pem
         - name: CLOUD_CONNECTOR_MQTT_BROKER_AUTH_TYPE
           value: "password"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_USERNAME
-          value: "api-server"
+          valueFrom:
+            secretKeyRef:
+              key: api-server.user
+              name: cloud-connector-passwords
         - name: CLOUD_CONNECTOR_MQTT_BROKER_PASSWORD
           valueFrom:
             secretKeyRef:
-              key: api-server
+              key: api-server.password
               name: cloud-connector-passwords
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
           value: ${MQTT_BROKER_TLS_KEY_FILE}
@@ -112,10 +119,6 @@ objects:
           value: "true"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
           value: ${MQTT_BROKER_TLS_SKIP_VERIFY}
-        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
-          value: jwt_rsa_generator
-        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
-          value: /tmp/jwt_keys/jwt_signing_key.pem
         - name: CLOUD_CONNECTOR_MQTT_CLEAN_SESSION
           value: ${API_SERVER_MQTT_CLEAN_SESSION}
         - name: CLOUD_CONNECTOR_SHUTDOWN_ON_MQTT_CONNECTION_LOST
@@ -217,14 +220,21 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
           value: ${{MQTT_BROKER_ADDRESS}}
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+          value: jwt_rsa_generator
+        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+          value: /tmp/jwt_keys/jwt_signing_key.pem
         - name: CLOUD_CONNECTOR_MQTT_BROKER_AUTH_TYPE
           value: "password"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_USERNAME
-          value: "mqtt-consumer"
+          valueFrom:
+            secretKeyRef:
+              key: mqtt-consumer.user
+              name: cloud-connector-passwords
         - name: CLOUD_CONNECTOR_MQTT_BROKER_PASSWORD
           valueFrom:
             secretKeyRef:
-              key: mqtt-consumer
+              key: mqtt-consumer.password
               name: cloud-connector-passwords
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
           value: ${MQTT_BROKER_TLS_KEY_FILE}
@@ -239,10 +249,6 @@ objects:
           value: ${{MQTT_TOPIC_PREFIX}}
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
           value: ${MQTT_BROKER_TLS_SKIP_VERIFY}
-        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
-          value: jwt_rsa_generator
-        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
-          value: /tmp/jwt_keys/jwt_signing_key.pem
         - name: CLOUD_CONNECTOR_MQTT_CLEAN_SESSION
           value: ${MQTT_CONSUMER_MQTT_CLEAN_SESSION}
         - name: CLOUD_CONNECTOR_SHUTDOWN_ON_MQTT_CONNECTION_LOST
@@ -347,14 +353,21 @@ objects:
 
         - name: CLOUD_CONNECTOR_MQTT_BROKER_ADDRESS
           value: ${{MQTT_BROKER_ADDRESS}}
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+          value: jwt_rsa_generator
+        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+          value: /tmp/jwt_keys/jwt_signing_key.pem
         - name: CLOUD_CONNECTOR_MQTT_BROKER_AUTH_TYPE
           value: "password"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_USERNAME
-          value: "kafka-consumer"
+          valueFrom:
+            secretKeyRef:
+              key: kafka-consumer.user
+              name: cloud-connector-passwords
         - name: CLOUD_CONNECTOR_MQTT_BROKER_PASSWORD
           valueFrom:
             secretKeyRef:
-              key: kafka-consumer
+              key: kafka-consumer.password
               name: cloud-connector-passwords
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
           value: ${MQTT_BROKER_TLS_KEY_FILE}
@@ -366,10 +379,6 @@ objects:
           value: "true"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
           value: ${MQTT_BROKER_TLS_SKIP_VERIFY}
-        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
-          value: jwt_rsa_generator
-        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
-          value: /tmp/jwt_keys/jwt_signing_key.pem
         - name: CLOUD_CONNECTOR_MQTT_CLEAN_SESSION
           value: ${KAFKA_CONSUMER_MQTT_CLEAN_SESSION}
         - name: CLOUD_CONNECTOR_SHUTDOWN_ON_MQTT_CONNECTION_LOST
@@ -534,6 +543,12 @@ objects:
       app: cloud-connector
   data:
     mqtt.user: Y2xvdWQtY29ubmVjdG9yLW1xdHQtY29uc3VtZXI=
+    mqtt-consumer.user: bXF0dC1jb25zdW1lci11c2Vy
+    mqtt-consumer.password: aW1hcGFzc3dvcmQ=
+    kafka-consumer.user: a2Fma2EtY29uc3VtZXItdXNlcg==
+    kafka-consumer.password: aW1hcGFzc3dvcmQ=
+    api-server.user: YXBpLXNlcnZlci11c2Vy
+    api-server.password: aW1hcGFzc3dvcmQ=
 
 
 - apiVersion: v1
