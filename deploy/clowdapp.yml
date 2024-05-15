@@ -105,12 +105,12 @@ objects:
           valueFrom:
             secretKeyRef:
               key: api-server.user
-              name: cloud-connector-passwords
+              name: cloud-connector-mqtt-credentials
         - name: CLOUD_CONNECTOR_MQTT_BROKER_PASSWORD
           valueFrom:
             secretKeyRef:
               key: api-server.password
-              name: cloud-connector-passwords
+              name: cloud-connector-mqtt-credentials
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
           value: ${MQTT_BROKER_TLS_KEY_FILE}
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
@@ -230,12 +230,12 @@ objects:
           valueFrom:
             secretKeyRef:
               key: mqtt-consumer.user
-              name: cloud-connector-passwords
+              name: cloud-connector-mqtt-credentials
         - name: CLOUD_CONNECTOR_MQTT_BROKER_PASSWORD
           valueFrom:
             secretKeyRef:
               key: mqtt-consumer.password
-              name: cloud-connector-passwords
+              name: cloud-connector-mqtt-credentials
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
           value: ${MQTT_BROKER_TLS_KEY_FILE}
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
@@ -363,12 +363,12 @@ objects:
           valueFrom:
             secretKeyRef:
               key: kafka-consumer.user
-              name: cloud-connector-passwords
+              name: cloud-connector-mqtt-credentials
         - name: CLOUD_CONNECTOR_MQTT_BROKER_PASSWORD
           valueFrom:
             secretKeyRef:
               key: kafka-consumer.password
-              name: cloud-connector-passwords
+              name: cloud-connector-mqtt-credentials
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
           value: ${MQTT_BROKER_TLS_KEY_FILE}
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
