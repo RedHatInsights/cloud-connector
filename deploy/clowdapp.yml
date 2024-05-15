@@ -72,10 +72,17 @@ objects:
             cpu: ${CPU_REQUEST}
             memory: ${MEMORY_REQUEST}
         volumeMounts:
+        - mountPath: /tmp/jwt_keys
+          name: volume-mqtt-jwt-keys
+          readOnly: true
         - mountPath: /tmp/tls
           name: volume-mqtt-cert
           readOnly: true
         volumes:
+        - name: volume-mqtt-jwt-keys
+          secret:
+            defaultMode: 420
+            secretName: cloud-connector-mqtt-credentials
         - name: volume-mqtt-cert
           secret:
             defaultMode: 420
@@ -105,6 +112,10 @@ objects:
           value: "true"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
           value: ${MQTT_BROKER_TLS_SKIP_VERIFY}
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+          value: jwt_rsa_generator
+        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+          value: /tmp/jwt_keys/jwt_signing_key.pem
         - name: CLOUD_CONNECTOR_MQTT_CLEAN_SESSION
           value: ${API_SERVER_MQTT_CLEAN_SESSION}
         - name: CLOUD_CONNECTOR_SHUTDOWN_ON_MQTT_CONNECTION_LOST
@@ -183,10 +194,17 @@ objects:
             cpu: ${CPU_REQUEST}
             memory: ${MEMORY_REQUEST}
         volumeMounts:
+        - mountPath: /tmp/jwt_keys
+          name: volume-mqtt-jwt-keys
+          readOnly: true
         - mountPath: /tmp/tls
           name: volume-mqtt-cert
           readOnly: true
         volumes:
+        - name: volume-mqtt-jwt-keys
+          secret:
+            defaultMode: 420
+            secretName: cloud-connector-mqtt-credentials
         - name: volume-mqtt-cert
           secret:
             defaultMode: 420
@@ -221,6 +239,10 @@ objects:
           value: ${{MQTT_TOPIC_PREFIX}}
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
           value: ${MQTT_BROKER_TLS_SKIP_VERIFY}
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+          value: jwt_rsa_generator
+        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+          value: /tmp/jwt_keys/jwt_signing_key.pem
         - name: CLOUD_CONNECTOR_MQTT_CLEAN_SESSION
           value: ${MQTT_CONSUMER_MQTT_CLEAN_SESSION}
         - name: CLOUD_CONNECTOR_SHUTDOWN_ON_MQTT_CONNECTION_LOST
@@ -296,12 +318,19 @@ objects:
             cpu: ${CPU_REQUEST}
             memory: ${MEMORY_REQUEST}
         volumeMounts:
+        - mountPath: /tmp/jwt_keys
+          name: volume-mqtt-jwt-keys
+          readOnly: true
         - mountPath: /tmp/cloud-connector-config
           name: client-id-to-account-id-map
         - mountPath: /tmp/tls
           name: volume-mqtt-cert
           readOnly: true
         volumes:
+        - name: volume-mqtt-jwt-keys
+          secret:
+            defaultMode: 420
+            secretName: cloud-connector-mqtt-credentials
         - name: volume-mqtt-cert
           secret:
             defaultMode: 420
@@ -337,6 +366,10 @@ objects:
           value: "true"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
           value: ${MQTT_BROKER_TLS_SKIP_VERIFY}
+        - name: CLOUD_CONNECTOR_MQTT_BROKER_JWT_GENERATOR_IMPL
+          value: jwt_rsa_generator
+        - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
+          value: /tmp/jwt_keys/jwt_signing_key.pem
         - name: CLOUD_CONNECTOR_MQTT_CLEAN_SESSION
           value: ${KAFKA_CONSUMER_MQTT_CLEAN_SESSION}
         - name: CLOUD_CONNECTOR_SHUTDOWN_ON_MQTT_CONNECTION_LOST
