@@ -45,7 +45,7 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 		var serializedCanonicalFacts sql.NullString
 		var serializedDispatchers sql.NullString
 		var serializedTags sql.NullString
-        var tenantLookupFailureCount int
+		var tenantLookupFailureCount int
 
 		if err := rows.Scan(&account, &orgId, &clientId, &serializedCanonicalFacts, &serializedTags, &serializedDispatchers, &tenantLookupFailureCount); err != nil {
 			logger.LogError("SQL scan failed.  Skipping row.", err)
@@ -59,12 +59,12 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 		tags := deserializeTags(log, serializedTags)
 
 		connectorClientState := domain.ConnectorClientState{
-			OrgID:          domain.OrgID(orgId.String),
-			ClientID:       domain.ClientID(clientId),
-			CanonicalFacts: canonicalFacts,
-			Dispatchers:    dispatchers,
-			Tags:           tags,
-            TenantLookupFailureCount: tenantLookupFailureCount,
+			OrgID:                    domain.OrgID(orgId.String),
+			ClientID:                 domain.ClientID(clientId),
+			CanonicalFacts:           canonicalFacts,
+			Dispatchers:              dispatchers,
+			Tags:                     tags,
+			TenantLookupFailureCount: tenantLookupFailureCount,
 		}
 
 		if account.Valid {
@@ -86,7 +86,7 @@ func UpdateStaleTimestampInDB(ctx context.Context, databaseConn *sql.DB, sqlTime
 	ctx, cancel := context.WithTimeout(ctx, sqlTimeout)
 	defer cancel()
 
-    // FIXME: set the tenant fialure count to zero
+	// FIXME: set the tenant failure count to zero
 
 	update := "UPDATE connections SET stale_timestamp = NOW() WHERE org_id=$1 AND client_id=$2"
 
@@ -107,4 +107,37 @@ func UpdateStaleTimestampInDB(ctx context.Context, databaseConn *sql.DB, sqlTime
 	}
 
 	log.Debug("rowsAffected:", rowsAffected)
+}
+
+func RecordFailedTenantLookup(ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, rhcClient domain.ConnectorClientState) error {
+
+	log := logger.Log.WithFields(logrus.Fields{"account": rhcClient.Account, "org_id": rhcClient.OrgID, "client_id": rhcClient.ClientID})
+
+	log.Debug("Recording failed tenant lookup")
+
+	ctx, cancel := context.WithTimeout(ctx, sqlTimeout)
+	defer cancel()
+
+	// FIXME: set the tenant failure count to zero
+
+	update := "UPDATE connections SET failed_tentant_lookups = $1 WHERE org_id=$2 AND client_id=$3"
+
+	statement, err := databaseConn.Prepare(update)
+	if err != nil {
+		return err
+	}
+	defer statement.Close()
+
+	results, err := statement.ExecContext(ctx, rhcClient.TenantLookupFailureCount, rhcClient.OrgID, rhcClient.ClientID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := results.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	log.Debug("rowsAffected:", rowsAffected)
+	return nil
 }
