@@ -98,9 +98,9 @@ objects:
               key: api-server
               name: cloud-connector-passwords
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
-          value: /tmp/tls/key.pem
+          value: ${MQTT_BROKER_TLS_KEY_FILE}
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
-          value: /tmp/tls/cert.pem
+          value: ${MQTT_BROKER_TLS_CERT_FILE}
         - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
           value: "true"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_SKIP_VERIFY
@@ -209,9 +209,9 @@ objects:
               key: mqtt-consumer
               name: cloud-connector-passwords
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
-          value: /tmp/tls/key.pem
+          value: ${MQTT_BROKER_TLS_KEY_FILE}
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
-          value: /tmp/tls/cert.pem
+          value: ${MQTT_BROKER_TLS_CERT_FILE}
         - name: CLOUD_CONNECTOR_MQTT_CLIENT_ID
           valueFrom:
             secretKeyRef:
@@ -321,16 +321,16 @@ objects:
         - name: CLOUD_CONNECTOR_MQTT_BROKER_AUTH_TYPE
           value: "password"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_USERNAME
-          value: "mqtt-consumer"
+          value: "kafka-consumer"
         - name: CLOUD_CONNECTOR_MQTT_BROKER_PASSWORD
           valueFrom:
             secretKeyRef:
-              key: mqtt-consumer
+              key: kafka-consumer
               name: cloud-connector-passwords
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_KEY_FILE
-          value: /tmp/tls/key.pem
+          value: ${MQTT_BROKER_TLS_KEY_FILE}
         - name: CLOUD_CONNECTOR_MQTT_BROKER_TLS_CERT_FILE
-          value: /tmp/tls/cert.pem
+          value: ${MQTT_BROKER_TLS_CERT_FILE}
         - name: CLOUD_CONNECTOR_MQTT_TOPIC_PREFIX
           value: ${{MQTT_TOPIC_PREFIX}}
         - name: CLOUD_CONNECTOR_MQTT_USE_HOSTNAME_AS_CLIENT_ID
@@ -593,6 +593,13 @@ parameters:
 - name: MQTT_BROKER_TLS_SKIP_VERIFY
   value: "false"
   required: true
+- name: MQTT_BROKER_TLS_KEY_FILE
+  value: "/tmp/tls/key.pem"
+  required: true
+- name: MQTT_BROKER_TLS_CERT_FILE
+  value: "/tmp/tls/cert.pem"
+  required: true
+
 - name: MQTT_CONSUMER_MQTT_CLEAN_SESSION
   value: "false"
 - name: KAFKA_CONSUMER_MQTT_CLEAN_SESSION
