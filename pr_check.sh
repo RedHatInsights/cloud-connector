@@ -20,7 +20,7 @@ source $CICD_ROOT/build.sh
 source $CICD_ROOT/deploy_ephemeral_env.sh
 
 # Run Cloud Connector isolated tests
-COMPONENT_NAME="cloud-connector-api"
+COMPONENT_NAME="cloud-connector"
 IQE_PLUGINS="cloud-connector"
 source $CICD_ROOT/cji_smoke_test.sh
 
