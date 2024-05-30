@@ -81,9 +81,8 @@ func NewRootCommand() *cobra.Command {
 	connectedAccountReportCmd.Flags().StringVarP(&excludeAccounts, "exclude-accounts", "e", "477931,6089719,540155", "477931,6089719,540155")
 	connectedAccountReportCmd.Flags().StringVarP(&reportMode, "report-exporter", "r", "stdout", "Report export method - stdout/pendo")
 
-
-    var dryRun bool
-    var removeEntriesBefore string
+	var dryRun bool
+	var removeEntriesBefore string
 
 	var dbCleanerCmd = &cobra.Command{
 		Use:   "db_cleaner",
