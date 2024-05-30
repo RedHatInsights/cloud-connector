@@ -100,7 +100,7 @@ objects:
         - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
           value: /tmp/jwt_keys/jwt_signing_key.pem
         - name: CLOUD_CONNECTOR_MQTT_BROKER_AUTH_TYPE
-          value: "password"
+          value: ${{MQTT_BROKER_AUTH_TYPE}}
         - name: CLOUD_CONNECTOR_MQTT_BROKER_USERNAME
           valueFrom:
             secretKeyRef:
@@ -225,7 +225,7 @@ objects:
         - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
           value: /tmp/jwt_keys/jwt_signing_key.pem
         - name: CLOUD_CONNECTOR_MQTT_BROKER_AUTH_TYPE
-          value: "password"
+          value: ${{MQTT_BROKER_AUTH_TYPE}}
         - name: CLOUD_CONNECTOR_MQTT_BROKER_USERNAME
           valueFrom:
             secretKeyRef:
@@ -358,7 +358,7 @@ objects:
         - name: CLOUD_CONNECTOR_JWT_PRIVATE_KEY_FILE
           value: /tmp/jwt_keys/jwt_signing_key.pem
         - name: CLOUD_CONNECTOR_MQTT_BROKER_AUTH_TYPE
-          value: "password"
+          value: ${{MQTT_BROKER_AUTH_TYPE}}
         - name: CLOUD_CONNECTOR_MQTT_BROKER_USERNAME
           valueFrom:
             secretKeyRef:
@@ -647,7 +647,9 @@ parameters:
 - name: MQTT_BROKER_TLS_CERT_FILE
   value: "/tmp/tls/cert.pem"
   required: true
-
+- name: MQTT_BROKER_AUTH_TYPE
+  value: "jwt"
+  required: true
 - name: MQTT_CONSUMER_MQTT_CLEAN_SESSION
   value: "false"
 - name: KAFKA_CONSUMER_MQTT_CLEAN_SESSION
