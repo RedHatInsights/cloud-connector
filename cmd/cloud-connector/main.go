@@ -92,7 +92,7 @@ func NewRootCommand() *cobra.Command {
 		},
 	}
 	dbCleanerCmd.Flags().BoolVarP(&dryRun, "dry-run", "D", true, "Dry run")
-	dbCleanerCmd.Flags().StringVarP(&removeEntriesBefore, "remove-before", "b", "blah", "blah")
+	dbCleanerCmd.Flags().StringVarP(&removeEntriesBefore, "remove-before", "b", "2006-01-02T15:04:05Z", "2006-01-02T15:04:05Z")
 
 	rootCmd.AddCommand(mqttMessageConsumerCmd)
 	rootCmd.AddCommand(inventoryStaleTimestampeUpdaterCmd)

@@ -18,12 +18,15 @@ func startDbCleaner(dryRun bool, removeEntriesBefore string) {
 	fmt.Println("dryRun: ", dryRun)
 	fmt.Println("removeEntriesBefore: ", removeEntriesBefore)
 
+    /*
 	removeEntriesCreatedBeforeDate, err := time.Parse("01/02/2006", removeEntriesBefore)
 	if err != nil {
 		log.Print("Ugh: ", err)
 		return
 	}
+    */
 
+	removeEntriesCreatedBeforeDate, err := time.Parse(time.RFC3339, removeEntriesBefore)
 	fmt.Println("removeEntriesCreatedBeforeDate: ", removeEntriesCreatedBeforeDate)
 
 	database, err := db.InitializeDatabaseConnection(cfg)
