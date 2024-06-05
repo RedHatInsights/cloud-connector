@@ -643,10 +643,8 @@ parameters:
   required: true
 - name: MQTT_BROKER_TLS_KEY_FILE
   value: "/tmp/tls/key.pem"
-  required: true
 - name: MQTT_BROKER_TLS_CERT_FILE
   value: "/tmp/tls/cert.pem"
-  required: true
 - name: MQTT_BROKER_AUTH_TYPE
   value: "none"
   required: true
