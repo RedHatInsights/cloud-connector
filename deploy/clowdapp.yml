@@ -648,7 +648,7 @@ parameters:
   value: "/tmp/tls/cert.pem"
   required: true
 - name: MQTT_BROKER_AUTH_TYPE
-  value: "jwt"
+  value: "none"
   required: true
 - name: MQTT_CONSUMER_MQTT_CLEAN_SESSION
   value: "false"
