@@ -9,22 +9,14 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/db"
 )
 
-func startDbCleaner(dryRun bool, removeEntriesBefore string) {
+func startDbCleaner(doIt bool, removeEntriesBefore string) {
 
 	cfg := config.GetConfig()
 	log.Println("Starting Cloud-Connector DB cleaner")
 	log.Println("Cloud-Connector configuration:\n", cfg)
 
-	fmt.Println("dryRun: ", dryRun)
+	fmt.Println("doIt: ", doIt)
 	fmt.Println("removeEntriesBefore: ", removeEntriesBefore)
-
-    /*
-	removeEntriesCreatedBeforeDate, err := time.Parse("01/02/2006", removeEntriesBefore)
-	if err != nil {
-		log.Print("Ugh: ", err)
-		return
-	}
-    */
 
 	removeEntriesCreatedBeforeDate, err := time.Parse(time.RFC3339, removeEntriesBefore)
 	fmt.Println("removeEntriesCreatedBeforeDate: ", removeEntriesCreatedBeforeDate)
@@ -35,15 +27,15 @@ func startDbCleaner(dryRun bool, removeEntriesBefore string) {
 		return
 	}
 
-	// FIXME: verify date
+	var query string
+	selectionClause := " from connections where created_at::date < $1"
 
-	sqlCommand := "select *"
-
-	if !dryRun {
-		sqlCommand = "delete"
+	if doIt {
+		query = "delete" + selectionClause + " returning org_id, client_id, created_at"
+	} else {
+		query = "select org_id, client_id, created_at " + selectionClause
 	}
 
-	query := sqlCommand + " from connections where created_at::date < $1"
 	fmt.Println("query: ", query)
 
 	statement, err := database.Prepare(query)
@@ -53,7 +45,6 @@ func startDbCleaner(dryRun bool, removeEntriesBefore string) {
 	}
 	defer statement.Close()
 
-	//results, err := statement.Exec(removeEntriesCreatedBeforeDate)
 	results, err := statement.Query(removeEntriesCreatedBeforeDate)
 	if err != nil {
 		log.Print("Query failed: ", err)
@@ -61,10 +52,13 @@ func startDbCleaner(dryRun bool, removeEntriesBefore string) {
 	}
 
 	defer results.Close()
-	// Loop through rows, using Scan to assign column data to struct fields.
-	for results.Next() {
-		fmt.Println("results: ", results)
-	}
 
-	//    fmt.Println("results: ", results)
+	for results.Next() {
+		var orgId string
+		var clientId string
+		var createdAt string
+
+		results.Scan(&orgId, &clientId, &createdAt)
+		fmt.Printf("Removing entry: %s org-id, %s client-id, %s created_at\n", orgId, clientId, createdAt)
+	}
 }

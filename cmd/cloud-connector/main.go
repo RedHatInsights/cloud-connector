@@ -81,17 +81,17 @@ func NewRootCommand() *cobra.Command {
 	connectedAccountReportCmd.Flags().StringVarP(&excludeAccounts, "exclude-accounts", "e", "477931,6089719,540155", "477931,6089719,540155")
 	connectedAccountReportCmd.Flags().StringVarP(&reportMode, "report-exporter", "r", "stdout", "Report export method - stdout/pendo")
 
-	var dryRun bool
+	var doIt bool
 	var removeEntriesBefore string
 
 	var dbCleanerCmd = &cobra.Command{
 		Use:   "db_cleaner",
 		Short: "Remove all connections from the db before a specific date",
 		Run: func(cmd *cobra.Command, args []string) {
-			startDbCleaner(dryRun, removeEntriesBefore)
+			startDbCleaner(doIt, removeEntriesBefore)
 		},
 	}
-	dbCleanerCmd.Flags().BoolVarP(&dryRun, "dry-run", "D", true, "Dry run")
+	dbCleanerCmd.Flags().BoolVarP(&doIt, "do-it", "D", false, "Do it")
 	dbCleanerCmd.Flags().StringVarP(&removeEntriesBefore, "remove-before", "b", "2006-01-02T15:04:05Z", "2006-01-02T15:04:05Z")
 
 	rootCmd.AddCommand(mqttMessageConsumerCmd)
