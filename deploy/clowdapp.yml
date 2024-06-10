@@ -504,6 +504,28 @@ objects:
             cpu: 50m
             memory: 512Mi
 
+    - name: old_database_entry_cleaner
+      podSpec:
+        image: ${IMAGE}:${IMAGE_TAG}
+        command:
+          - ./cloud-connector
+          - db_cleaner
+          - --remove-before
+          - 2024-06-10T15:04:05Z
+        env:
+          - name: LOG_FORMAT
+            value: "text"
+          - name: LOG_BATCH_FREQUENCY
+            value: '1'
+        resources:
+          limits:
+            cpu: 300m
+            memory: 1Gi
+          requests:
+            cpu: 50m
+            memory: 512Mi
+
+
 
 - apiVersion: v1
   kind: Service
