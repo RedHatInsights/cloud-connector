@@ -504,14 +504,14 @@ objects:
             cpu: 50m
             memory: 512Mi
 
-    - name: old_database_entry_cleaner
+    - name: old-database-entry-cleaner
       podSpec:
         image: ${IMAGE}:${IMAGE_TAG}
         command:
           - ./cloud-connector
           - db_cleaner
           - --remove-before
-          - 2024-06-10T15:04:05Z
+          - "2024-06-07T15:04:05Z"
         env:
           - name: LOG_FORMAT
             value: "text"
@@ -525,6 +525,15 @@ objects:
             cpu: 50m
             memory: 512Mi
 
+
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdJobInvocation
+  metadata:
+    name: test-run-1
+  spec:
+    appName: cloud-connector
+    jobs:
+      - old-database-entry-cleaner
 
 
 - apiVersion: v1
