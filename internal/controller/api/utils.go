@@ -132,7 +132,7 @@ func createConnectorClientProxy(ctx context.Context, log *logrus.Entry, tenantTr
 		return nil, err
 	}
 
-	proxy, err := proxyFactory.CreateProxy(ctx, clientState.OrgID, clientState.Account, clientState.ClientID, clientState.CanonicalFacts, clientState.Dispatchers, clientState.Tags)
+	proxy, err := proxyFactory.CreateProxy(ctx, clientState)
 	if err != nil {
 		log.WithFields(logrus.Fields{"error": err}).Errorf("Unable to create proxy for connection (%s:%s)", resolvedOrgId, clientId)
 		return nil, err
