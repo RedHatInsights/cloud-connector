@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -34,6 +35,11 @@ func startInventoryStaleTimestampUpdater() {
 	databaseConn, err := db.InitializeDatabaseConnection(cfg)
 	if err != nil {
 		logger.LogFatalError("Failed to connect to the database", err)
+	}
+
+	connectionRegistrar, err := connection_repository.NewSqlConnectionRegistrar(cfg, databaseConn)
+	if err != nil {
+		logger.LogFatalError("Failed to create connection registrar", err)
 	}
 
 	accountResolver, err := controller.NewAccountIdResolver(cfg.ClientIdToAccountIdImpl, cfg)
@@ -83,20 +89,24 @@ func startInventoryStaleTimestampUpdater() {
 
 			log.Debug("Processing stale connection")
 
-			identity, _, _, err := accountResolver.MapClientIdToAccountId(ctx, rhcClient.ClientID)
-			if err != nil {
-
-				rhcClient.TenantLookupFailureCount++
-
-				connection_repository.RecordFailedTenantLookup(ctx, databaseConn, sqlTimeout, rhcClient)
-
-				// FIXME: Send disconnect here??  Need to determine the type of failure!
-				logger.LogErrorWithAccountAndClientId("Unable to retrieve identity for connection", err, rhcClient.Account, rhcClient.OrgID, rhcClient.ClientID)
-				return err
+			if rhcClient.TenantLookupFailureCount >= cfg.PurgeConnectionOnFailedTenantLookupCount {
+				logger.LogErrorWithAccountAndClientId("Tenant lookup failed for connection too many times.  Purging connection...", err, rhcClient.Account, rhcClient.OrgID, rhcClient.ClientID)
+				connectionRegistrar.Unregister(ctx, rhcClient.ClientID)
+				return fmt.Errorf("Tenant lookup failed to many times")
 			}
 
-			// FIXME: reset the tenant lookup failure count
-			rhcClient.TenantLookupFailureCount = 0
+			identity, _, _, err := accountResolver.MapClientIdToAccountId(context.Background(), rhcClient.ClientID)
+			if err != nil {
+
+				logger.LogErrorWithAccountAndClientId("Unable to retrieve identity for connection", err, rhcClient.Account, rhcClient.OrgID, rhcClient.ClientID)
+
+				dberr := connection_repository.RecordFailedTenantLookup(ctx, databaseConn, sqlTimeout, rhcClient)
+				if dberr != nil {
+					logger.LogErrorWithAccountAndClientId("Unable to record failed tenant lookup for connection", err, rhcClient.Account, rhcClient.OrgID, rhcClient.ClientID)
+				}
+
+				return err
+			}
 
 			err = connectedClientRecorder.RecordConnectedClient(ctx, identity, rhcClient)
 			if err != nil {
@@ -104,7 +114,7 @@ func startInventoryStaleTimestampUpdater() {
 				return err
 			}
 
-			connection_repository.UpdateStaleTimestampInDB(ctx, databaseConn, sqlTimeout, rhcClient)
+			connection_repository.RecordUpdatedStaleTimestamp(ctx, databaseConn, sqlTimeout, rhcClient)
 
 			return nil
 		})

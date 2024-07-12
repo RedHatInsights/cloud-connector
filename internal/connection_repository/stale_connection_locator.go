@@ -19,7 +19,7 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 	defer cancel()
 
 	statement, err := databaseConn.Prepare(
-		`SELECT account, org_id, client_id, canonical_facts, tags, dispatchers FROM connections
+		`SELECT account, org_id, client_id, canonical_facts, tags, dispatchers, failed_tenant_lookup_count FROM connections
            WHERE canonical_facts != '{}' AND
            ( dispatchers ? 'rhc-worker-playbook' OR dispatchers ? 'package-manager' ) AND
              stale_timestamp < $1
@@ -77,7 +77,7 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 	return nil
 }
 
-func UpdateStaleTimestampInDB(ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, rhcClient domain.ConnectorClientState) {
+func RecordUpdatedStaleTimestamp(ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, rhcClient domain.ConnectorClientState) {
 
 	log := logger.Log.WithFields(logrus.Fields{"account": rhcClient.Account, "org_id": rhcClient.OrgID, "client_id": rhcClient.ClientID})
 
@@ -86,9 +86,7 @@ func UpdateStaleTimestampInDB(ctx context.Context, databaseConn *sql.DB, sqlTime
 	ctx, cancel := context.WithTimeout(ctx, sqlTimeout)
 	defer cancel()
 
-	// FIXME: set the tenant failure count to zero
-
-	update := "UPDATE connections SET stale_timestamp = NOW() WHERE org_id=$1 AND client_id=$2"
+	update := "UPDATE connections SET stale_timestamp = NOW(), tenant_lookup_failure_count = 0 WHERE org_id=$1 AND client_id=$2"
 
 	statement, err := databaseConn.Prepare(update)
 	if err != nil {
@@ -118,9 +116,7 @@ func RecordFailedTenantLookup(ctx context.Context, databaseConn *sql.DB, sqlTime
 	ctx, cancel := context.WithTimeout(ctx, sqlTimeout)
 	defer cancel()
 
-	// FIXME: set the tenant failure count to zero
-
-	update := "UPDATE connections SET failed_tentant_lookups = $1 WHERE org_id=$2 AND client_id=$3"
+	update := "UPDATE connections SET failed_tenant_lookup_count = failed_tenant_lookup_count + 1 WHERE org_id=$1 AND client_id=$2"
 
 	statement, err := databaseConn.Prepare(update)
 	if err != nil {
@@ -128,7 +124,7 @@ func RecordFailedTenantLookup(ctx context.Context, databaseConn *sql.DB, sqlTime
 	}
 	defer statement.Close()
 
-	results, err := statement.ExecContext(ctx, rhcClient.TenantLookupFailureCount, rhcClient.OrgID, rhcClient.ClientID)
+	results, err := statement.ExecContext(ctx, rhcClient.OrgID, rhcClient.ClientID)
 	if err != nil {
 		return err
 	}
