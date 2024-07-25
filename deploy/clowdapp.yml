@@ -8,7 +8,7 @@ objects:
 - apiVersion: cloud.redhat.com/v1alpha1
   kind: ClowdApp
   metadata:
-    name: cloud-connector
+    name: cloud-connector-api
   spec:
     envName: ${ENV_NAME}
     optionalDependencies:
