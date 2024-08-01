@@ -35,11 +35,12 @@ type MessageMetadata struct {
 }
 
 type ConnectorClientState struct {
-	Account         AccountID
-	OrgID           OrgID
-	ClientID        ClientID
-	CanonicalFacts  CanonicalFacts
-	Dispatchers     Dispatchers
-	Tags            Tags
-	MessageMetadata MessageMetadata
+	Account                  AccountID
+	OrgID                    OrgID
+	ClientID                 ClientID
+	CanonicalFacts           CanonicalFacts
+	Dispatchers              Dispatchers
+	Tags                     Tags
+	MessageMetadata          MessageMetadata
+	TenantLookupFailureCount int
 }

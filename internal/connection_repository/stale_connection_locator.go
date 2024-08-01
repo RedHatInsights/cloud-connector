@@ -19,7 +19,7 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 	defer cancel()
 
 	statement, err := databaseConn.Prepare(
-		`SELECT account, org_id, client_id, canonical_facts, tags, dispatchers FROM connections
+		`SELECT account, org_id, client_id, canonical_facts, tags, dispatchers, failed_tenant_lookup_count FROM connections
            WHERE canonical_facts != '{}' AND
            ( dispatchers ? 'rhc-worker-playbook' OR dispatchers ? 'package-manager' ) AND
              stale_timestamp < $1
@@ -45,8 +45,9 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 		var serializedCanonicalFacts sql.NullString
 		var serializedDispatchers sql.NullString
 		var serializedTags sql.NullString
+		var tenantLookupFailureCount int
 
-		if err := rows.Scan(&account, &orgId, &clientId, &serializedCanonicalFacts, &serializedTags, &serializedDispatchers); err != nil {
+		if err := rows.Scan(&account, &orgId, &clientId, &serializedCanonicalFacts, &serializedTags, &serializedDispatchers, &tenantLookupFailureCount); err != nil {
 			logger.LogError("SQL scan failed.  Skipping row.", err)
 			continue
 		}
@@ -58,11 +59,12 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 		tags := deserializeTags(log, serializedTags)
 
 		connectorClientState := domain.ConnectorClientState{
-			OrgID:          domain.OrgID(orgId.String),
-			ClientID:       domain.ClientID(clientId),
-			CanonicalFacts: canonicalFacts,
-			Dispatchers:    dispatchers,
-			Tags:           tags,
+			OrgID:                    domain.OrgID(orgId.String),
+			ClientID:                 domain.ClientID(clientId),
+			CanonicalFacts:           canonicalFacts,
+			Dispatchers:              dispatchers,
+			Tags:                     tags,
+			TenantLookupFailureCount: tenantLookupFailureCount,
 		}
 
 		if account.Valid {
@@ -75,7 +77,7 @@ func ProcessStaleConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeo
 	return nil
 }
 
-func UpdateStaleTimestampInDB(ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, rhcClient domain.ConnectorClientState) {
+func RecordUpdatedStaleTimestamp(ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, rhcClient domain.ConnectorClientState) {
 
 	log := logger.Log.WithFields(logrus.Fields{"account": rhcClient.Account, "org_id": rhcClient.OrgID, "client_id": rhcClient.ClientID})
 
@@ -84,7 +86,7 @@ func UpdateStaleTimestampInDB(ctx context.Context, databaseConn *sql.DB, sqlTime
 	ctx, cancel := context.WithTimeout(ctx, sqlTimeout)
 	defer cancel()
 
-	update := "UPDATE connections SET stale_timestamp = NOW() WHERE org_id=$1 AND client_id=$2"
+	update := "UPDATE connections SET stale_timestamp = NOW(), tenant_lookup_failure_count = 0 WHERE org_id=$1 AND client_id=$2"
 
 	statement, err := databaseConn.Prepare(update)
 	if err != nil {
@@ -103,4 +105,35 @@ func UpdateStaleTimestampInDB(ctx context.Context, databaseConn *sql.DB, sqlTime
 	}
 
 	log.Debug("rowsAffected:", rowsAffected)
+}
+
+func RecordFailedTenantLookup(ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, rhcClient domain.ConnectorClientState) error {
+
+	log := logger.Log.WithFields(logrus.Fields{"account": rhcClient.Account, "org_id": rhcClient.OrgID, "client_id": rhcClient.ClientID})
+
+	log.Debug("Recording failed tenant lookup")
+
+	ctx, cancel := context.WithTimeout(ctx, sqlTimeout)
+	defer cancel()
+
+	update := "UPDATE connections SET failed_tenant_lookup_count = failed_tenant_lookup_count + 1 WHERE org_id=$1 AND client_id=$2"
+
+	statement, err := databaseConn.Prepare(update)
+	if err != nil {
+		return err
+	}
+	defer statement.Close()
+
+	results, err := statement.ExecContext(ctx, rhcClient.OrgID, rhcClient.ClientID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := results.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	log.Debug("rowsAffected:", rowsAffected)
+	return nil
 }
