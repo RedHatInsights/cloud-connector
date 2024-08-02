@@ -127,7 +127,10 @@ func handleOnlineMessage(logger *logrus.Entry, client MQTT.Client, clientID doma
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to resolve client id to account number")
 
-		mqtt.SendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, cfg.MqttPublishTimeout, clientID, cfg.InvalidHandshakeReconnectDelay)
+		// If we cannot locate an org id, then let the client stay connected to the broker.
+		// In the past we told the client to reconnect after X number of seconds, but
+		// there were clients that ignored the delay in the reconnect message and reconnected immediately...
+		// driving up the load on the broker
 
 		return nil
 	}
