@@ -29,12 +29,15 @@ func TestSqlConnectionRegistrar(t *testing.T) {
 
 	testCases := []struct {
 		testName    string
+		orgID       domain.OrgID
 		account     domain.AccountID
 		clientID    domain.ClientID
 		dispatchers string
 	}{
-		{"with no dispatchers", "999999", "registrar-test-client-1", "{}"},
-		{"with satellite dispatchers", "888888", "registrar-test-client-2", "{\"satellite\": {\"version\": \"0.2\"}}"},
+		{"with no dispatchers", "999991", "999999", "registrar-test-client-1", "{}"},
+		{"with satellite dispatchers", "888881", "888888", "registrar-test-client-2", "{\"satellite\": {\"version\": \"0.2\"}}"},
+		{"with no account", "", "999992", "registrar-test-client-3", "{}"},     // anemic tenant
+		{"with no account or org-id", "", "", "registrar-test-client-4", "{}"}, // ghost connection
 	}
 
 	for _, tc := range testCases {
@@ -53,6 +56,7 @@ func TestSqlConnectionRegistrar(t *testing.T) {
 			}
 
 			connectorClientState := domain.ConnectorClientState{
+				OrgID:       tc.orgID,
 				Account:     tc.account,
 				ClientID:    tc.clientID,
 				Dispatchers: dispatchers,
@@ -86,6 +90,7 @@ func TestSqlConnectionRegistrar(t *testing.T) {
 
 func verifyConnectorClientState(t *testing.T, expectedClientState, actualClientState domain.ConnectorClientState) {
 	if expectedClientState.Account != actualClientState.Account ||
+		expectedClientState.OrgID != actualClientState.OrgID ||
 		expectedClientState.ClientID != actualClientState.ClientID {
 		t.Fatal("actual client state does not match expected client state", actualClientState, expectedClientState)
 	}

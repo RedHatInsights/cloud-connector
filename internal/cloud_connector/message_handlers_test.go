@@ -3,6 +3,7 @@ package cloud_connector
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -44,6 +45,13 @@ type mockAccountIdResolver struct {
 
 func (mar *mockAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, domain.OrgID, error) {
 	return domain.Identity("1111"), domain.AccountID("000111"), domain.OrgID("000001"), nil
+}
+
+type mockAccountIdResolverReturnError struct {
+}
+
+func (mar *mockAccountIdResolverReturnError) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, domain.OrgID, error) {
+	return domain.Identity(""), domain.AccountID(""), domain.OrgID(""), fmt.Errorf("ERROR!")
 }
 
 type mockConnectedClientRecorder struct {
@@ -191,6 +199,50 @@ func TestHandleDuplicateAndOldOnlineMessages(t *testing.T) {
 			}
 
 		})
+	}
+}
+
+func TestHandleOnlineMessagesFromTenantLessClient(t *testing.T) {
+
+	// Tenant-less test
+	var mqttClient MQTT.Client
+	var clientID domain.ClientID = "1234"
+	var cfg config.Config
+	var topicBuilder mqtt.TopicBuilder
+	var accountResolver = &mockAccountIdResolverReturnError{}
+	var connectedClientRecorder = &mockConnectedClientRecorder{}
+	var sourcesRecorder controller.SourcesRecorder
+
+	now := time.Now()
+
+	logger := logger.Log.WithFields(logrus.Fields{"clientID": clientID})
+
+	var connectionRegistrar = &mockConnectionRegistrar{
+		clients: make(map[domain.ClientID]domain.ConnectorClientState),
+	}
+
+	var connectionState = domain.ConnectorClientState{
+		Account:  "", // Leave the account empty on purpose - tenant-less
+		OrgID:    "", // Leave the org-id empty on purpose - tenant-less
+		ClientID: clientID,
+		MessageMetadata: domain.MessageMetadata{
+			LatestMessageID: "1234-56789",
+			LatestTimestamp: now,
+		},
+	}
+
+	incomingMessage := buildOnlineMessage(t, connectionState.MessageMetadata.LatestMessageID, connectionState.MessageMetadata.LatestTimestamp)
+
+	logger = logger.WithFields(logrus.Fields{"messageID": incomingMessage.MessageID})
+
+	err := handleOnlineMessage(logger, mqttClient, clientID, incomingMessage, &cfg, &topicBuilder, accountResolver, connectionRegistrar, connectedClientRecorder, sourcesRecorder)
+
+	if err != nil {
+		t.Fatal("handleOnlineMesssage did not return the expected error!")
+	}
+
+	if _, ok := connectionRegistrar.clients[connectionState.ClientID]; !ok {
+		t.Fatal("ConnectionRegistrar was not called")
 	}
 }
 
