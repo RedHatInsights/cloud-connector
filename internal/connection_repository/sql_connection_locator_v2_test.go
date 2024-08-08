@@ -44,8 +44,10 @@ func TestSqlConnectionLocatorV2PermittedTenant(t *testing.T) {
 		{"with satellite dispatchers", "888881", "888888", "sql-locator-v2-test-client-2", "{\"satellite\": {\"version\": \"0.2\"}}", "888881", nil},
 		{"with satellite dispatchers", "888881", "888888", "sql-locator-v2-test-client-3", "{\"satellite\": {\"version\": \"0.2\"}}", "different_should_miss", NotFoundError},
 		{"with " + satelliteWorker + " dispatchers", "888881", "888888", "sql-locator-v2-test-client-4", "{\"" + satelliteWorker + "\": {\"version\": \"0.2\"}}", "different_should_match", nil},
-		{"with no account", "", "999992", "sql-locator-v2-test-client-5", "{}", "9999", NotFoundError},     // anemic tenant
-		{"with no account or org-id", "", "", "sql-locator-v2-test-client-6", "{}", "9999", NotFoundError}, // ghost connection
+		{"with no account", "", "999992", "sql-locator-v2-test-client-5", "{}", "9999", NotFoundError},                                                                                             // anemic tenant
+		{"with no account or org-id", "", "", "sql-locator-v2-test-client-6", "{}", "9999", NotFoundError},                                                                                         // ghost connection
+		{"with no account with " + satelliteWorker + " dispatchers", "", "999992", "sql-locator-v2-test-client-5", "{\"" + satelliteWorker + "\": {\"version\": \"0.2\"}}", "9999", NotFoundError}, // anemic tenant
+		{"with no account or org-id " + satelliteWorker + " dispatchers", "", "", "sql-locator-v2-test-client-6", "{\"" + satelliteWorker + "\": {\"version\": \"0.2\"}}", "9999", NotFoundError},  // ghost connection
 	}
 
 	for _, tc := range testCases {
