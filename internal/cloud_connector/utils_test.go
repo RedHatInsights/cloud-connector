@@ -10,6 +10,20 @@ func init() {
 	logger.InitLogger()
 }
 
+func TestSanitizeNilCanonicalFacts(t *testing.T) {
+	sanitizedCanonicalFacts := sanitizeCanonicalFacts(nil)
+
+	if sanitizedCanonicalFacts == nil {
+		t.Fatal("should not return nil")
+	}
+
+	canonicalFacts := sanitizedCanonicalFacts.(map[string]interface{})
+
+	if len(canonicalFacts) != 0 {
+		t.Fatal("should return empty map")
+	}
+}
+
 func TestSanitizeValidInsightsId(t *testing.T) {
 
 	canonicalFacts := make(map[string]interface{})

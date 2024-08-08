@@ -6,6 +6,10 @@ import (
 
 func sanitizeCanonicalFacts(cf interface{}) interface{} {
 
+	if cf == nil {
+		return make(map[string]interface{})
+	}
+
 	canonicalFacts := cf.(map[string]interface{})
 	sanitizedCanonicalFacts := make(map[string]interface{})
 
