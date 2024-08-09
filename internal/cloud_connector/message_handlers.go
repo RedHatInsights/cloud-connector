@@ -125,11 +125,11 @@ func handleOnlineMessage(logger *logrus.Entry, client MQTT.Client, clientID doma
 
 	identity, account, orgID, err := accountResolver.MapClientIdToAccountId(context.Background(), clientID)
 	if err != nil {
-		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to resolve client id to account number")
+		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to resolve client id to account number.")
+		logger.Info("Allowing tenant-less connection to continue with connection registration.")
 
-		mqtt.SendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, cfg.MqttPublishTimeout, clientID, cfg.InvalidHandshakeReconnectDelay)
-
-		return nil
+		// Allow a tenant-less connection to continue to get registered
+		// We will attempt to fix this situation later
 	}
 
 	logger = logger.WithFields(logrus.Fields{"account": account, "org_id": orgID})
