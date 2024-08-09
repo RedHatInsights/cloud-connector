@@ -88,6 +88,10 @@ func TestSqlConnectionRegistrar(t *testing.T) {
 	}
 }
 
+func TestSqlConnectionRegistrarUpdateTenantlessConnection(t *testing.T) {
+	t.Fatal("Implement this test!!", nil)
+}
+
 func verifyConnectorClientState(t *testing.T, expectedClientState, actualClientState domain.ConnectorClientState) {
 	if expectedClientState.Account != actualClientState.Account ||
 		expectedClientState.OrgID != actualClientState.OrgID ||
