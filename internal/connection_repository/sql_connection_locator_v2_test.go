@@ -49,8 +49,9 @@ func TestSqlConnectionLocatorV2StrictImplementation(t *testing.T) {
 		connectionLocatorV2TestCaseData{"with " + satelliteWorker + " dispatchers", "888881", "888888", "sql-locator-v2-strict-test-client-4", "{\"" + satelliteWorker + "\": {\"version\": \"0.2\"}}", "different_should_miss_too", NotFoundError},
 		connectionLocatorV2TestCaseData{"with no account", "", "999992", "sql-locator-v2-strict-test-client-5", "{}", "9999", NotFoundError},                                                                                             // anemic tenant
 		connectionLocatorV2TestCaseData{"with no account or org-id", "", "", "sql-locator-v2-strict-test-client-6", "{}", "9999", NotFoundError},                                                                                         // ghost connection
-		connectionLocatorV2TestCaseData{"with no account with " + satelliteWorker + " dispatchers", "", "999992", "sql-locator-v2-strict-test-client-5", "{\"" + satelliteWorker + "\": {\"version\": \"0.2\"}}", "9999", NotFoundError}, // anemic tenant
-		connectionLocatorV2TestCaseData{"with no account or org-id " + satelliteWorker + " dispatchers", "", "", "sql-locator-v2-strict-test-client-6", "{\"" + satelliteWorker + "\": {\"version\": \"0.2\"}}", "9999", NotFoundError},  // ghost connection
+		connectionLocatorV2TestCaseData{"with no account with " + satelliteWorker + " dispatchers", "", "999992", "sql-locator-v2-strict-test-client-7", "{\"" + satelliteWorker + "\": {\"version\": \"0.2\"}}", "9999", NotFoundError}, // anemic tenant
+		connectionLocatorV2TestCaseData{"with no account or org-id " + satelliteWorker + " dispatchers", "", "", "sql-locator-v2-strict-test-client-8", "{\"" + satelliteWorker + "\": {\"version\": \"0.2\"}}", "9999", NotFoundError},  // ghost connection
+		connectionLocatorV2TestCaseData{"with empty requested org-id", "99999", "99999", "sql-locator-v2-strict-test-client-9", "{\"" + satelliteWorker + "\": {\"version\": \"0.2\"}}", "", InvalidOrgIDError},
 	}
 
 	for _, tc := range testCases {
@@ -72,14 +73,15 @@ func TestSqlConnectionLocatorV2RelaxedImplementation(t *testing.T) {
 	getConnectionByClientID, err := NewPermittedTenantSqlGetConnectionByClientID(cfg, database)
 
 	testCases := []connectionLocatorV2TestCaseData{
-		connectionLocatorV2TestCaseData{"with no dispatchers", "999991", "999999", "sql-locator-v2-test-client-1", "{}", "999991", nil},
-		connectionLocatorV2TestCaseData{"with satellite dispatchers", "888881", "888888", "sql-locator-v2-test-client-2", "{\"satellite\": {\"version\": \"0.2\"}}", "888881", nil},
-		connectionLocatorV2TestCaseData{"with satellite dispatchers", "888881", "888888", "sql-locator-v2-test-client-3", "{\"satellite\": {\"version\": \"0.2\"}}", "different_should_miss", NotFoundError},
-		connectionLocatorV2TestCaseData{"with " + satelliteWorker + " dispatchers", "888881", "888888", "sql-locator-v2-test-client-4", "{\"" + satelliteWorker + "\": {\"version\": \"0.2\"}}", "different_should_match", nil},
-		connectionLocatorV2TestCaseData{"with no account", "", "999992", "sql-locator-v2-test-client-5", "{}", "9999", NotFoundError},                                                                                             // anemic tenant
-		connectionLocatorV2TestCaseData{"with no account or org-id", "", "", "sql-locator-v2-test-client-6", "{}", "9999", NotFoundError},                                                                                         // ghost connection
-		connectionLocatorV2TestCaseData{"with no account with " + satelliteWorker + " dispatchers", "", "999992", "sql-locator-v2-test-client-5", "{\"" + satelliteWorker + "\": {\"version\": \"0.2\"}}", "9999", NotFoundError}, // anemic tenant
-		connectionLocatorV2TestCaseData{"with no account or org-id " + satelliteWorker + " dispatchers", "", "", "sql-locator-v2-test-client-6", "{\"" + satelliteWorker + "\": {\"version\": \"0.2\"}}", "9999", NotFoundError},  // ghost connection
+		connectionLocatorV2TestCaseData{"with no dispatchers", "999991", "999999", "sql-locator-v2-relaxed-test-client-1", "{}", "999991", nil},
+		connectionLocatorV2TestCaseData{"with satellite dispatchers", "888881", "888888", "sql-locator-v2-relaxed-test-client-2", "{\"satellite\": {\"version\": \"0.2\"}}", "888881", nil},
+		connectionLocatorV2TestCaseData{"with satellite dispatchers", "888881", "888888", "sql-locator-v2-relaxed-test-client-3", "{\"satellite\": {\"version\": \"0.2\"}}", "different_should_miss", NotFoundError},
+		connectionLocatorV2TestCaseData{"with " + satelliteWorker + " dispatchers", "888881", "888888", "sql-locator-v2-relaxed-test-client-4", "{\"" + satelliteWorker + "\": {\"version\": \"0.2\"}}", "different_should_match", nil},
+		connectionLocatorV2TestCaseData{"with no account", "", "999992", "sql-locator-v2-relaxed-test-client-5", "{}", "9999", NotFoundError},                                                                                             // anemic tenant
+		connectionLocatorV2TestCaseData{"with no account or org-id", "", "", "sql-locator-v2-relaxed-test-client-6", "{}", "9999", NotFoundError},                                                                                         // ghost connection
+		connectionLocatorV2TestCaseData{"with no account with " + satelliteWorker + " dispatchers", "", "999992", "sql-locator-v2-relaxed-test-client-7", "{\"" + satelliteWorker + "\": {\"version\": \"0.2\"}}", "9999", NotFoundError}, // anemic tenant
+		connectionLocatorV2TestCaseData{"with no account or org-id " + satelliteWorker + " dispatchers", "", "", "sql-locator-v2-relaxed-test-client-8", "{\"" + satelliteWorker + "\": {\"version\": \"0.2\"}}", "9999", NotFoundError},  // ghost connection
+		connectionLocatorV2TestCaseData{"with empty requested org-id", "99999", "99999", "sql-locator-v2-relaxed-test-client-9", "{\"" + satelliteWorker + "\": {\"version\": \"0.2\"}}", "", InvalidOrgIDError},
 	}
 
 	for _, tc := range testCases {
@@ -122,7 +124,7 @@ func runSqlConnectionLocatorV2Test(t *testing.T, tc connectionLocatorV2TestCaseD
 		t.Fatal("unexpected error while looking up a connection", err)
 	}
 
-	if err != NotFoundError {
+	if err != NotFoundError && err != InvalidOrgIDError {
 		verifyConnectorClientState(t, connectorClientState, actualClientState)
 	}
 
