@@ -15,8 +15,8 @@ import (
 const (
 	satelliteWorker              = "foreman_rh_cloud"
 	connectionQueryPrefix        = "SELECT  account, org_id, dispatchers, canonical_facts, tags FROM connections "
-	strictConnectionLookupQuery  = connectionQueryPrefix + "WHERE org_id = $1 AND client_id = $2"
-	relaxedConnectionLookupQuery = connectionQueryPrefix + "WHERE (org_id = $1 OR dispatchers ? '" + satelliteWorker + "') AND org_id != '' AND client_id = $2"
+	strictConnectionLookupQuery  = connectionQueryPrefix + "WHERE org_id = $1 AND client_id = $2 AND org_id != '' "
+	relaxedConnectionLookupQuery = connectionQueryPrefix + "WHERE (org_id = $1 OR dispatchers ? '" + satelliteWorker + "') AND org_id != '' AND client_id = $2 "
 )
 
 func NewSqlGetConnectionByClientID(cfg *config.Config, database *sql.DB) (GetConnectionByClientID, error) {
