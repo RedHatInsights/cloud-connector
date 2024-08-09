@@ -15,8 +15,8 @@ import (
 const (
 	satelliteWorker              = "foreman_rh_cloud"
 	connectionQueryPrefix        = "SELECT  account, org_id, dispatchers, canonical_facts, tags FROM connections "
-	strictConnectionLookupQuery  = connectionQueryPrefix + "WHERE org_id = $1 AND client_id = $2"
-	relaxedConnectionLookupQuery = connectionQueryPrefix + "WHERE (org_id = $1 OR dispatchers ? '" + satelliteWorker + "') AND client_id = $2"
+	strictConnectionLookupQuery  = connectionQueryPrefix + "WHERE org_id = $1 AND client_id = $2 AND org_id != '' "
+	relaxedConnectionLookupQuery = connectionQueryPrefix + "WHERE (org_id = $1 OR dispatchers ? '" + satelliteWorker + "') AND org_id != '' AND client_id = $2 "
 )
 
 func NewSqlGetConnectionByClientID(cfg *config.Config, database *sql.DB) (GetConnectionByClientID, error) {
@@ -124,6 +124,11 @@ func NewSqlGetConnectionsByOrgID(cfg *config.Config, database *sql.DB) (GetConne
 
 		var totalConnections int
 
+		err := verifyOrgId(orgId)
+		if err != nil {
+			return nil, 0, err
+		}
+
 		callDurationTimer := prometheus.NewTimer(metrics.sqlLookupConnectionsByAccountDuration)
 		defer callDurationTimer.ObserveDuration()
 
@@ -201,7 +206,7 @@ func NewGetAllConnections(cfg *config.Config, database *sql.DB) (GetAllConnectio
 
 		statement, err := database.Prepare(
 			`SELECT account, org_id, client_id, canonical_facts, dispatchers, tags, COUNT(*) OVER() FROM connections
-				ORDER BY account, client_id
+				ORDER BY org_id, client_id
 				OFFSET $1
 				LIMIT $2`)
 		if err != nil {
