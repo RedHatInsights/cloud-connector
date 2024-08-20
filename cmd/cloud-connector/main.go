@@ -57,6 +57,14 @@ func NewRootCommand() *cobra.Command {
 		},
 	}
 
+	var tenantlessConnectionUpdaterCmd = &cobra.Command{
+		Use:   "tenantless_connection_updater",
+		Short: "Run the tenantless connection updater",
+		Run: func(cmd *cobra.Command, args []string) {
+			startTenantlessConnectionUpdater()
+		},
+	}
+
 	var apiServerCmd = &cobra.Command{
 		Use:   "api_server",
 		Short: "Run the Cloud-Connector API Server",
@@ -83,6 +91,7 @@ func NewRootCommand() *cobra.Command {
 
 	rootCmd.AddCommand(mqttMessageConsumerCmd)
 	rootCmd.AddCommand(inventoryStaleTimestampeUpdaterCmd)
+	rootCmd.AddCommand(tenantlessConnectionUpdaterCmd)
 	rootCmd.AddCommand(apiServerCmd)
 	rootCmd.AddCommand(kafkaMessageConsumerCmd)
 	rootCmd.AddCommand(connectedAccountReportCmd)

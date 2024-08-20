@@ -42,5 +42,6 @@ type ConnectorClientState struct {
 	Dispatchers              Dispatchers
 	Tags                     Tags
 	MessageMetadata          MessageMetadata
+	TenantLookupTimestamp    time.Time
 	TenantLookupFailureCount int
 }

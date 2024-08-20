@@ -37,13 +37,20 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 	org_id := rhcClient.OrgID
 	client_id := rhcClient.ClientID
 
+	var tenantLookupTimestamp time.Time
+	if len(rhcClient.OrgID) == 0 {
+		tenantLookupTimestamp = time.Now()
+	}
+
+	// FIXME:  Update the count too??
+
 	ctx, cancel := context.WithTimeout(ctx, scm.queryTimeout)
 	defer cancel()
 
 	logger := logger.Log.WithFields(logrus.Fields{"account": account, "org_id": org_id, "client_id": client_id})
 
-	update := "UPDATE connections SET dispatchers=$1, tags = $2, updated_at = NOW(), message_id = $3, message_sent = $4, org_id = $5, account = $6 WHERE client_id=$7"
-	insert := "INSERT INTO connections (account, org_id, client_id, dispatchers, canonical_facts, tags, message_id, message_sent) SELECT $8, $9, $10, $11, $12, $13, $14, $15"
+	update := "UPDATE connections SET dispatchers=$1, tags = $2, updated_at = NOW(), message_id = $3, message_sent = $4, org_id = $5, account = $6, tenant_lookup_timestamp = $7 WHERE client_id=$8"
+	insert := "INSERT INTO connections (account, org_id, client_id, dispatchers, canonical_facts, tags, message_id, message_sent, tenant_lookup_timestamp) SELECT $9, $10, $11, $12, $13, $14, $15, $16, $17"
 
 	insertOrUpdate := fmt.Sprintf("WITH upsert AS (%s RETURNING *) %s WHERE NOT EXISTS (SELECT * FROM upsert)", update, insert)
 
@@ -72,7 +79,7 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 		return err
 	}
 
-	_, err = statement.ExecContext(ctx, dispatchersString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp, org_id, account, client_id, account, org_id, client_id, dispatchersString, canonicalFactsString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp)
+	_, err = statement.ExecContext(ctx, dispatchersString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp, org_id, account, tenantLookupTimestamp, client_id, account, org_id, client_id, dispatchersString, canonicalFactsString, tagsString, rhcClient.MessageMetadata.LatestMessageID, rhcClient.MessageMetadata.LatestTimestamp, tenantLookupTimestamp)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Insert/update failed")
 		return FatalError{err}

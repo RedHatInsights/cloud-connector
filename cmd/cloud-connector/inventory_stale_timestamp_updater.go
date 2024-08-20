@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
@@ -35,11 +34,6 @@ func startInventoryStaleTimestampUpdater() {
 	databaseConn, err := db.InitializeDatabaseConnection(cfg)
 	if err != nil {
 		logger.LogFatalError("Failed to connect to the database", err)
-	}
-
-	connectionRegistrar, err := connection_repository.NewSqlConnectionRegistrar(cfg, databaseConn)
-	if err != nil {
-		logger.LogFatalError("Failed to create connection registrar", err)
 	}
 
 	accountResolver, err := controller.NewAccountIdResolver(cfg.ClientIdToAccountIdImpl, cfg)
@@ -80,7 +74,7 @@ func startInventoryStaleTimestampUpdater() {
 	tooOldIfBeforeThisTime := calculateStaleCutoffTime(cfg.InventoryStaleTimestampOffset)
 	chunkSize := cfg.InventoryStaleTimestampUpdaterChunkSize
 
-	logger.Log.Debug("Host's should be updated if their stale_timestamp is before ", tooOldIfBeforeThisTime)
+	logger.Log.Debug("Host's should be updated if their stale_timestamp is before ", tooOldIfBeforeThisTime.UTC())
 
 	connection_repository.ProcessStaleConnections(context.TODO(), databaseConn, sqlTimeout, tooOldIfBeforeThisTime, chunkSize,
 		func(ctx context.Context, rhcClient domain.ConnectorClientState) error {
@@ -89,12 +83,6 @@ func startInventoryStaleTimestampUpdater() {
 
 			log.Debug("Processing stale connection")
 
-			if rhcClient.TenantLookupFailureCount >= cfg.PurgeConnectionOnFailedTenantLookupCount {
-				logger.LogErrorWithAccountAndClientId("Tenant lookup failed for connection too many times.  Purging connection...", err, rhcClient.Account, rhcClient.OrgID, rhcClient.ClientID)
-				connectionRegistrar.Unregister(ctx, rhcClient.ClientID)
-				return fmt.Errorf("Tenant lookup failed to many times")
-			}
-
 			identity, _, _, err := accountResolver.MapClientIdToAccountId(context.Background(), rhcClient.ClientID)
 			if err != nil {
 
@@ -102,7 +90,7 @@ func startInventoryStaleTimestampUpdater() {
 
 				dberr := connection_repository.RecordFailedTenantLookup(ctx, databaseConn, sqlTimeout, rhcClient)
 				if dberr != nil {
-					logger.LogErrorWithAccountAndClientId("Unable to record failed tenant lookup for connection", err, rhcClient.Account, rhcClient.OrgID, rhcClient.ClientID)
+					logger.LogErrorWithAccountAndClientId("Unable to record failed tenant lookup for connection", dberr, rhcClient.Account, rhcClient.OrgID, rhcClient.ClientID)
 				}
 
 				return err
