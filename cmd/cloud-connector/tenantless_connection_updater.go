@@ -45,7 +45,7 @@ func startTenantlessConnectionUpdater() {
 
 			log.Debug("Processing tenantless connection")
 
-			_, account, orgId, err := accountResolver.MapClientIdToAccountId(context.Background(), rhcClient.ClientID)
+			_, account, orgId, err := accountResolver.MapClientIdToAccountId(ctx, rhcClient.ClientID)
 			if err != nil {
 
 				if rhcClient.TenantLookupFailureCount > 2 { // FIXME: Make count configurable
