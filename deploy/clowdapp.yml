@@ -393,6 +393,8 @@ objects:
           value: ${{CLIENT_ID_TO_ACCOUNT_ID_IMPL}}
         - name: CLOUD_CONNECTOR_AUTH_GATEWAY_URL
           value: ${{AUTH_GATEWAY_URL}}
+        - name: CLOUD_CONNECTOR_AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT
+          value: ${{AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT}}
         - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE
           value: "/tmp/cloud-connector-config/client_id_to_account_id_map.json"
         - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CACHE_SIZE
@@ -475,6 +477,9 @@ objects:
             value: ${{CLIENT_ID_TO_ACCOUNT_ID_IMPL}}
           - name: CLOUD_CONNECTOR_AUTH_GATEWAY_URL
             value: ${{AUTH_GATEWAY_URL}}
+          - name: CLOUD_CONNECTOR_AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT
+            value: ${{AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT}}
+
           - name: CLOUD_CONNECTOR_CLIENT_ID_TO_ACCOUNT_ID_CONFIG_FILE
             value: "/tmp/cloud-connector-config/client_id_to_account_id_map.json"
 
@@ -696,6 +701,9 @@ parameters:
 
 - name: AUTH_GATEWAY_URL
   value: "fake"
+  required: true
+- name: AUTH_GATEWAY_HTTP_CLIENT_TIMEOUT
+  value: "5"
   required: true
 
 - name: SOURCES_RECORDER_IMPL
