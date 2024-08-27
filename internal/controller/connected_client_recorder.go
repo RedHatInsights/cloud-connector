@@ -133,7 +133,7 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 		"org_id":    rhcClient.OrgID,
 		"client_id": rhcClient.ClientID})
 
-	if shouldHostBeRegisteredWithInventory(rhcClient) == false {
+	if shouldHostBeRegisteredWithInventory(rhcClient, identity) == false {
 		logger.Debug("Skipping inventory registration")
 		return nil
 	}
@@ -152,7 +152,12 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 	var systemProfile = map[string]string{"rhc_client_id": string(rhcClient.ClientID)}
 	hostData["system_profile"] = systemProfile
 
-	certAuth, _ := identity_utils.AuthenticatedWithCertificate(identity)
+	certAuth, err := identity_utils.AuthenticatedWithCertificate(identity)
+	if err != nil {
+		logger.WithFields(logrus.Fields{"error": err}).Error("Unable to determine authentication type. Skipping inventory registration")
+		return nil
+	}
+
 	if certAuth == true {
 		logger.Debug("Adding the owner_id to the inventory message")
 		systemProfile["owner_id"] = string(rhcClient.ClientID)
@@ -189,11 +194,16 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 	return nil
 }
 
-func shouldHostBeRegisteredWithInventory(connectorClient domain.ConnectorClientState) bool {
-	return doesHostHaveCanonicalFacts(connectorClient) &&
+func shouldHostBeRegisteredWithInventory(connectorClient domain.ConnectorClientState, identity domain.Identity) bool {
+	return isIdentityValid(identity) &&
+		doesHostHaveCanonicalFacts(connectorClient) &&
 		(doesHostHaveDispatcher(connectorClient, playbookWorkerDispatcherKey) ||
 			doesHostHaveDispatcher(connectorClient, packageManagerDispatcherKey) ||
 			doesHostHaveDispatcher(connectorClient, convert2RhelWorkerDispatcherKey))
+}
+
+func isIdentityValid(identity domain.Identity) bool {
+	return len(identity) > 0
 }
 
 func doesHostHaveCanonicalFacts(connectorClient domain.ConnectorClientState) bool {
