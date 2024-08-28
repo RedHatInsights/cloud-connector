@@ -110,35 +110,3 @@ func RecordSuccessfulTenantLookup(ctx context.Context, databaseConn *sql.DB, sql
 	log.Debug("rowsAffected:", rowsAffected)
 	return nil
 }
-
-func RecordMaximumTenantLookupFailures(ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, rhcClient domain.ConnectorClientState) error {
-
-	log := logger.Log.WithFields(logrus.Fields{"account": rhcClient.Account, "org_id": rhcClient.OrgID, "client_id": rhcClient.ClientID})
-
-	log.Debug("Recording successful tenant lookup")
-
-	ctx, cancel := context.WithTimeout(ctx, sqlTimeout)
-	defer cancel()
-
-	update := "UPDATE connections SET org_id = $1, account = $2, tenant_lookup_timestamp = null WHERE client_id=$2"
-
-	statement, err := databaseConn.Prepare(update)
-	if err != nil {
-		return err
-	}
-	defer statement.Close()
-
-	results, err := statement.ExecContext(ctx, rhcClient.OrgID, rhcClient.Account, rhcClient.ClientID)
-	if err != nil {
-		return err
-	}
-
-	rowsAffected, err := results.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	log.Debug("rowsAffected:", rowsAffected)
-
-	return nil
-}

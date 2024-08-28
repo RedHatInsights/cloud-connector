@@ -47,16 +47,6 @@ func startTenantlessConnectionUpdater() {
 
 			_, account, orgId, err := accountResolver.MapClientIdToAccountId(ctx, rhcClient.ClientID)
 			if err != nil {
-
-				if rhcClient.TenantLookupFailureCount > 2 { // FIXME: Make count configurable
-
-					dberr := connection_repository.RecordMaximumTenantLookupFailures(ctx, databaseConn, sqlTimeout, rhcClient)
-					if dberr != nil {
-						logger.LogErrorWithAccountAndClientId("Unable to record failed tenant lookup for connection", dberr, rhcClient.Account, rhcClient.OrgID, rhcClient.ClientID)
-					}
-					return nil
-				}
-
 				logger.LogErrorWithAccountAndClientId("Unable to retrieve identity for connection", err, rhcClient.Account, rhcClient.OrgID, rhcClient.ClientID)
 				dberr := connection_repository.RecordFailedTenantLookup(ctx, databaseConn, sqlTimeout, rhcClient)
 				if dberr != nil {
