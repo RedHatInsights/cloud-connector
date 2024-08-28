@@ -80,13 +80,13 @@ TESTS
      - should not change stale timestamp (VERIFIED)
      - should send inventory message (VERIFIED)
      - should set tenant_failure_lookup_count to zero (VERIFIED)
-     - should set tenant_lookup_timestamp to null
+     - should set tenant_lookup_timestamp to null (VERIFIED)
 
 
 - tenantless updater 
   - should ignore tenantless connections that have a tenant_failure_lookup_count > X (VERIFIED)
 
-  - should ignore connections with tenant
+  - should ignore connections with tenant (VERIFIED)
 
   - processes tenantless connection and DOES NOT find tenant
     - should not change stale timestamp (VERIFIED)
