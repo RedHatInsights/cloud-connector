@@ -32,13 +32,13 @@ func startTenantlessConnectionUpdater() {
 	}
 
 	sqlTimeout := cfg.ConnectionDatabaseQueryTimeout
-	// FIXME
-	tooOldIfBeforeThisTime := time.Now().Add(-1 * (30 * time.Minute))
-	chunkSize := cfg.InventoryStaleTimestampUpdaterChunkSize
+	tooOldIfBeforeThisTime := time.Now().Add(-1 * (cfg.TenantlessConnectionTimestampOffset * time.Minute))
+	chunkSize := cfg.TenantlessConnectionUpdaterChunkSize
+	maxTenantLookupFailures := cfg.TenantlessConnectionMaxLookupFailures
 
 	logger.Log.Debug("Host's should be updated if their tenant_lookup_timestamp is before ", tooOldIfBeforeThisTime.UTC())
 
-	connection_repository.ProcessTenantlessConnections(context.TODO(), databaseConn, sqlTimeout, tooOldIfBeforeThisTime, chunkSize,
+	connection_repository.ProcessTenantlessConnections(context.TODO(), databaseConn, sqlTimeout, tooOldIfBeforeThisTime, chunkSize, maxTenantLookupFailures,
 		func(ctx context.Context, rhcClient domain.ConnectorClientState) error {
 
 			log := logger.Log.WithFields(logrus.Fields{"client_id": rhcClient.ClientID, "account": rhcClient.Account, "org_id": rhcClient.OrgID})

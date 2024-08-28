@@ -98,6 +98,9 @@ const (
 	TENANT_TRANSLATOR_URL                          = "Tenant_Translator_URL"
 	TENANT_TRANSLATOR_TIMEOUT                      = "Tenant_Translator_Timeout"
 	PURGE_CONNECTION_ON_FAILED_TENANT_LOOKUP_COUNT = "Purge_Connection_On_Failed_Tenant_Lookup_Count"
+	TENANTLESS_CONNECTION_TIMESTAMP_OFFSET         = "Tenantless_Connection_Timestamp_Offset"
+	TENANTLESS_CONNECTION_UPDATER_CHUNK_SIZE       = "Tenantless_Connection_Updater_Chunk_Size"
+	TENANTLESS_CONNECTION_MAX_LOOKUP_FAILURES      = "Tenantless_Connection_Max_Lookup_Failures"
 )
 
 type Config struct {
@@ -185,6 +188,9 @@ type Config struct {
 	TenantTranslatorURL                      string
 	TenantTranslatorTimeout                  time.Duration
 	PurgeConnectionOnFailedTenantLookupCount int
+	TenantlessConnectionTimestampOffset      time.Duration
+	TenantlessConnectionUpdaterChunkSize     int
+	TenantlessConnectionMaxLookupFailures    int
 }
 
 func (c Config) String() string {
@@ -263,6 +269,9 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", TENANT_TRANSLATOR_TIMEOUT, c.TenantTranslatorTimeout)
 	fmt.Fprintf(&b, "%s: %s\n", PROMETHEUS_PUSH_GATEWAY, c.PrometheusPushGateway)
 	fmt.Fprintf(&b, "%s: %d\n", PURGE_CONNECTION_ON_FAILED_TENANT_LOOKUP_COUNT, c.PurgeConnectionOnFailedTenantLookupCount)
+	fmt.Fprintf(&b, "%s: %s\n", TENANTLESS_CONNECTION_TIMESTAMP_OFFSET, c.TenantlessConnectionTimestampOffset)
+	fmt.Fprintf(&b, "%s: %d\n", TENANTLESS_CONNECTION_UPDATER_CHUNK_SIZE, c.TenantlessConnectionUpdaterChunkSize)
+	fmt.Fprintf(&b, "%s: %d\n", TENANTLESS_CONNECTION_MAX_LOOKUP_FAILURES, c.TenantlessConnectionMaxLookupFailures)
 
 	return b.String()
 }
@@ -342,6 +351,9 @@ func GetConfig() *Config {
 	options.SetDefault(TENANT_TRANSLATOR_TIMEOUT, 5)
 	options.SetDefault(PROMETHEUS_PUSH_GATEWAY, "prometheus-push.insights-push-stage.svc.cluster.local:9091")
 	options.SetDefault(PURGE_CONNECTION_ON_FAILED_TENANT_LOOKUP_COUNT, 6*24) // Check runs every 10min ...wait 24 hours before purging a bad connection
+	options.SetDefault(TENANTLESS_CONNECTION_TIMESTAMP_OFFSET, 30)
+	options.SetDefault(TENANTLESS_CONNECTION_UPDATER_CHUNK_SIZE, 100)
+	options.SetDefault(TENANTLESS_CONNECTION_MAX_LOOKUP_FAILURES, 10)
 	options.SetEnvPrefix(ENV_PREFIX)
 	options.AutomaticEnv()
 
@@ -429,6 +441,9 @@ func GetConfig() *Config {
 		TenantTranslatorURL:                      options.GetString(TENANT_TRANSLATOR_URL),
 		TenantTranslatorTimeout:                  options.GetDuration(TENANT_TRANSLATOR_TIMEOUT) * time.Second,
 		PurgeConnectionOnFailedTenantLookupCount: options.GetInt(PURGE_CONNECTION_ON_FAILED_TENANT_LOOKUP_COUNT),
+		TenantlessConnectionTimestampOffset:      options.GetDuration(TENANTLESS_CONNECTION_TIMESTAMP_OFFSET) * time.Minute,
+		TenantlessConnectionUpdaterChunkSize:     options.GetInt(TENANTLESS_CONNECTION_UPDATER_CHUNK_SIZE),
+		TenantlessConnectionMaxLookupFailures:    options.GetInt(TENANTLESS_CONNECTION_MAX_LOOKUP_FAILURES),
 	}
 
 	if clowder.IsClowderEnabled() {

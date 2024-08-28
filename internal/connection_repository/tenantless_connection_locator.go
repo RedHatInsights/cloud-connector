@@ -11,10 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ProcessTenantlessConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, staleTimeCutoff time.Time, chunkSize int, processConnection ConnectionProcessor) error {
-
-	// FIXME: :w
-	maxTenantLookupFailures := 4
+func ProcessTenantlessConnections(ctx context.Context, databaseConn *sql.DB, sqlTimeout time.Duration, staleTimeCutoff time.Time, chunkSize int, maxTenantLookupFailures int, processConnection ConnectionProcessor) error {
 
 	queryCtx, cancel := context.WithTimeout(ctx, sqlTimeout)
 	defer cancel()
