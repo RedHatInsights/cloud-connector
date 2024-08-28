@@ -69,14 +69,24 @@ TESTS
 
 - stale updater
   - should not process tenantless connections (VERIFIED)
+
   - processes connection and DOES NOT find tenant
      - should clear org_id and account (VERIFIED)
      - should not change stale timestamp (VERIFIED)
      - should set tenant_failure_lookup_count (VERIFIED)
      - should set tenant_lookup_timestamp to NOW() (VERIFIED)
 
+  - processes connection and DOES find tenant
+     - should not change stale timestamp (VERIFIED)
+     - should send inventory message (VERIFIED)
+     - should set tenant_failure_lookup_count to zero (VERIFIED)
+     - should set tenant_lookup_timestamp to null
+
+
 - tenantless updater 
   - should ignore tenantless connections that have a tenant_failure_lookup_count > X (VERIFIED)
+
+  - should ignore connections with tenant
 
   - processes tenantless connection and DOES NOT find tenant
     - should not change stale timestamp (VERIFIED)

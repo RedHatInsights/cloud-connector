@@ -87,7 +87,7 @@ func RecordUpdatedStaleTimestamp(ctx context.Context, databaseConn *sql.DB, sqlT
 	ctx, cancel := context.WithTimeout(ctx, sqlTimeout)
 	defer cancel()
 
-	update := "UPDATE connections SET stale_timestamp = NOW(), tenant_lookup_timestamp = NOW(), tenant_lookup_failure_count = 0 WHERE org_id=$1 AND client_id=$2"
+	update := "UPDATE connections SET stale_timestamp = NOW(), tenant_lookup_timestamp = null, tenant_lookup_failure_count = 0 WHERE org_id=$1 AND client_id=$2"
 
 	statement, err := databaseConn.Prepare(update)
 	if err != nil {
