@@ -1,0 +1,92 @@
+ISSUE:
+- we have clients that ignore the delay parameter that is part of the reconnect message
+
+- allow them to connect and stay connected
+  - remove them from the database
+  - or just ignore them
+
+- how do I know when to stop processing the tenantless connections?
+- how do I know when to process the tenantless connections?
+
+
+LOGIC FLOW:
+
+- online message processor
+    - when receiving a online status message
+      - if its tenantless 
+        - record in the database
+          - set org_id, account to ""
+          - set tenantless_timestamp to current time
+          - set tenantless_retry_timestamp to current time + offset (2h??)
+
+- offline message processor
+    - when receiving an offline status message
+      - remove connection from database
+
+
+- stale processor
+  - when unable to lookup tenant
+    - record in the database
+      - set org_id, account to ""
+      - set tenantless_timestamp to current time
+      - set tenantless_retry_timestamp to current time + offset (2h??)
+
+
+- tenantless processor
+    - lookup a chunk of connections / hosts that need their tenantless timestamp updated
+      - look for connections that have account / org-id set to ""
+      - return list of account, client_id, CF
+        - order by oldest
+      - if the db is down...fail
+
+    - for each host
+      - retreive identity using cert / account lookup
+        - if we tried too many times
+          - 
+        - if tenant lookup succeeds
+          - update record in database to record account/org-id
+        - if account lookup fails
+          - increment count of failures
+          - set tenantless_retry_timestamp to current time + offset
+
+
+MIGRATION:
+- set the initial tenant lookup timestamp to null
+- set the initial tenant lookup count to zero
+
+
+TESTS
+- kafka consumer
+  - tenantless connections can get inserted
+    - validate tenantless timestamp is set to NOW()
+    - validate tenantless count is incremented
+      - don't worry about changing the count in the connection registrar...just stitch it up in the updater
+    - validate message is not sent to inventory
+
+  - update tenantless connection
+
+  - update tenant connection with tenantless info
+
+- stale updater
+  - should not process tenantless connections (VERIFIED)
+  - processes connection and DOES NOT find tenant
+     - should clear org_id and account (VERIFIED)
+     - should not change stale timestamp (VERIFIED)
+     - should set tenant_failure_lookup_count (VERIFIED)
+     - should set tenant_lookup_timestamp to NOW() (VERIFIED)
+
+- tenantless updater 
+  - should ignore tenantless connections that have a tenant_failure_lookup_count > X (VERIFIED)
+
+  - processes tenantless connection and DOES NOT find tenant
+    - should not change stale timestamp (VERIFIED)
+    - should increment tenant_failure_lookup_count (VERIFIED)
+    - should set tenant_lookup_timestamp to NOW() (VERIFIED)
+
+  - processes tenantless connection and DOES find tenant
+    - should record newly found tenant
+      - should set org_id and account (VERIFIED)
+      - should set tenant_lookup_failure_count to zero (VERIFIED)
+      - should set tenant_timestamp to null (VERIFIED)
+
+- connection lookup should not find tenantless connections
