@@ -22,6 +22,7 @@ func ProcessTenantlessConnections(ctx context.Context, databaseConn *sql.DB, sql
 	statement, err := databaseConn.Prepare(
 		`SELECT account, org_id, client_id, canonical_facts, tags, dispatchers, tenant_lookup_timestamp, tenant_lookup_failure_count FROM connections
            WHERE org_id = '' AND
+             tenant_lookup_timestamp IS NOT NULL AND
              tenant_lookup_timestamp < $1 AND 
              tenant_lookup_failure_count < $2
              order by tenant_lookup_timestamp asc
