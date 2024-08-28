@@ -32,7 +32,7 @@ func startTenantlessConnectionUpdater() {
 	}
 
 	sqlTimeout := cfg.ConnectionDatabaseQueryTimeout
-	tooOldIfBeforeThisTime := time.Now().Add(-1 * (cfg.TenantlessConnectionTimestampOffset * time.Minute))
+	tooOldIfBeforeThisTime := time.Now().Add(-1 * cfg.TenantlessConnectionTimestampOffset)
 	chunkSize := cfg.TenantlessConnectionUpdaterChunkSize
 	maxTenantLookupFailures := cfg.TenantlessConnectionMaxLookupFailures
 
