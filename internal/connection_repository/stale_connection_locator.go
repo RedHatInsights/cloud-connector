@@ -125,7 +125,6 @@ func RecordFailedTenantLookup(ctx context.Context, databaseConn *sql.DB, sqlTime
 	}
 	defer statement.Close()
 
-	//results, err := statement.ExecContext(ctx, tenantLookupTimestamp, rhcClient.ClientID)
 	results, err := statement.ExecContext(ctx, rhcClient.ClientID)
 	if err != nil {
 		return err
