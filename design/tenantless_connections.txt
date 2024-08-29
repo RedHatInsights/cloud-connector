@@ -99,4 +99,4 @@ TESTS
       - should set tenant_lookup_failure_count to zero (VERIFIED)
       - should set tenant_timestamp to null (VERIFIED)
 
-- connection lookup should not find tenantless connections
+- connection lookup should not find tenantless connections (VERIFIED)
