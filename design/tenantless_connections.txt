@@ -56,6 +56,15 @@ MIGRATION:
 
 
 TESTS
+- migration
+  - validate that the migration adds the correct columns to the existing db records with the correct default values
+    - deploy to ephemeral using master
+    - create "rhc" connection using port-forwarding to mosquitto
+    - deploy to ephemeral using PR
+    - verify db migration runs
+      - check colums (default values)
+      - make sure tenantless connection updater doesn't pickup any records
+
 - kafka consumer
   - tenantless connections can get inserted
     - validate tenantless timestamp is set to NOW()
