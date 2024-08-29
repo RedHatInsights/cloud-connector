@@ -56,7 +56,7 @@ MIGRATION:
 
 
 TESTS
-- migration
+- migration - VERIFIED
   - validate that the migration adds the correct columns to the existing db records with the correct default values
     - deploy to ephemeral using master
     - create "rhc" connection using port-forwarding to mosquitto
