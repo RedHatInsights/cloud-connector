@@ -1,0 +1,33 @@
+---
+name: SQL Tests
+
+on:
+  - pull_request
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: insights
+          POSTGRES_PASSWORD: insights
+          POSTGRES_DB: cloud-connector
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    - name: Install Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.19.x
+    - name: Run Tests (including sql tests)
+      run: make test test-sql
