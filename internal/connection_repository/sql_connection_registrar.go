@@ -57,8 +57,6 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 	update := fmt.Sprintf("UPDATE connections SET dispatchers=$1, tags = $2, updated_at = NOW(), message_id = $3, message_sent = $4, org_id = $5, account = $6, tenant_lookup_timestamp = $7 %s WHERE client_id=$8", resetTenantLookupCountClause)
 	insert := "INSERT INTO connections (account, org_id, client_id, dispatchers, canonical_facts, tags, message_id, message_sent, tenant_lookup_timestamp) SELECT $9, $10, $11, $12, $13, $14, $15, $16, $17"
 
-	fmt.Println("update: ", update)
-
 	insertOrUpdate := fmt.Sprintf("WITH upsert AS (%s RETURNING *) %s WHERE NOT EXISTS (SELECT * FROM upsert)", update, insert)
 
 	statement, err := scm.database.Prepare(insertOrUpdate)
