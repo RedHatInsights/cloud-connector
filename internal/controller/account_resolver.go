@@ -73,8 +73,6 @@ func NewAccountIdResolver(accountIdResolverImpl string, cfg *config.Config) (Acc
 		logger.Log.Info("Using BOP account id resolver with caching")
 		wrappedResolver := &BOPAccountIdResolver{cfg}
 		return NewExpirableCachedAccountIdResolver(wrappedResolver, cfg.ClientIdToAccountIdCacheSize, cfg.ClientIdToAccountIdCacheValidRespTTL, cfg.ClientIdToAccountIdCacheErrorRespTTL)
-	case "errant":
-		return &ErrantAccountIdResolver{}, nil
 	default:
 		return nil, errors.New("Invalid AccountIdResolver impl requested")
 	}
@@ -297,11 +295,4 @@ type cachedResult struct {
 	orgID     domain.OrgID
 	timestamp time.Time
 	err       error
-}
-
-type ErrantAccountIdResolver struct {
-}
-
-func (this *ErrantAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, domain.OrgID, error) {
-	return "", "", "", fmt.Errorf("Ugh...not found!  Go away!")
 }
