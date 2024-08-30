@@ -66,15 +66,15 @@ TESTS
       - make sure tenantless connection updater doesn't pickup any records
 
 - kafka consumer
-  - tenantless connections can get inserted
+  - tenantless connections can get inserted (VERIFIED)
     - validate tenantless timestamp is set to NOW()
     - validate tenantless count is incremented
       - don't worry about changing the count in the connection registrar...just stitch it up in the updater
     - validate message is not sent to inventory
 
-  - update tenantless connection
+  - update tenantless connection with tenant info (VERIFIED)
 
-  - update tenant connection with tenantless info
+  - update tenant connection with tenantless info (VERIFIED)
 
 - stale updater
   - should not process tenantless connections (VERIFIED)
