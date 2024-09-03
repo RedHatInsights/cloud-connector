@@ -537,6 +537,8 @@ objects:
 
           - name: CLOUD_CONNECTOR_INVENTORY_TENANTLESS_CONNECTION_UPDATER_CHUNK_SIZE
             value: ${TENANTLESS_CONNECTION_UPDATER_CHUNK_SIZE}
+          - name: CLOUD_CONNECTOR_TENANTLESS_CONNECTION_MAX_LOOKUP_FAILURES
+            value: ${TENANTLESS_CONNECTION_MAX_LOOKUP_FAILURES}
 
         volumeMounts:
         - mountPath: /tmp/cloud-connector-config
@@ -817,3 +819,5 @@ parameters:
   value: "logstash"
 - name: TENANTLESS_CONNECTION_UPDATER_CHUNK_SIZE
   value: "100"
+- name: TENANTLESS_CONNECTION_MAX_LOOKUP_FAILURES
+  value: "30"

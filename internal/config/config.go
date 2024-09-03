@@ -353,7 +353,7 @@ func GetConfig() *Config {
 	options.SetDefault(PURGE_CONNECTION_ON_FAILED_TENANT_LOOKUP_COUNT, 6*24) // Check runs every 10min ...wait 24 hours before purging a bad connection
 	options.SetDefault(TENANTLESS_CONNECTION_TIMESTAMP_OFFSET, 30)
 	options.SetDefault(TENANTLESS_CONNECTION_UPDATER_CHUNK_SIZE, 100)
-	options.SetDefault(TENANTLESS_CONNECTION_MAX_LOOKUP_FAILURES, 10)
+	options.SetDefault(TENANTLESS_CONNECTION_MAX_LOOKUP_FAILURES, 30)
 	options.SetEnvPrefix(ENV_PREFIX)
 	options.AutomaticEnv()
 
