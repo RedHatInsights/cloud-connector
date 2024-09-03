@@ -37,11 +37,13 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 	org_id := rhcClient.OrgID
 	client_id := rhcClient.ClientID
 
+	logger := logger.Log.WithFields(logrus.Fields{"account": account, "org_id": org_id, "client_id": client_id})
+
 	var resetTenantLookupCountClause string
 	var tenantLookupTimestamp *time.Time
 
 	if isTenantlessConnection(rhcClient) {
-		fmt.Println("Registering tenantless connection")
+		logger.Debug("Registering tenantless connection")
 		timestamp := time.Now()
 		tenantLookupTimestamp = &timestamp
 	} else {
@@ -51,8 +53,6 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 
 	ctx, cancel := context.WithTimeout(ctx, scm.queryTimeout)
 	defer cancel()
-
-	logger := logger.Log.WithFields(logrus.Fields{"account": account, "org_id": org_id, "client_id": client_id})
 
 	update := fmt.Sprintf("UPDATE connections SET dispatchers=$1, tags = $2, updated_at = NOW(), message_id = $3, message_sent = $4, org_id = $5, account = $6, tenant_lookup_timestamp = $7 %s WHERE client_id=$8", resetTenantLookupCountClause)
 	insert := "INSERT INTO connections (account, org_id, client_id, dispatchers, canonical_facts, tags, message_id, message_sent, tenant_lookup_timestamp) SELECT $9, $10, $11, $12, $13, $14, $15, $16, $17"
