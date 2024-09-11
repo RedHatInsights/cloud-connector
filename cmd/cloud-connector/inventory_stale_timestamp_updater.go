@@ -74,7 +74,7 @@ func startInventoryStaleTimestampUpdater() {
 	tooOldIfBeforeThisTime := calculateStaleCutoffTime(cfg.InventoryStaleTimestampOffset)
 	chunkSize := cfg.InventoryStaleTimestampUpdaterChunkSize
 
-	logger.Log.Debug("Host's should be updated if their stale_timestamp is before ", tooOldIfBeforeThisTime)
+	logger.Log.Debug("Host's should be updated if their stale_timestamp is before ", tooOldIfBeforeThisTime.UTC())
 
 	connection_repository.ProcessStaleConnections(context.TODO(), databaseConn, sqlTimeout, tooOldIfBeforeThisTime, chunkSize,
 		func(ctx context.Context, rhcClient domain.ConnectorClientState) error {
@@ -85,8 +85,14 @@ func startInventoryStaleTimestampUpdater() {
 
 			identity, _, _, err := accountResolver.MapClientIdToAccountId(ctx, rhcClient.ClientID)
 			if err != nil {
-				// FIXME: Send disconnect here??  Need to determine the type of failure!
+
 				logger.LogErrorWithAccountAndClientId("Unable to retrieve identity for connection", err, rhcClient.Account, rhcClient.OrgID, rhcClient.ClientID)
+
+				dberr := connection_repository.RecordFailedTenantLookup(ctx, databaseConn, sqlTimeout, rhcClient)
+				if dberr != nil {
+					logger.LogErrorWithAccountAndClientId("Unable to record failed tenant lookup for connection", dberr, rhcClient.Account, rhcClient.OrgID, rhcClient.ClientID)
+				}
+
 				return err
 			}
 
@@ -96,7 +102,7 @@ func startInventoryStaleTimestampUpdater() {
 				return err
 			}
 
-			connection_repository.UpdateStaleTimestampInDB(ctx, databaseConn, sqlTimeout, rhcClient)
+			connection_repository.RecordUpdatedStaleTimestamp(ctx, databaseConn, sqlTimeout, rhcClient)
 
 			return nil
 		})

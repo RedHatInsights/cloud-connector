@@ -206,6 +206,7 @@ func NewGetAllConnections(cfg *config.Config, database *sql.DB) (GetAllConnectio
 
 		statement, err := database.Prepare(
 			`SELECT account, org_id, client_id, canonical_facts, dispatchers, tags, COUNT(*) OVER() FROM connections
+                WHERE org_id != ''
 				ORDER BY org_id, client_id
 				OFFSET $1
 				LIMIT $2`)
