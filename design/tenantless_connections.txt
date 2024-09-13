@@ -1,23 +1,33 @@
 ISSUE:
-- we have clients that ignore the delay parameter that is part of the reconnect message
+- clients exist in the wild that have a cert that is valid at the ssl/tls level, but the
+  cert no long belongs to a valid organization/account within Red Hat
+- cloud-connector looks up the org/account number for each cert
+   (the cert id and client-id are the same...this is part of the mqtt topic name)
+- if cloud-connector fails to resolve a cert id to an org/account, then cloud-connector sends a reconnect
+  message to the client with a delay of 60s
+  - there are clients in the wild that do not honor that delay...so that reconnect to the broker very quickly...driving up the load on the broker
+- it is also possible that the cert / org-id / account number lookup fails due to the lookup service being down
+  - we need to handle this case as well
 
-- allow them to connect and stay connected
-  - remove them from the database
-  - or just ignore them
 
-- how do I know when to stop processing the tenantless connections?
-- how do I know when to process the tenantless connections?
+APPROACH:
+- allow the "tenantless" client to connect and stay connected
+  - try to lookup the org-id/account number X number of times
+  - if the org-id/account number cannot be located after X number of times...simply ignore the connection
+- the "tenantless" connections should not be returned by the API
+
 
 
 LOGIC FLOW:
 
 - online message processor
     - when receiving a online status message
-      - if its tenantless 
-        - record in the database
+      - if its tenantless
+        - record connection in the database
           - set org_id, account to ""
-          - set tenantless_timestamp to current time
-          - set tenantless_retry_timestamp to current time + offset (2h??)
+          - set tenantless_lookup_timestamp to current time
+      - if connection has a tenant
+          - set tenant_lookup_failure_count to 0
 
 - offline message processor
     - when receiving an offline status message
@@ -28,26 +38,27 @@ LOGIC FLOW:
   - when unable to lookup tenant
     - record in the database
       - set org_id, account to ""
-      - set tenantless_timestamp to current time
-      - set tenantless_retry_timestamp to current time + offset (2h??)
+      - set tenantless_lookup_timestamp to current time
+      - increment tenantless_lookup_failure_count
 
 
 - tenantless processor
     - lookup a chunk of connections / hosts that need their tenantless timestamp updated
       - look for connections that have account / org-id set to ""
+      - ignore tenantless connections that have been tried over X times
       - return list of account, client_id, CF
         - order by oldest
       - if the db is down...fail
 
     - for each host
       - retreive identity using cert / account lookup
-        - if we tried too many times
-          - 
         - if tenant lookup succeeds
           - update record in database to record account/org-id
+          - set tenantless_lookup_timestamp to null
+          - set tenantless_lookup_failure_count to 0
         - if account lookup fails
           - increment count of failures
-          - set tenantless_retry_timestamp to current time + offset
+          - set tenantless_retry_timestamp to current time
 
 
 MIGRATION:
