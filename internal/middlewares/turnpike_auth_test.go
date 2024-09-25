@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
-	"github.com/redhatinsights/platform-go-middlewares/identity"
+	"github.com/redhatinsights/platform-go-middlewares/v2/identity"
 )
 
 func init() {

@@ -3,7 +3,7 @@ package middlewares
 import (
 	"context"
 
-	"github.com/redhatinsights/platform-go-middlewares/identity"
+	"github.com/redhatinsights/platform-go-middlewares/v2/identity"
 )
 
 // Principal interface can be implemented and expanded by various principal objects (type depends on middleware being used)
@@ -45,7 +45,7 @@ func (ip identityPrincipal) GetOrgID() string {
 func GetPrincipal(ctx context.Context) (Principal, bool) {
 	p, ok := ctx.Value(principalKey).(serviceToServicePrincipal)
 	if !ok {
-		id, ok := ctx.Value(identity.Key).(identity.XRHID)
+		id := identity.GetIdentity(ctx)
 		p := identityPrincipal{account: id.Identity.AccountNumber, orgID: id.Identity.OrgID}
 		return p, ok
 	}

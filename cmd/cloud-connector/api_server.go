@@ -22,7 +22,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/jwt_utils"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/tls_utils"
 	"github.com/RedHatInsights/tenant-utils/pkg/tenantid"
-	"github.com/redhatinsights/platform-go-middlewares/request_id"
+	"github.com/redhatinsights/platform-go-middlewares/v2/request_id"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gorilla/mux"

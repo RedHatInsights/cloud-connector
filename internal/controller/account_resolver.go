@@ -19,7 +19,7 @@ import (
 	"github.com/google/uuid"
 	expirable_lru "github.com/hashicorp/golang-lru/v2/expirable"
 
-	"github.com/redhatinsights/platform-go-middlewares/identity"
+	"github.com/redhatinsights/platform-go-middlewares/v2/identity"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
