@@ -47,7 +47,7 @@ func GetPrincipal(ctx context.Context) (Principal, bool) {
 	if !ok {
 		id := identity.GetIdentity(ctx)
 
-		if id.Identity.OrgID == "" || id.Identity.AccountNumber == "" {
+		if id.Identity.OrgID == "" {
 			return nil, false
 		}
 
