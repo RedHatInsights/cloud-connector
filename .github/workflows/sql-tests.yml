@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:15
+        image: quay.io/cloudservices/postgresql-rds:15
         env:
           POSTGRES_USER: insights
           POSTGRES_PASSWORD: insights
