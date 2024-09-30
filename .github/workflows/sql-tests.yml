@@ -13,7 +13,7 @@ jobs:
         env:
           POSTGRESQL_USER: insights
           POSTGRESQL_PASSWORD: insights
-          POSTGRESQL_DB: cloud-connector
+          POSTGRESQL_DATABASE: cloud-connector
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
