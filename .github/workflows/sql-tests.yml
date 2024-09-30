@@ -11,9 +11,9 @@ jobs:
       postgres:
         image: quay.io/cloudservices/postgresql-rds:15
         env:
-          POSTGRES_USER: insights
-          POSTGRES_PASSWORD: insights
-          POSTGRES_DB: cloud-connector
+          POSTGRESQL_USER: insights
+          POSTGRESQL_PASSWORD: insights
+          POSTGRESQL_DB: cloud-connector
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
