@@ -6,5 +6,8 @@
     "client-1": {
         "accountId": "010102",
         "orgId": "10002"
+    },
+    "093306C3-E0A7-4345-9DA8-DBAE7A754AA9": {
+        "error": "This cert no longer belongs to a valig org id or account"
     }
 }
