@@ -14,7 +14,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/redhatinsights/platform-go-middlewares/logging/cloudwatch"
+	"github.com/redhatinsights/platform-go-middlewares/v2/logging/cloudwatch"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
@@ -23,7 +23,7 @@ import (
 var Log *logrus.Logger
 var logLevel logrus.Level
 var initializeLogger sync.Once
-var cloudWatchHook *cloudwatch.Hook
+var cloudWatchHook *cloudwatch.LogrusHook
 
 func buildFormatter(format string) logrus.Formatter {
 	switch strings.ToUpper(format) {
@@ -48,7 +48,7 @@ func NewCloudwatchFormatter() *CustomCloudwatch {
 	return f
 }
 
-//Format is the log formatter for the entry
+// Format is the log formatter for the entry
 func (f *CustomCloudwatch) Format(entry *logrus.Entry) ([]byte, error) {
 	b := &bytes.Buffer{}
 
@@ -152,7 +152,9 @@ func InitLogger() {
 				logLevel, group, stream, batchFrequency)
 			cred := credentials.NewStaticCredentials(key, secret, "")
 			awsconf := aws.NewConfig().WithRegion(region).WithCredentials(cred)
-			cloudWatchHook, err := cloudwatch.NewBatchingHook(group, stream, awsconf, batchFrequency)
+			batchwriter, err := cloudwatch.NewBatchWriterWithDuration(group, stream, awsconf, batchFrequency)
+			cloudWatchHook := cloudwatch.NewLogrusHook(batchwriter)
+
 			if err != nil {
 				Log.WithFields(logrus.Fields{"error": err}).Warn("Unable to configure CloudWatch hook")
 			}

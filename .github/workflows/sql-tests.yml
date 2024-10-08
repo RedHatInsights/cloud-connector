@@ -9,11 +9,11 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:15
+        image: quay.io/cloudservices/postgresql-rds:15
         env:
-          POSTGRES_USER: insights
-          POSTGRES_PASSWORD: insights
-          POSTGRES_DB: cloud-connector
+          POSTGRESQL_USER: insights
+          POSTGRESQL_PASSWORD: insights
+          POSTGRESQL_DATABASE: cloud-connector
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -28,6 +28,6 @@ jobs:
     - name: Install Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.19.x
+        go-version: 1.20.x
     - name: Run Tests (including sql tests)
       run: make test test-sql
