@@ -218,6 +218,11 @@ func processDispatchers(logger *logrus.Entry, sourcesRecorder controller.Sources
 	if gotDispatchers == false {
 		logger.Debug("No dispatchers found")
 		return
+	} else {
+		dispatchersMessage, dispatchersMarshalled := json.Marshal(dispatchers)
+		if dispatchersMarshalled == nil {
+			logger.Debugf("Dispatchers found: %s", dispatchersMessage)
+		}
 	}
 
 	dispatchersMap := dispatchers.(map[string]interface{})
