@@ -66,11 +66,11 @@ objects:
           timeoutSeconds: 1
         resources:
           limits:
-            cpu: ${CPU_LIMIT}
-            memory: ${MEMORY_LIMIT}
+            cpu: ${API_CPU_LIMIT}
+            memory: ${API_MEMORY_LIMIT}
           requests:
-            cpu: ${CPU_REQUEST}
-            memory: ${MEMORY_REQUEST}
+            cpu: ${API_CPU_REQUEST}
+            memory: ${API_MEMORY_REQUEST}
         volumeMounts:
         - mountPath: /tmp/jwt_keys
           name: volume-mqtt-jwt-keys
@@ -191,11 +191,11 @@ objects:
           timeoutSeconds: 1
         resources:
           limits:
-            cpu: ${CPU_LIMIT}
-            memory: ${MEMORY_LIMIT}
+            cpu: ${MQTT_CONSUMER_CPU_LIMIT}
+            memory: ${MQTT_CONSUMER_MEMORY_LIMIT}
           requests:
-            cpu: ${CPU_REQUEST}
-            memory: ${MEMORY_REQUEST}
+            cpu: ${MQTT_CONSUMER_CPU_REQUEST}
+            memory: ${MQTT_CONSUMER_MEMORY_REQUEST}
         volumeMounts:
         - mountPath: /tmp/jwt_keys
           name: volume-mqtt-jwt-keys
@@ -273,11 +273,11 @@ objects:
           name: cloud-connector-init
           resources:
             limits:
-              cpu: ${{CPU_LIMIT}}
-              memory: ${{MEMORY_LIMIT}}
+              cpu: ${{INIT_CONTAINERS_CPU_LIMIT}}
+              memory: ${{INIT_CONTAINERS_MEMORY_LIMIT}}
             requests:
-              cpu: 250m
-              memory: 256Mi
+              cpu: ${INIT_CONTAINERS_CPU_REQUEST}
+              memory: ${INIT_CONTAINERS_MEMORY_REQUEST}
 
 
     - name: kafka-message-consumer
@@ -318,11 +318,11 @@ objects:
           timeoutSeconds: 1
         resources:
           limits:
-            cpu: ${CPU_LIMIT}
-            memory: ${MEMORY_LIMIT}
+            cpu: ${KAFKA_CONSUMER_CPU_LIMIT}
+            memory: ${KAFKA_CONSUMER_MEMORY_LIMIT}
           requests:
-            cpu: ${CPU_REQUEST}
-            memory: ${MEMORY_REQUEST}
+            cpu: ${KAFKA_CONSUMER_CPU_REQUEST}
+            memory: ${KAFKA_CONSUMER_MEMORY_REQUEST}
         volumeMounts:
         - mountPath: /tmp/jwt_keys
           name: volume-mqtt-jwt-keys
@@ -451,11 +451,11 @@ objects:
         concurrencyPolicy: Forbid
         resources:
           limits:
-            cpu: 300m
-            memory: 1Gi
+            cpu: ${CONNECTION_PER_ACCOUNT_REPORTER_CPU_LIMIT}
+            memory: ${CONNECTION_PER_ACCOUNT_REPORTER_MEMORY_LIMIT}
           requests:
-            cpu: 50m
-            memory: 512Mi
+            cpu: ${CONNECTION_PER_ACCOUNT_REPORTER_CPU_REQUEST}
+            memory: ${CONNECTION_PER_ACCOUNT_REPORTER_MEMORY_REQUEST}
 
     - name: stale-timestamp-updater
       schedule: ${STALE_TIMESTAMP_UPDATER_SCHEDULE}
@@ -503,11 +503,11 @@ objects:
         concurrencyPolicy: Forbid
         resources:
           limits:
-            cpu: 300m
-            memory: 1Gi
+            cpu: ${STALE_TIMESTAMP_UPDATER_CPU_LIMIT}
+            memory: ${STALE_TIMESTAMP_UPDATER_MEMORY_LIMIT}
           requests:
-            cpu: 50m
-            memory: 512Mi
+            cpu: ${STALE_TIMESTAMP_UPDATER_CPU_REQUEST}
+            memory: ${STALE_TIMESTAMP_UPDATER_MEMORY_REQUEST}
 
     - name: tenantless-connection-updater
       schedule: ${TENANTLESS_CONNECTION_UPDATER_SCHEDULE}
@@ -551,11 +551,11 @@ objects:
         concurrencyPolicy: Forbid
         resources:
           limits:
-            cpu: 300m
-            memory: 1Gi
+            cpu: ${TENANTLESS_CONNECTION_UPDATER_CPU_LIMIT}
+            memory: ${TENANTLESS_CONNECTION_UPDATER_MEMORY_LIMIT}
           requests:
-            cpu: 50m
-            memory: 512Mi
+            cpu: ${TENANTLESS_CONNECTION_UPDATER_CPU_REQUEST}
+            memory: ${TENANTLESS_CONNECTION_UPDATER_MEMORY_REQUEST}
 
 
 - apiVersion: v1
@@ -640,24 +640,152 @@ objects:
 parameters:
 - description: Initial amount of memory the cloud-connector container will request.
   displayName: Memory Request
-  name: MEMORY_REQUEST
+  name: API_MEMORY_REQUEST
   required: true
   value: 256Mi
-- description: Maximum amount of memory the cloud-connector.
+- description: Maximum amount of memory the cloud-connector can use.
   displayName: Memory Limit
-  name: MEMORY_LIMIT
+  name: API_MEMORY_LIMIT
   required: true
   value: 512Mi
 - description: Initial amount of cpu the cloud-connector container will request.
   displayName: CPU Request
-  name: CPU_REQUEST
+  name: API_CPU_REQUEST
   required: true
   value: 200m
 - description: Maximum amount of cpu the cloud-connector container can use.
   displayName: CPU Limit
-  name: CPU_LIMIT
+  name: API_CPU_LIMIT
   required: true
   value: 500m
+
+- description: Initial amount of memory the mqtt-message-consumer container will request.
+  displayName: Memory Request
+  name: MQTT_CONSUMER_MEMORY_REQUEST
+  required: true
+  value: 256Mi
+- description: Maximum amount of memory the mqtt-message-consumer can use.
+  displayName: Memory Limit
+  name: MQTT_CONSUMER_MEMORY_LIMIT
+  required: true
+  value: 512Mi
+- description: Initial amount of cpu the mqtt-message-consumer container will request.
+  displayName: CPU Request
+  name: MQTT_CONSUMER_CPU_REQUEST
+  required: true
+  value: 200m
+- description: Maximum amount of cpu the mqtt-message-consumerr container can use.
+  displayName: CPU Limit
+  name: MQTT_CONSUMER_CPU_LIMIT
+  required: true
+  value: 500m
+
+- description: Initial amount of memory the init-containers will request.
+  displayName: Memory Request
+  name: INIT_CONTAINERS_MEMORY_REQUEST
+  required: true
+  value: 256Mi
+- description: Maximum amount of memory the init-containers can use.
+  displayName: Memory Limit
+  name: INIT_CONTAINERS_MEMORY_LIMIT
+  required: true
+  value: 512Mi
+- description: Initial amount of cpu the init-containers will request.
+  displayName: CPU Request
+  name: INIT_CONTAINERS_CPU_REQUEST
+  required: true
+  value: 250m
+- description: Maximum amount of cpu the init-containers can use.
+  displayName: CPU Limit
+  name: INIT_CONTAINERS_CPU_LIMIT
+  required: true
+  value: 500m
+
+- description: Initial amount of memory the kafka-consumer container will request.
+  displayName: Memory Request
+  name: KAFKA_CONSUMER_MEMORY_REQUEST
+  required: true
+  value: 256Mi
+- description: Maximum amount of memory the kafka-consumer can use.
+  displayName: Memory Limit
+  name: KAFKA_CONSUMER_MEMORY_LIMIT
+  required: true
+  value: 512Mi
+- description: Initial amount of cpu the kafka-consumer container will request.
+  displayName: CPU Request
+  name: KAFKA_CONSUMER_CPU_REQUEST
+  required: true
+  value: 200m
+- description: Maximum amount of cpu the kafka-consumer container can use.
+  displayName: CPU Limit
+  name: KAFKA_CONSUMER_CPU_LIMIT
+  required: true
+  value: 500m
+
+- description: Initial amount of memory the connection-reporter will request.
+  displayName: Memory Request
+  name: CONNECTION_PER_ACCOUNT_REPORTER_MEMORY_REQUEST
+  required: true
+  value: 512Mi
+- description: Maximum amount of memory the connection-reporter can use.
+  displayName: Memory Limit
+  name: CONNECTION_PER_ACCOUNT_REPORTER_MEMORY_LIMIT
+  required: true
+  value: 1Gi
+- description: Initial amount of cpu the connection-reporter will request.
+  displayName: CPU Request
+  name: CONNECTION_PER_ACCOUNT_REPORTER_CPU_REQUEST
+  required: true
+  value: 50m
+- description: Maximum amount of cpu the connection-reporter can use.
+  displayName: CPU Limit
+  name: CONNECTION_PER_ACCOUNT_REPORTER_CPU_LIMIT
+  required: true
+  value: 300m
+
+- description: Initial amount of memory the stale-updater will request.
+  displayName: Memory Request
+  name: STALE_TIMESTAMP_UPDATER_MEMORY_REQUEST
+  required: true
+  value: 512Mi
+- description: Maximum amount of memory the stale-updater can use.
+  displayName: Memory Limit
+  name: STALE_TIMESTAMP_UPDATER_MEMORY_LIMIT
+  required: true
+  value: 1Gi
+- description: Initial amount of cpu the stale-updater container will request.
+  displayName: CPU Request
+  name: STALE_TIMESTAMP_UPDATER_CPU_REQUEST
+  required: true
+  value: 50m
+- description: Maximum amount of cpu the stale-updater container can use.
+  displayName: CPU Limit
+  name: STALE_TIMESTAMP_UPDATER_CPU_LIMIT
+  required: true
+  value: 300m
+
+- description: Initial amount of memory the tenantless-updater will request.
+  displayName: Memory Request
+  name: TENANTLESS_CONNECTION_UPDATER_MEMORY_REQUEST
+  required: true
+  value: 512Mi
+- description: Maximum amount of memory the tenantless-updater can use.
+  displayName: Memory Limit
+  name: TENANTLESS_CONNECTION_UPDATER_MEMORY_LIMIT
+  required: true
+  value: 1Gi
+- description: Initial amount of cpu the tenantless-updater will request.
+  displayName: CPU Request
+  name: TENANTLESS_CONNECTION_UPDATER_CPU_REQUEST
+  required: true
+  value: 50m
+- description: Maximum amount of cpu the tenantless-updater can use.
+  displayName: CPU Limit
+  name: TENANTLESS_CONNECTION_UPDATER_CPU_LIMIT
+  required: true
+  value: 300m
+
+
 - description: The log level to use for logging
   displayName: The log level to use for logging
   name: LOG_LEVEL
