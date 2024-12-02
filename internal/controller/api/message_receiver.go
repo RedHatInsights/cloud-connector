@@ -12,8 +12,8 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/RedHatInsights/tenant-utils/pkg/tenantid"
-	"github.com/redhatinsights/platform-go-middlewares/identity"
-	"github.com/redhatinsights/platform-go-middlewares/request_id"
+	"github.com/redhatinsights/platform-go-middlewares/v2/identity"
+	"github.com/redhatinsights/platform-go-middlewares/v2/request_id"
 
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"

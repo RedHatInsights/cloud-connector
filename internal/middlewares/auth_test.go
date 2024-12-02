@@ -1,6 +1,7 @@
 package middlewares_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 
@@ -8,7 +9,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/RedHatInsights/cloud-connector/internal/middlewares"
-	"github.com/redhatinsights/platform-go-middlewares/identity"
+	l "github.com/RedHatInsights/cloud-connector/internal/platform/logger"
+	"github.com/redhatinsights/platform-go-middlewares/v2/identity"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -50,11 +53,14 @@ var _ = Describe("Auth", func() {
 		req *http.Request
 		amw *middlewares.AuthMiddleware
 	)
+	identityErrorLogFunc := func(ctx context.Context, rawId, msg string) {
+		l.Log.WithFields(logrus.Fields{"error": msg, "rawId": rawId}).Error("Failed to decode Identity header")
+	}
 
 	BeforeEach(func() {
 		knownSecrets := make(map[string]interface{})
 		knownSecrets["test_client_1"] = "12345"
-		amw = &middlewares.AuthMiddleware{Secrets: knownSecrets, IdentityAuth: identity.EnforceIdentity, RequiredTenantIdentifier: middlewares.Account}
+		amw = &middlewares.AuthMiddleware{Secrets: knownSecrets, IdentityAuth: identity.EnforceIdentityWithLogger(identityErrorLogFunc), RequiredTenantIdentifier: middlewares.Account}
 
 		r, err := http.NewRequest("GET", "/api/cloud-connector/v1/job", nil)
 		if err != nil {

@@ -19,7 +19,7 @@ import (
 	"github.com/google/uuid"
 	expirable_lru "github.com/hashicorp/golang-lru/v2/expirable"
 
-	"github.com/redhatinsights/platform-go-middlewares/identity"
+	"github.com/redhatinsights/platform-go-middlewares/v2/identity"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -155,6 +155,7 @@ type ConfigurableAccountIdResolver struct {
 	clientIdToAccountIdMap map[domain.ClientID]struct {
 		AccountId domain.AccountID `json:"accountId"`
 		OrgId     domain.OrgID     `json:"orgId"`
+		Error     string           `json:"error"`
 	}
 	defaultAccountId domain.AccountID
 	defaultOrgId     domain.OrgID
@@ -221,9 +222,14 @@ func (bar *ConfigurableAccountIdResolver) createIdentityHeader(account domain.Ac
 }
 
 func (bar *ConfigurableAccountIdResolver) MapClientIdToAccountId(ctx context.Context, clientID domain.ClientID) (domain.Identity, domain.AccountID, domain.OrgID, error) {
+	account, ok := bar.clientIdToAccountIdMap[clientID]
 
-	if account, ok := bar.clientIdToAccountIdMap[clientID]; ok == true {
+	if ok && account.OrgId.String() != "" {
 		return bar.createIdentityHeader(account.AccountId, account.OrgId), account.AccountId, account.OrgId, nil
+	}
+
+	if ok && account.Error != "" {
+		return "", "", "", errors.New(account.Error)
 	}
 
 	return bar.createIdentityHeader(bar.defaultAccountId, bar.defaultOrgId), bar.defaultAccountId, bar.defaultOrgId, nil
