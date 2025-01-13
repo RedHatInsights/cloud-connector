@@ -98,13 +98,14 @@ type InventoryBasedConnectedClientRecorder struct {
 	ReporterName         string
 }
 
-type InventoryMessageProducer func(ctx context.Context, log *logrus.Entry, msg []byte) error
+type InventoryMessageProducer func(ctx context.Context, log *logrus.Entry, key []byte, msg []byte) error
 
 func BuildInventoryMessageProducer(kafkaWriter *kafka.Writer) InventoryMessageProducer {
-	return func(ctx context.Context, log *logrus.Entry, msg []byte) error {
+	return func(ctx context.Context, log *logrus.Entry, key []byte, msg []byte) error {
 
 		err := kafkaWriter.WriteMessages(ctx,
 			kafka.Message{
+				Key:   key,
 				Value: msg,
 			})
 
@@ -186,7 +187,7 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 
 	logger = logger.WithFields(logrus.Fields{"request_id": requestID.String()})
 
-	err = ibccr.MessageProducer(ctx, logger, jsonInventoryMessage)
+	err = ibccr.MessageProducer(ctx, logger, []byte(rhcClient.OrgID), jsonInventoryMessage)
 	if err != nil {
 		return err
 	}

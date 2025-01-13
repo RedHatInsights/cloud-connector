@@ -103,15 +103,15 @@ type mockKafkaWriter struct {
 	callCount int
 }
 
-func (m *mockKafkaWriter) WriteMessages(ctx context.Context, msg []byte) error {
+func (m *mockKafkaWriter) WriteMessages(ctx context.Context, key []byte, msg []byte) error {
 	m.message = msg
 	m.callCount++
 	return nil
 }
 
 func buildMockInventoryMessageProducer(kafkaWriter *mockKafkaWriter) InventoryMessageProducer {
-	return func(ctx context.Context, log *logrus.Entry, msg []byte) error {
-		return kafkaWriter.WriteMessages(ctx, msg)
+	return func(ctx context.Context, log *logrus.Entry, key []byte, msg []byte) error {
+		return kafkaWriter.WriteMessages(ctx, key, msg)
 	}
 }
 
