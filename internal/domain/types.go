@@ -24,7 +24,6 @@ func (oid OrgID) String() string {
 	return string(oid)
 }
 
-//type Dispatchers map[string]map[string]string
 type Dispatchers interface{}
 type CanonicalFacts interface{}
 type Tags interface{}
