@@ -50,6 +50,7 @@ func NewConnectedClientRecorder(impl string, cfg *config.Config) (ConnectedClien
 			Topic:      cfg.InventoryKafkaTopic,
 			BatchSize:  cfg.InventoryKafkaBatchSize,
 			BatchBytes: cfg.InventoryKafkaBatchBytes,
+			Balancer:   "hash",
 		}
 
 		kafkaProducer, err := queue.StartProducer(kafkaProducerCfg)
