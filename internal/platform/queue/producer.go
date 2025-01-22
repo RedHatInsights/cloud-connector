@@ -26,6 +26,9 @@ func StartProducer(cfg *ProducerConfig) (*kafka.Writer, error) {
 
 	if cfg.Balancer == "hash" {
 		writerConfig.Balancer = &kafka.Hash{}
+	} else if cfg.Balancer == "crc32" {
+		// crc32 should match the hash that librdkafka is using
+		writerConfig.Balancer = &kafka.CRC32Balancer{}
 	}
 
 	w := kafka.NewWriter(writerConfig)
