@@ -6,8 +6,8 @@ require (
 	github.com/RedHatInsights/tenant-utils v1.0.0
 	github.com/aws/aws-sdk-go v1.50.0
 	github.com/eclipse/paho.mqtt.golang v1.5.0
-	github.com/go-playground/assert/v2 v2.0.1
-	github.com/go-playground/validator/v10 v10.4.1
+	github.com/go-playground/assert/v2 v2.2.0
+	github.com/go-playground/validator/v10 v10.25.0
 	github.com/golang-migrate/migrate/v4 v4.14.1
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.3.0
@@ -25,15 +25,18 @@ require (
 	github.com/spf13/viper v1.10.1
 )
 
-require gopkg.in/yaml.v3 v3.0.1 // indirect
+require (
+	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/felixge/httpsnoop v1.0.2 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/go-playground/locales v0.13.0 // indirect
-	github.com/go-playground/universal-translator v0.17.0 // indirect
+	github.com/go-playground/locales v0.14.1 // indirect
+	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
@@ -45,7 +48,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/klauspost/compress v1.14.2 // indirect
-	github.com/leodido/go-urn v1.2.0 // indirect
+	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
@@ -63,7 +66,7 @@ require (
 	github.com/xdg/scram v1.0.5 // indirect
 	github.com/xdg/stringprep v1.0.0 // indirect
 	golang.org/x/crypto v0.32.0 // indirect
-	golang.org/x/net v0.33.0 // indirect
+	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
