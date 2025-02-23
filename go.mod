@@ -1,6 +1,8 @@
 module github.com/RedHatInsights/cloud-connector
 
-go 1.20
+go 1.21
+
+toolchain go1.22.9
 
 require (
 	github.com/RedHatInsights/tenant-utils v1.0.0
@@ -9,7 +11,7 @@ require (
 	github.com/go-playground/assert/v2 v2.0.1
 	github.com/go-playground/validator/v10 v10.4.1
 	github.com/golang-migrate/migrate/v4 v4.14.1
-	github.com/google/go-cmp v0.6.0
+	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
