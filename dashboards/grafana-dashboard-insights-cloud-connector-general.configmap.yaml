@@ -27,7 +27,6 @@ data:
       "editable": true,
       "fiscalYearStartMonth": 0,
       "graphTooltip": 0,
-      "id": 348668,
       "links": [],
       "liveNow": false,
       "panels": [
@@ -43,7 +42,6 @@ data:
             "y": 0
           },
           "id": 32,
-          "links": [],
           "options": {
             "code": {
               "language": "plaintext",
@@ -53,7 +51,7 @@ data:
             "content": "<center><h1>Cloud-Connector SLOs</h1></center>",
             "mode": "html"
           },
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "targets": [
             {
               "datasource": {
@@ -100,6 +98,8 @@ data:
           },
           "id": 62,
           "options": {
+            "minVizHeight": 75,
+            "minVizWidth": 75,
             "orientation": "auto",
             "reduceOptions": {
               "calcs": [
@@ -109,9 +109,10 @@ data:
               "values": false
             },
             "showThresholdLabels": false,
-            "showThresholdMarkers": true
+            "showThresholdMarkers": true,
+            "sizing": "auto"
           },
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "targets": [
             {
               "datasource": {
@@ -164,6 +165,8 @@ data:
           },
           "id": 66,
           "options": {
+            "minVizHeight": 75,
+            "minVizWidth": 75,
             "orientation": "auto",
             "reduceOptions": {
               "calcs": [
@@ -173,9 +176,10 @@ data:
               "values": false
             },
             "showThresholdLabels": false,
-            "showThresholdMarkers": true
+            "showThresholdMarkers": true,
+            "sizing": "auto"
           },
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "targets": [
             {
               "datasource": {
@@ -227,6 +231,8 @@ data:
           },
           "id": 63,
           "options": {
+            "minVizHeight": 75,
+            "minVizWidth": 75,
             "orientation": "auto",
             "reduceOptions": {
               "calcs": [
@@ -236,9 +242,10 @@ data:
               "values": false
             },
             "showThresholdLabels": false,
-            "showThresholdMarkers": true
+            "showThresholdMarkers": true,
+            "sizing": "auto"
           },
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "targets": [
             {
               "datasource": {
@@ -258,8 +265,9 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "$datasource"
+            "uid": "${aws_resources_exporter}"
           },
+          "description": "95% backlog of 10 or less messages, 28-day rolling window",
           "fieldConfig": {
             "defaults": {
               "mappings": [],
@@ -274,7 +282,7 @@ data:
                   },
                   {
                     "color": "green",
-                    "value": 90
+                    "value": 95
                   }
                 ]
               },
@@ -290,33 +298,36 @@ data:
           },
           "id": 65,
           "options": {
+            "minVizHeight": 75,
+            "minVizWidth": 75,
             "orientation": "auto",
             "reduceOptions": {
               "calcs": [
-                "mean"
+                "lastNotNull"
               ],
               "fields": "",
               "values": false
             },
             "showThresholdLabels": false,
-            "showThresholdMarkers": true
+            "showThresholdMarkers": true,
+            "sizing": "auto"
           },
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "targets": [
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "$datasource"
+                "uid": "${aws_resources_exporter}"
               },
               "editorMode": "code",
-              "expr": "1 - (quantile_over_time(0.95, sum(kafka_consumergroup_group_lag{topic=~\"platform.cloud-connector.rhc-message-ingress\"})[28d:]) / 100)",
+              "expr": "avg_over_time((sum by (topic) (aws_kafka_sum_offset_lag_sum{topic=~\"platform.cloud-connector.rhc-message-ingress\"}) < bool 10)[28d:])",
               "hide": false,
               "legendFormat": "__auto",
               "range": true,
               "refId": "A"
             }
           ],
-          "title": "Kafka Message Consumer Latency SLO (90%)",
+          "title": "Kafka Message Consumer Latency SLO (95%)",
           "type": "gauge"
         },
         {
@@ -331,7 +342,6 @@ data:
             "y": 16
           },
           "id": 58,
-          "links": [],
           "options": {
             "code": {
               "language": "plaintext",
@@ -341,7 +351,7 @@ data:
             "content": "<center><h1>Cloud-Connector Components</h1></center>",
             "mode": "html"
           },
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "targets": [
             {
               "datasource": {
@@ -365,7 +375,6 @@ data:
             "y": 18
           },
           "id": 56,
-          "links": [],
           "options": {
             "code": {
               "language": "plaintext",
@@ -375,7 +384,7 @@ data:
             "content": "<center><h1>Cloud-Connector MQTT Consumer</h1></center>",
             "mode": "html"
           },
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "targets": [
             {
               "datasource": {
@@ -399,7 +408,6 @@ data:
             "y": 18
           },
           "id": 10,
-          "links": [],
           "options": {
             "code": {
               "language": "plaintext",
@@ -409,7 +417,7 @@ data:
             "content": "<center><h1>Cloud-Connector Kafka Consumer</h1></center>",
             "mode": "html"
           },
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "targets": [
             {
               "datasource": {
@@ -465,7 +473,6 @@ data:
             "y": 20
           },
           "id": 36,
-          "links": [],
           "maxDataPoints": 100,
           "options": {
             "colorMode": "none",
@@ -479,10 +486,12 @@ data:
               "fields": "",
               "values": false
             },
+            "showPercentChange": false,
             "text": {},
-            "textMode": "auto"
+            "textMode": "auto",
+            "wideLayout": true
           },
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "targets": [
             {
               "datasource": {
@@ -542,7 +551,6 @@ data:
             "y": 20
           },
           "id": 34,
-          "links": [],
           "maxDataPoints": 100,
           "options": {
             "colorMode": "none",
@@ -556,10 +564,12 @@ data:
               "fields": "",
               "values": false
             },
+            "showPercentChange": false,
             "text": {},
-            "textMode": "auto"
+            "textMode": "auto",
+            "wideLayout": true
           },
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "targets": [
             {
               "datasource": {
@@ -586,6 +596,7 @@ data:
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -599,6 +610,7 @@ data:
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -671,7 +683,7 @@ data:
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${datasource}"
+            "uid": "${aws_resources_exporter}"
           },
           "description": "",
           "fieldConfig": {
@@ -680,6 +692,7 @@ data:
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -693,6 +706,7 @@ data:
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -749,12 +763,16 @@ data:
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "${datasource}"
+                "uid": "${aws_resources_exporter}"
               },
-              "editorMode": "code",
-              "expr": "sum(kafka_consumergroup_group_lag{topic=~\"platform.cloud-connector.rhc-message-ingress\"}) by (group, topic)",
+              "disableTextWrap": false,
+              "editorMode": "builder",
+              "expr": "sum by(consumer_group, topic) (aws_kafka_sum_offset_lag_sum{topic=~\"platform.cloud-connector.rhc-message-ingress\"})",
+              "fullMetaSearch": false,
+              "includeNullMetadata": true,
               "range": true,
-              "refId": "A"
+              "refId": "A",
+              "useBackend": false
             }
           ],
           "title": "Kafka Messages Lag",
@@ -772,6 +790,7 @@ data:
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -785,6 +804,7 @@ data:
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -806,7 +826,8 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -861,6 +882,7 @@ data:
                 "mode": "palette-classic"
               },
               "custom": {
+                "axisBorderShow": false,
                 "axisCenteredZero": false,
                 "axisColorMode": "text",
                 "axisLabel": "",
@@ -874,6 +896,7 @@ data:
                   "tooltip": false,
                   "viz": false
                 },
+                "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
                 "pointSize": 5,
@@ -895,7 +918,8 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -976,13 +1000,12 @@ data:
           },
           "lines": true,
           "linewidth": 1,
-          "links": [],
           "nullPointMode": "null",
           "options": {
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -1068,13 +1091,12 @@ data:
           },
           "lines": true,
           "linewidth": 1,
-          "links": [],
           "nullPointMode": "null",
           "options": {
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -1149,7 +1171,8 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -1164,7 +1187,6 @@ data:
             "y": 35
           },
           "id": 50,
-          "links": [],
           "maxDataPoints": 100,
           "options": {
             "colorMode": "value",
@@ -1178,10 +1200,12 @@ data:
               "fields": "",
               "values": false
             },
+            "showPercentChange": false,
             "text": {},
-            "textMode": "auto"
+            "textMode": "auto",
+            "wideLayout": true
           },
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "targets": [
             {
               "datasource": {
@@ -1236,7 +1260,8 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "red"
+                    "color": "red",
+                    "value": null
                   }
                 ]
               },
@@ -1251,7 +1276,6 @@ data:
             "y": 35
           },
           "id": 35,
-          "links": [],
           "maxDataPoints": 100,
           "options": {
             "colorMode": "value",
@@ -1265,10 +1289,12 @@ data:
               "fields": "",
               "values": false
             },
+            "showPercentChange": false,
             "text": {},
-            "textMode": "auto"
+            "textMode": "auto",
+            "wideLayout": true
           },
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "targets": [
             {
               "datasource": {
@@ -1333,13 +1359,12 @@ data:
           },
           "lines": true,
           "linewidth": 1,
-          "links": [],
           "nullPointMode": "null",
           "options": {
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -1425,13 +1450,12 @@ data:
           },
           "lines": true,
           "linewidth": 1,
-          "links": [],
           "nullPointMode": "null",
           "options": {
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -1516,13 +1540,12 @@ data:
           },
           "lines": true,
           "linewidth": 1,
-          "links": [],
           "nullPointMode": "null",
           "options": {
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -1607,13 +1630,12 @@ data:
           },
           "lines": true,
           "linewidth": 1,
-          "links": [],
           "nullPointMode": "null",
           "options": {
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -1675,7 +1697,6 @@ data:
             "y": 48
           },
           "id": 40,
-          "links": [],
           "options": {
             "code": {
               "language": "plaintext",
@@ -1685,7 +1706,7 @@ data:
             "content": "<center><h1>Cloud-Connector API Service</h1></center>",
             "mode": "html"
           },
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "targets": [
             {
               "datasource": {
@@ -1721,7 +1742,8 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -1740,7 +1762,6 @@ data:
             "y": 50
           },
           "id": 41,
-          "links": [],
           "maxDataPoints": 100,
           "options": {
             "colorMode": "none",
@@ -1754,10 +1775,12 @@ data:
               "fields": "",
               "values": false
             },
+            "showPercentChange": false,
             "text": {},
-            "textMode": "auto"
+            "textMode": "auto",
+            "wideLayout": true
           },
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "targets": [
             {
               "datasource": {
@@ -1809,13 +1832,12 @@ data:
           },
           "lines": true,
           "linewidth": 1,
-          "links": [],
           "nullPointMode": "null",
           "options": {
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -1902,7 +1924,8 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   }
                 ]
               },
@@ -1917,7 +1940,6 @@ data:
             "y": 53
           },
           "id": 52,
-          "links": [],
           "maxDataPoints": 100,
           "options": {
             "colorMode": "value",
@@ -1931,10 +1953,12 @@ data:
               "fields": "",
               "values": false
             },
+            "showPercentChange": false,
             "text": {},
-            "textMode": "auto"
+            "textMode": "auto",
+            "wideLayout": true
           },
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "targets": [
             {
               "datasource": {
@@ -1989,7 +2013,8 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "red"
+                    "color": "red",
+                    "value": null
                   }
                 ]
               },
@@ -2004,7 +2029,6 @@ data:
             "y": 53
           },
           "id": 51,
-          "links": [],
           "maxDataPoints": 100,
           "options": {
             "colorMode": "value",
@@ -2018,10 +2042,12 @@ data:
               "fields": "",
               "values": false
             },
+            "showPercentChange": false,
             "text": {},
-            "textMode": "auto"
+            "textMode": "auto",
+            "wideLayout": true
           },
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "targets": [
             {
               "datasource": {
@@ -2086,13 +2112,12 @@ data:
           },
           "lines": true,
           "linewidth": 1,
-          "links": [],
           "nullPointMode": "null",
           "options": {
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -2177,13 +2202,12 @@ data:
           },
           "lines": true,
           "linewidth": 1,
-          "links": [],
           "nullPointMode": "null",
           "options": {
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -2267,13 +2291,12 @@ data:
           },
           "lines": true,
           "linewidth": 1,
-          "links": [],
           "nullPointMode": "null",
           "options": {
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "9.3.8",
+          "pluginVersion": "10.4.1",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -2324,16 +2347,15 @@ data:
         }
       ],
       "refresh": false,
-      "schemaVersion": 37,
-      "style": "dark",
+      "schemaVersion": 39,
       "tags": [],
       "templating": {
         "list": [
           {
             "current": {
-              "selected": true,
+              "selected": false,
               "text": "crcp01ue1-prometheus",
-              "value": "crcp01ue1-prometheus"
+              "value": "PC1EAC84DCBBF0697"
             },
             "hide": 0,
             "includeAll": false,
@@ -2344,6 +2366,24 @@ data:
             "queryValue": "",
             "refresh": 1,
             "regex": "crc.*",
+            "skipUrlSync": false,
+            "type": "datasource"
+          },
+          {
+            "current": {
+              "selected": false,
+              "text": "aws-resources-exporter-production",
+              "value": "PCEFB875D6FD018FC"
+            },
+            "hide": 0,
+            "includeAll": false,
+            "label": "Resources Exporter",
+            "multi": false,
+            "name": "aws_resources_exporter",
+            "options": [],
+            "query": "prometheus",
+            "refresh": 1,
+            "regex": "/aws-resources-exporter-(production|stage)/",
             "skipUrlSync": false,
             "type": "datasource"
           }
@@ -2381,7 +2421,7 @@ data:
       "timezone": "",
       "title": "Cloud-Connector",
       "uid": "c91dcda039618ded",
-      "version": 10,
+      "version": 2,
       "weekStart": ""
     }
 kind: ConfigMap
