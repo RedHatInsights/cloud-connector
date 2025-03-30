@@ -11,8 +11,8 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.14.1
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.3.0
-	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/handlers v1.5.2
+	github.com/gorilla/mux v1.8.1
 	github.com/lib/pq v1.9.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.31.1
@@ -52,7 +52,7 @@ require (
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
-	github.com/prometheus/client_model v0.2.0 // indirect
+	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/spf13/afero v1.8.0 // indirect
