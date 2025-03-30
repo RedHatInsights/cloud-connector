@@ -37,7 +37,7 @@ const (
 type MockClientProxyFactory struct {
 }
 
-func (MockClientProxyFactory) CreateProxy(context.Context, domain.OrgID, domain.AccountID, domain.ClientID, domain.CanonicalFacts, domain.Dispatchers, domain.Tags) (controller.ConnectorClient, error) {
+func (MockClientProxyFactory) CreateProxy(context.Context, domain.ConnectorClientState) (controller.ConnectorClient, error) {
 	return MockClient{}, nil
 }
 
