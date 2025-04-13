@@ -1,6 +1,8 @@
 module github.com/RedHatInsights/cloud-connector
 
-go 1.20
+go 1.22.0
+
+toolchain go1.22.9
 
 require (
 	github.com/RedHatInsights/tenant-utils v1.0.0
@@ -11,8 +13,8 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.14.1
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.3.0
-	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/handlers v1.5.2
+	github.com/gorilla/mux v1.8.1
 	github.com/lib/pq v1.9.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.31.1
@@ -52,7 +54,7 @@ require (
 	github.com/nxadm/tail v1.4.11 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
-	github.com/prometheus/client_model v0.2.0 // indirect
+	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.32.1 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/spf13/afero v1.8.0 // indirect
@@ -67,7 +69,7 @@ require (
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.29.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/ini.v1 v1.66.3 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
