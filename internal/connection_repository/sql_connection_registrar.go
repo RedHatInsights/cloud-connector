@@ -91,6 +91,7 @@ func (scm *SqlConnectionRegistrar) Register(ctx context.Context, rhcClient domai
 		logger.WithFields(logrus.Fields{"error": err}).Error("Insert/update failed")
 
 		if pqErr, ok := err.(*pq.Error); ok && pgerrcode.IsConnectionException(pqErr.Code.Name()) {
+			// Only mark the error as fatal if we failed to establish a connection to the database
 			return FatalError{err}
 		}
 
