@@ -1,0 +1,26 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: cloud-connector-post-deployment-tests
+objects:
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdJobInvocation
+  metadata:
+    name: cloud-connector-tests-${UID}
+  spec:
+    appName: cloud-connector
+    testing:
+      iqe:
+        debug: false
+        dynaconfEnvName: stage_post_deploy
+        filter: ''
+        marker: cc_post_deploy
+parameters:
+- name: IMAGE_TAG
+  value: ''
+  required: true
+- name: UID
+  description: "Unique CJI name suffix"
+  generate: expression
+  from: "[a-z0-9]{6}"
