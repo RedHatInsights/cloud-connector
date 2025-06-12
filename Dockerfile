@@ -21,7 +21,7 @@ USER root
 
 RUN make build
 
-# Using ubi8-minimal due to its smaller footprint
+# Using ubi9-minimal due to its smaller footprint
 FROM registry.access.redhat.com/ubi9/ubi-minimal
 
 RUN microdnf update -y
