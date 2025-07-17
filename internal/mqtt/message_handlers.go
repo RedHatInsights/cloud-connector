@@ -58,7 +58,7 @@ func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topic
 				Headers: []kafka.Header{
 					{TopicKafkaHeaderKey, []byte(message.Topic())},
 					{MessageIDKafkaHeaderKey, []byte(mqttMessageID)},
-					{DateReceivedHeaderKey, []byte(time.Now().UTC().String())},
+					{DateReceivedHeaderKey, []byte(time.Now().UTC().Format(time.RFC3339Nano))},
 				},
 				Key:   []byte(clientID),
 				Value: message.Payload(),

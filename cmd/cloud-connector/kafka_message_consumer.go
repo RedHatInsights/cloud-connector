@@ -186,6 +186,8 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 		mqttMessageID := getHeaderValueAsString(msg.Headers, mqtt.MessageIDKafkaHeaderKey)
 		dateReceived := getHeaderValueAsString(msg.Headers, mqtt.DateReceivedHeaderKey)
 
+		recordMessageProcessingLatency(dateReceived)
+
 		log = log.WithFields(logrus.Fields{"mqtt_message_id": mqttMessageID,
 			"client_id":     string(msg.Key),
 			"date_received": dateReceived})
@@ -284,8 +286,17 @@ func buildRhcMessageKafkaConsumerConfig(cfg *config.Config) *queue.ConsumerConfi
 	return &rhcMessageKafkaConsumer
 }
 
+func recordMessageProcessingLatency(messageReceivedTime string) {
+	messageReceivedTimestamp, err := time.Parse(time.RFC3339Nano, messageReceivedTime)
+	if err != nil {
+		return
+	}
+	metrics.kafkaMessageWaitTime.Observe(time.Since(messageReceivedTimestamp).Seconds())
+}
+
 type mqttMetrics struct {
 	kafkaMessageReceivedCounter prometheus.Counter
+	kafkaMessageWaitTime        prometheus.Histogram
 }
 
 func newMqttMetrics() *mqttMetrics {
@@ -294,6 +305,11 @@ func newMqttMetrics() *mqttMetrics {
 	metrics.kafkaMessageReceivedCounter = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "cloud_connector_kafka_message_received_count",
 		Help: "The number of kafka messages received",
+	})
+
+	metrics.kafkaMessageWaitTime = promauto.NewHistogram(prometheus.HistogramOpts{
+		Name: "cloud_connector_kafka_message_wait_time",
+		Help: "The amount of time messages are setting in kafka waiting to be processed",
 	})
 
 	return metrics
