@@ -129,7 +129,7 @@ func handleOnlineMessage(logger *logrus.Entry, client MQTT.Client, clientID doma
 		logger.Info("Allowing tenant-less connection to continue with connection registration.")
 
 		// Allow a tenant-less connection to continue to get registered
-		// We will attempt to fix this situation later
+		// The tenantless connection updater attempt to fix this situation later
 	}
 
 	logger = logger.WithFields(logrus.Fields{"account": account, "org_id": orgID})
@@ -149,22 +149,18 @@ func handleOnlineMessage(logger *logrus.Entry, client MQTT.Client, clientID doma
 
 	err = connectionRegistrar.Register(context.Background(), rhcClient)
 	if err != nil {
+		// If the error is fatal, then "bubble" the error up a level so it can be handled
 		if errors.As(err, &connection_repository.FatalError{}) {
 			return err
 		}
-
-		mqtt.SendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, cfg.MqttPublishTimeout, clientID, cfg.InvalidHandshakeReconnectDelay)
-
 		return nil
 	}
 
 	err = connectedClientRecorder.RecordConnectedClient(context.Background(), identity, rhcClient)
 	if err != nil {
 		logger.WithFields(logrus.Fields{"error": err}).Error("Failed to record client id within the platform")
-
-		// If we cannot "register" the connection with inventory, then send a disconnect message
-		mqtt.SendReconnectMessageToClient(client, logger, topicBuilder, cfg.MqttControlPublishQoS, cfg.MqttPublishTimeout, clientID, cfg.InvalidHandshakeReconnectDelay)
-
+		// If we cannot "register" the connection with inventory, then we will depend on the
+		// stale timestamp updater to send the data to inventory
 		return nil
 	}
 
