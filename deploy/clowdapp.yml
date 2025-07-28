@@ -13,7 +13,7 @@ objects:
     envName: ${ENV_NAME}
     optionalDependencies:
       - ingress
-      - cloud-connector
+      - playbook-dispatcher
     testing:
       iqePlugin: cloud-connector
     inMemoryDb: false
@@ -584,7 +584,7 @@ objects:
                   message_sent,
                   org_id,
                   tenant_lookup_failure_count,
-                  tenant_lookup_timestamp,
+                  tenant_lookup_timestamp
           FROM connections;
 
 
