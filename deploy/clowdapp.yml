@@ -13,7 +13,7 @@ objects:
     envName: ${ENV_NAME}
     optionalDependencies:
       - ingress
-      - playbook-dispatcher
+      - cloud-connector
     testing:
       iqePlugin: cloud-connector
     inMemoryDb: false
@@ -557,6 +557,36 @@ objects:
             cpu: 50m
             memory: 512Mi
 
+- apiVersion: metrics.console.redhat.com/v1alpha1
+  kind: FloorPlan
+  metadata:
+    name: cloud-connector
+  spec:
+    database:
+      secretName: ${FLOORIST_DB_SECRET_NAME}
+    objectStore:
+      secretName: ${FLOORIST_BUCKET_SECRET_NAME}
+    logLevel: ${FLOORIST_LOGLEVEL}
+    suspend: ${{FLOORIST_SUSPEND}}
+    disabled: ${{FLOORIST_DISABLED}}
+    queries:
+      - prefix: insights/cloud-connector/connections
+        query: >-
+          SELECT id,
+                  account,
+                  client_id,
+                  dispatchers,
+                  created_at,
+                  updated_at,
+                  stale_timestamp,
+                  tags,
+                  message_id,
+                  message_sent,
+                  org_id,
+                  tenant_lookup_failure_count,
+                  tenant_lookup_timestamp,
+          FROM connections;
+
 
 - apiVersion: v1
   kind: Service
@@ -821,3 +851,25 @@ parameters:
   value: "100"
 - name: TENANTLESS_CONNECTION_MAX_LOOKUP_FAILURES
   value: "30"
+
+# Used for floorist
+- name: FLOORIST_SUSPEND
+  description: Disable Floorist cronjob execution
+  required: true
+  value: 'true'
+- name: FLOORIST_DISABLED
+  description: Determines whether to build the Floorist Job.
+  value: 'false'
+- name: FLOORIST_DB_SECRET_NAME
+  description: database secret name
+  value: cloud-connector-db
+- name: FLOORIST_BUCKET_SECRET_NAME
+  description: bucket secret name
+  required: true
+  value: dummy-secret
+- name: FLOORIST_HMS_BUCKET_SECRET_NAME
+  description: HMS bucket secret name
+  value: hms-floorist-bucket
+- name: FLOORIST_LOGLEVEL
+  description: Floorist loglevel config
+  value: 'INFO'
