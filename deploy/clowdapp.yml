@@ -570,7 +570,7 @@ objects:
     suspend: ${{FLOORIST_SUSPEND}}
     disabled: ${{FLOORIST_DISABLED}}
     queries:
-      - prefix: insights/cloud-connector/connections
+      - prefix: hms_analytics/cloud-connector/connections
         query: >-
           SELECT id,
                   account,
