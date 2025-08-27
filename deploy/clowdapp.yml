@@ -573,16 +573,16 @@ objects:
       - prefix: hms_analytics/cloud-connector/connections
         query: >-
           SELECT id,
-                  account,
-                  client_id,
+                  account::TEXT,
+                  client_id::TEXT,
                   dispatchers,
                   created_at,
                   updated_at,
                   stale_timestamp,
                   tags,
-                  message_id,
+                  message_id::TEXT,
                   message_sent,
-                  org_id,
+                  org_id::TEXT,
                   tenant_lookup_failure_count,
                   tenant_lookup_timestamp
           FROM connections;
