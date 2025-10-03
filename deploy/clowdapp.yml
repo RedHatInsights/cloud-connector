@@ -570,7 +570,7 @@ objects:
     suspend: ${{FLOORIST_SUSPEND}}
     disabled: ${{FLOORIST_DISABLED}}
     queries:
-      - prefix: hms_analytics/cloud-connector/connections
+      - prefix: ${FLOORIST_QUERY_PREFIX}/connections
         query: >-
           SELECT id,
                   account::TEXT,
@@ -585,8 +585,8 @@ objects:
                   org_id::TEXT,
                   tenant_lookup_failure_count,
                   tenant_lookup_timestamp
-          FROM connections;
-
+          FROM connections
+          WHERE created_at >= DATE_TRUNC('month', NOW() - INTERVAL '1 month');
 
 - apiVersion: v1
   kind: Service
@@ -852,20 +852,35 @@ parameters:
 - name: TENANTLESS_CONNECTION_MAX_LOOKUP_FAILURES
   value: "30"
 
-# Used for floorist
+# Global Floorist Values
+
+- name: FLOORIST_DB_SECRET_NAME
+  description: database secret name
+  value: cloud-connector-db
+
+- name: FLOORIST_HMS_BUCKET_SECRET_NAME
+  description: HMS bucket secret name
+  value: hms-floorist-bucket
+
 - name: FLOORIST_SUSPEND
   description: Disable Floorist cronjob execution
   required: true
   value: 'true'
+
 - name: FLOORIST_DISABLED
   description: Determines whether to build the Floorist Job.
   value: 'false'
-- name: FLOORIST_DB_SECRET_NAME
-  description: database secret name
-  value: cloud-connector-db
-- name: FLOORIST_HMS_BUCKET_SECRET_NAME
-  description: HMS bucket secret name
-  value: hms-floorist-bucket
+
 - name: FLOORIST_LOGLEVEL
   description: Floorist loglevel config
   value: 'INFO'
+
+- name: FLOORIST_QUERY_PREFIX
+  description: Prefix for separating query data between prod and stage in the bucket
+  value: "hms_analytics/cloud-connector/unknown"
+
+#- name: FLOORIST_SCHEDULE
+#  description: Cronjob schedule definition
+#  required: true
+# Run at 00:00 on first day of month
+#  value: "0 0 1 * *"
