@@ -879,6 +879,7 @@ parameters:
   description: Prefix for separating query data between prod and stage in the bucket
   value: "hms_analytics/cloud-connector/unknown"
 
+#uncomment this stanza after collection is verified
 #- name: FLOORIST_SCHEDULE
 #  description: Cronjob schedule definition
 #  required: true
