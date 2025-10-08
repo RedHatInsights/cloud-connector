@@ -566,6 +566,7 @@ objects:
       secretName: ${FLOORIST_DB_SECRET_NAME}
     objectStore:
       secretName: ${FLOORIST_HMS_BUCKET_SECRET_NAME}
+    schedule: ${FLOORIST_SCHEDULE}
     logLevel: ${FLOORIST_LOGLEVEL}
     suspend: ${{FLOORIST_SUSPEND}}
     disabled: ${{FLOORIST_DISABLED}}
@@ -879,9 +880,8 @@ parameters:
   description: Prefix for separating query data between prod and stage in the bucket
   value: "hms_analytics/cloud-connector/unknown"
 
-#uncomment this stanza after collection is verified
-#- name: FLOORIST_SCHEDULE
-#  description: Cronjob schedule definition
-#  required: true
+- name: FLOORIST_SCHEDULE
+  description: Cronjob schedule definition
+  required: true
 # Run at 00:00 on first day of month
-#  value: "0 0 1 * *"
+  value: '0 0 1 * *'
