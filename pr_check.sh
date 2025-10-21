@@ -9,6 +9,7 @@ IMAGE="quay.io/cloudservices/cloud-connector"
 IQE_CJI_TIMEOUT="30m"
 EXTRA_DEPLOY_ARGS="-p playbook-dispatcher/CLOUD_CONNECTOR_IMPL=impl"
 IQE_MARKER_EXPRESSION="not e2e"
+IQE_ENV_VARS="DYNACONF_USER_PROVIDER__rbac_enabled=false"
 
 
 AVAILABLE_CLUSTERS=('ephemeral' 'crcd')
