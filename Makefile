@@ -27,10 +27,10 @@ deps:
 test:
 	# Use the following command to run specific tests (not the entire suite)
 	# TEST_ARGS="-run TestReadMessage -v" make test
-	go test $(TEST_ARGS) ./...
+	go test -v $(TEST_ARGS) ./...
 
 test-sql: migrate
-	go test $(TEST_ARGS) ./... -tags=sql
+	go test -v $(TEST_ARGS) ./... -tags=sql
 
 migrate: $(MIGRATE_DB_BINARY)
 	./$(MIGRATE_DB_BINARY) upgrade
