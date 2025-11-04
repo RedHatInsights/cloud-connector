@@ -2,7 +2,11 @@
 name: PR Check
 
 on:
-  - pull_request
+  push:
+    branches:
+      - master
+  pull_request:
+    types: ["opened", "synchronize", "reopened"]
 
 jobs:
   test:
