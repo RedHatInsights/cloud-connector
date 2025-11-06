@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go v1.55.8
 	github.com/eclipse/paho.mqtt.golang v1.5.1
 	github.com/go-playground/assert/v2 v2.2.0
-	github.com/go-playground/validator/v10 v10.4.1
+	github.com/go-playground/validator/v10 v10.28.0
 	github.com/golang-migrate/migrate/v4 v4.19.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
@@ -28,6 +28,7 @@ require (
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.10 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
