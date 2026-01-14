@@ -86,6 +86,7 @@ func (f *CustomCloudwatch) Format(entry *logrus.Entry) ([]byte, error) {
 	}
 
 	b.Write(j)
+	b.WriteByte('\n')
 
 	return b.Bytes(), nil
 }
