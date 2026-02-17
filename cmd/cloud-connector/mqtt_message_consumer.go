@@ -97,7 +97,40 @@ func startMqttMessageConsumer(mgmtAddr string) {
 
 	mqttClient, err := mqtt.CreateBrokerConnection(cfg.MqttBrokerAddress, brokerOptions...)
 	if err != nil {
-		logger.LogFatalError("Failed to connect to MQTT broker", err)
+		var connErr *mqtt.ConnectError
+		errors.As(err, &connErr)
+
+		switch {
+		// TLS-specific failures
+		case errors.Is(err, mqtt.ErrTLSHandshake):
+			logConnectFatal(connErr, err, "MQTT TLS handshake failed", mqtt.CodeTLSHandshake, mqtt.CategoryTLS)
+
+		// Protocol and CONNACK failures
+		case errors.Is(err, mqtt.ErrProtocolVersion):
+			logConnectFatal(connErr, err, "MQTT protocol/auth error (protocol version rejected)", mqtt.CodeProtocolVersion, mqtt.CategoryProtocol)
+		case errors.Is(err, mqtt.ErrIdentifierRejected):
+			logConnectFatal(connErr, err, "MQTT protocol/auth error (client identifier rejected)", mqtt.CodeIdentifierRejected, mqtt.CategoryProtocol)
+		case errors.Is(err, mqtt.ErrServerUnavailable):
+			logConnectFatal(connErr, err, "MQTT protocol/auth error (server unavailable)", mqtt.CodeServerUnavailable, mqtt.CategoryProtocol)
+		case errors.Is(err, mqtt.ErrBadUsernameOrPassword):
+			logConnectFatal(connErr, err, "MQTT protocol/auth error (bad username or password)", mqtt.CodeBadUsernameOrPassword, mqtt.CategoryProtocol)
+		case errors.Is(err, mqtt.ErrNotAuthorized):
+			logConnectFatal(connErr, err, "MQTT protocol/auth error (not authorized)", mqtt.CodeNotAuthorized, mqtt.CategoryProtocol)
+
+		// Network or transport failures
+		case errors.Is(err, mqtt.ErrConnectionLost):
+			logConnectFatal(connErr, err, "MQTT connection dropped during handshake", mqtt.CodeConnectionLost, mqtt.CategoryNetwork)
+		case errors.Is(err, mqtt.ErrConnectionRefused):
+			logConnectFatal(connErr, err, "MQTT broker refused TCP connection", mqtt.CodeConnectionRefused, mqtt.CategoryNetwork)
+		case errors.Is(err, mqtt.ErrHostUnreachable):
+			logConnectFatal(connErr, err, "MQTT broker unreachable (routing/DNS/VPC)", mqtt.CodeHostUnreachable, mqtt.CategoryNetwork)
+		case errors.Is(err, mqtt.ErrBrokerConnect):
+			logConnectFatal(connErr, err, "MQTT connect failure (unspecified)", mqtt.CodeBrokerConnect, mqtt.CategoryNetwork)
+
+		// Fallback and generic errors
+		default:
+			logger.LogFatalError("Failed to connect to MQTT broker", err)
+		}
 	}
 
 	apiMux := mux.NewRouter()
@@ -181,6 +214,31 @@ func buildRhcMessageKafkaProducerConfig(cfg *config.Config) *queue.ProducerConfi
 	return kafkaProducerCfg
 }
 
+func logConnectFatal(connErr *mqtt.ConnectError, err error, msg string, fallbackCode int, fallbackCategory string) {
+	code := fallbackCode
+	category := fallbackCategory
+	kind := ""
+
+	if connErr != nil {
+		if connErr.Code != 0 {
+			code = connErr.Code
+		}
+		if connErr.Category != "" {
+			category = connErr.Category
+		}
+		if connErr.Kind != nil {
+			kind = connErr.Kind.Error()
+		}
+	}
+
+	logger.Log.WithFields(logrus.Fields{
+		"error":               err,
+		"mqtt_error_code":     code,
+		"mqtt_error_kind":     kind,
+		"mqtt_error_category": category,
+	}).Fatal(msg)
+}
+
 func buildOnConnectionLostMqttOptions(cfg *config.Config, mqttConnectionFailedChan chan error, brokerOptions []mqtt.MqttClientOptionsFunc) []mqtt.MqttClientOptionsFunc {
 
 	var autoReconnect = true
@@ -199,14 +257,26 @@ func buildOnConnectionLostMqttOptions(cfg *config.Config, mqttConnectionFailedCh
 
 func notifyOnMqttConnectionLostHandler(mqttConnectionFailedChan chan error) func(MQTT.Client, error) {
 	return func(client MQTT.Client, err error) {
-		logger.Log.Infof("MQTT connection dropped, err: %s", err)
+		classified := mqtt.ClassifyConnectionLostError(err)
+		logger.Log.WithFields(logrus.Fields{
+			"error":               err,
+			"mqtt_error_code":     classified.Code,
+			"mqtt_error_kind":     classified.Kind,
+			"mqtt_error_category": classified.Category,
+		}).Warn("MQTT connection dropped")
 		client.Disconnect(1000) // FIXME: If a connection is lost, do we really need to call disconnect??
-		mqttConnectionFailedChan <- err
+		mqttConnectionFailedChan <- classified
 	}
 }
 
 func logMqttConnectionLostHandler(client MQTT.Client, err error) {
-	logger.Log.Infof("MQTT connection dropped, err: %s", err)
+	classified := mqtt.ClassifyConnectionLostError(err)
+	logger.Log.WithFields(logrus.Fields{
+		"error":               err,
+		"mqtt_error_code":     classified.Code,
+		"mqtt_error_kind":     classified.Kind,
+		"mqtt_error_category": classified.Category,
+	}).Info("MQTT connection dropped")
 }
 
 func subscribeOnMqttConnectHandler(subscribers []mqtt.Subscriber) func(client MQTT.Client) {
