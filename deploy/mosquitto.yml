@@ -36,11 +36,11 @@ objects:
                 protocol: TCP
             resources:
               limits:
-                cpu: '1'
-                memory: 1Gi
+                cpu: ${MQTT_BROKER_CPU_LIMIT}
+                memory: ${MQTT_BROKER_MEMORY_LIMIT}
               requests:
-                cpu: 500m
-                memory: 512Mi
+                cpu: ${MQTT_BROKER_CPU_REQUEST}
+                memory: ${MQTT_BROKER_MEMORY_REQUEST}
             terminationMessagePath: /dev/termination-log
             terminationMessagePolicy: File
             volumeMounts:
@@ -117,3 +117,22 @@ objects:
       pod: mosquitto-broker
     sessionAffinity: None
     type: ClusterIP
+
+
+parameters:
+- description: Initial amount of memory the mosquito-broker will request.
+  displayName: Memory Request
+  name: MQTT_BROKER_MEMORY_REQUEST
+  value: 512Mi
+- description: Maximum amount of memory the mosquito-broker can use.
+  displayName: Memory Limit
+  name: MQTT_BROKER_MEMORY_LIMIT
+  value: 1Gi
+- description: Initial amount of cpu the mosquito-broker will request.
+  displayName: CPU Request
+  name: MQTT_BROKER_CPU_REQUEST
+  value: 500m
+- description: Maximum amount of cpu the mosquito-broker can use.
+  displayName: CPU Limit
+  name: MQTT_BROKER_CPU_LIMIT
+  value: '1'
