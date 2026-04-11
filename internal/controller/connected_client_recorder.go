@@ -135,6 +135,14 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 		"org_id":    rhcClient.OrgID,
 		"client_id": rhcClient.ClientID})
 
+	// Extract and log the auth_type from the identity for debugging
+	authType, err := identity_utils.GetAuthType(identity)
+	if err != nil {
+		logger.WithFields(logrus.Fields{"error": err}).Warn("Unable to extract auth_type from identity in platform_metadata")
+	} else {
+		logger.WithFields(logrus.Fields{"auth_type": authType}).Debug("Auth type from identity in platform_metadata")
+	}
+
 	if shouldHostBeRegisteredWithInventory(rhcClient, identity) == false {
 		logger.Debug("Skipping inventory registration")
 		return nil
@@ -153,14 +161,6 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 
 	var systemProfile = map[string]string{"rhc_client_id": string(rhcClient.ClientID)}
 	hostData["system_profile"] = systemProfile
-
-	// Extract and log the auth_type from the identity for debugging
-	authType, err := identity_utils.GetAuthType(identity)
-	if err != nil {
-		logger.WithFields(logrus.Fields{"error": err}).Warn("Unable to extract auth_type from identity in platform_metadata")
-	} else {
-		logger.WithFields(logrus.Fields{"auth_type": authType}).Info("Auth type from identity in platform_metadata")
-	}
 
 	certAuth, err := identity_utils.AuthenticatedWithCertificate(identity)
 	if err != nil {
