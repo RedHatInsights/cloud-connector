@@ -147,6 +147,14 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 
 	logger.WithFields(logrus.Fields{"account": jsonData.Identity.AccountNumber, "org_id": jsonData.Identity.Internal.OrgID}).Debug("Located account number and org ID for client")
 
+	// Log the full identity object for debugging
+	var fullIdentityMap map[string]interface{}
+	if err := json.Unmarshal(idRaw, &fullIdentityMap); err == nil {
+		if identityData, ok := fullIdentityMap["identity"].(map[string]interface{}); ok {
+			logger.WithFields(logrus.Fields{"identity_from_auth_gateway": identityData}).Debug("Full identity fields from Auth Gateway")
+		}
+	}
+
 	return domain.Identity(resp.Identity), domain.AccountID(jsonData.Identity.AccountNumber), domain.OrgID(jsonData.Identity.Internal.OrgID), nil
 }
 

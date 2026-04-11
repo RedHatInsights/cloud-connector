@@ -35,6 +35,10 @@ func GetAuthType(identity domain.Identity) (string, error) {
 	return "", nil
 }
 
+func GetIdentityMap(identity domain.Identity) (map[string]interface{}, error) {
+	return convertIdentityToMap(identity)
+}
+
 func convertIdentityToMap(identity domain.Identity) (map[string]interface{}, error) {
 	idRaw, err := base64.StdEncoding.DecodeString(string(identity))
 	if err != nil {
