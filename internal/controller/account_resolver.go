@@ -155,6 +155,21 @@ func (bar *BOPAccountIdResolver) MapClientIdToAccountId(ctx context.Context, cli
 		}
 	}
 
+	// If auth_type is missing from the Auth Gateway response, set it to "cert-auth"
+	// since this endpoint is specifically for certificate authentication
+	if jsonData.Identity.AuthType == "" {
+		logger.Warn("Auth Gateway did not provide auth_type, setting to 'cert-auth' based on certauth endpoint")
+		jsonData.Identity.AuthType = "cert-auth"
+
+		// Re-encode the identity with auth_type added
+		updatedIdentity, err := json.Marshal(jsonData)
+		if err != nil {
+			logger.WithFields(logrus.Fields{"error": err}).Error("Unable to re-marshal identity after adding auth_type")
+			return "", "", "", err
+		}
+		resp.Identity = base64.StdEncoding.EncodeToString(updatedIdentity)
+	}
+
 	return domain.Identity(resp.Identity), domain.AccountID(jsonData.Identity.AccountNumber), domain.OrgID(jsonData.Identity.Internal.OrgID), nil
 }
 
