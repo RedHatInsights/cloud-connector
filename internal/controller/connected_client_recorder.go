@@ -135,6 +135,14 @@ func (ibccr *InventoryBasedConnectedClientRecorder) RecordConnectedClient(ctx co
 		"org_id":    rhcClient.OrgID,
 		"client_id": rhcClient.ClientID})
 
+	// Extract and log all identity fields for debugging
+	identityMap, err := identity_utils.GetIdentityMap(identity)
+	if err != nil {
+		logger.WithFields(logrus.Fields{"error": err}).Warn("Unable to extract identity fields from identity in platform_metadata")
+	} else {
+		logger.WithFields(logrus.Fields{"identity_fields": identityMap}).Debug("Identity fields from platform_metadata")
+	}
+
 	if shouldHostBeRegisteredWithInventory(rhcClient, identity) == false {
 		logger.Debug("Skipping inventory registration")
 		return nil

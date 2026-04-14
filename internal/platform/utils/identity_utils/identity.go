@@ -21,6 +21,24 @@ func AuthenticatedWithCertificate(identity domain.Identity) (bool, error) {
 	return identityMap["auth_type"] == "cert-auth", nil
 }
 
+func GetAuthType(identity domain.Identity) (string, error) {
+
+	identityMap, err := convertIdentityToMap(identity)
+	if err != nil {
+		return "", err
+	}
+
+	if authType, ok := identityMap["auth_type"].(string); ok {
+		return authType, nil
+	}
+
+	return "", nil
+}
+
+func GetIdentityMap(identity domain.Identity) (map[string]interface{}, error) {
+	return convertIdentityToMap(identity)
+}
+
 func convertIdentityToMap(identity domain.Identity) (map[string]interface{}, error) {
 	idRaw, err := base64.StdEncoding.DecodeString(string(identity))
 	if err != nil {
