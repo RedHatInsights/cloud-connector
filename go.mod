@@ -1,6 +1,6 @@
 module github.com/RedHatInsights/cloud-connector
 
-go 1.24.5
+go 1.25.9
 
 require (
 	github.com/RedHatInsights/tenant-utils v1.0.0
