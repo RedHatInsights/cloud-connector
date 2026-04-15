@@ -2,6 +2,9 @@
 # Once built, copy to a smaller image and run from there
 FROM registry.access.redhat.com/ubi9/go-toolset as builder
 
+# Use Go 1.25.9 specifically
+ENV GOTOOLCHAIN=go1.25.9
+
 WORKDIR /go/src/app
 
 COPY go.mod go.sum ./
