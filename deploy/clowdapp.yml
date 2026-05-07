@@ -708,7 +708,7 @@ parameters:
 - description: Image
   name: IMAGE
   required: true
-  value: quay.io/cloudservices/cloud-connector
+  value: quay.io/redhat-services-prod/insights-management-tenant/cloud-connector
 - description: Image tag
   name: IMAGE_TAG
   required: true
