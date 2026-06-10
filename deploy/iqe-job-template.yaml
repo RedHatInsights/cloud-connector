@@ -1,7 +1,7 @@
 apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
-  name: 'playbook-dispatcher-test-job'
+  name: 'cloud-connector-test-job'
 objects:
   - apiVersion: batch/v1
     kind: Job
@@ -130,7 +130,7 @@ parameters:
     description: container image path for the iqe plugin
     value: quay.io/cloudservices/iqe-tests
   - name: IQE_PLUGINS
-    value: 'playbook-dispatcher'
+    value: 'cloud-connector'
     required: true
   - name: IQE_IMAGE_TAG
     value: ''
