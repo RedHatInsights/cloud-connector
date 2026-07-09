@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 JOB_RECEIVER_HOST=localhost:8080
 JOB_RECEIVER_HOST=localhost:10000
 JOB_RECEIVER_HOST=localhost:8081
@@ -41,9 +43,9 @@ echo "NODE_ID: $NODE_ID"
 # x-rh-cloud-connector-account + x-rh-cloud-connector-client-id + x-rh-cloud-connector-psk)
 
 
-JSON_IDENTITY_HEADER="{\"identity\": {\"account_number\": \"$ACCOUNT\", \"internal\": {\"org_id\": \"$ORG_ID\"}, \"type\": \"$AUTH_TYPE\"}}"
+JSON_IDENTITY_HEADER=$(printf '{"identity": {"account_number": "%s", "internal": {"org_id": "%s"}, "type": "%s"}}' "$ACCOUNT" "$ORG_ID" "$AUTH_TYPE")
 echo "JSON_IDENTITY_HEADER: $JSON_IDENTITY_HEADER"
-IDENTITY_HEADER=$(echo -n $JSON_IDENTITY_HEADER | openssl base64 -A)
+IDENTITY_HEADER=$(echo -n "$JSON_IDENTITY_HEADER" | openssl base64 -A)
 echo "IDENTITY_HEADER: $IDENTITY_HEADER"
 
 
@@ -129,7 +131,7 @@ function pskTest {
 
     #curl -v -s -X POST -d "{\"account\": \"$ACCOUNT\", \"node_id\": \"$NODE_ID\"}" -H "x-rh-cloud-connector-account: $ACCOUNT" -H "x-rh-cloud-connector-client-id: $PSK_ID" -H "x-rh-cloud-connector-psk: $PSK_KEY" -H $REQUEST_ID_HEADER -H "x-rh-insights-request-id: 1234" "http://$JOB_RECEIVER_HOST/api/cloud-connector/v1/connection/status" | jq
 
-    curl -v -s -H "x-rh-cloud-connector-account: $ACCOUNT" -H "x-rh-cloud-connector-client-id: $PSK_ID" -H "x-rh-cloud-connector-psk: $PSK_KEY" -H $REQUEST_ID_HEADER -H "x-rh-insights-request-id: 1234" "http://$JOB_RECEIVER_HOST/api/cloud-connector/v1/connection/$ACCOUNT" | jq
+    curl -v -s -H "x-rh-cloud-connector-account: $ACCOUNT" -H "x-rh-cloud-connector-client-id: $PSK_ID" -H "x-rh-cloud-connector-psk: $PSK_KEY" -H "$REQUEST_ID_HEADER" -H "x-rh-insights-request-id: 1234" "http://$JOB_RECEIVER_HOST/api/cloud-connector/v1/connection/$ACCOUNT" | jq
 }
 
 function permitted_tenant_connection_status {

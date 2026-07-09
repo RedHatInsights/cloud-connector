@@ -16,12 +16,17 @@ if [[ -z "$RH_REGISTRY_USER" || -z "$RH_REGISTRY_TOKEN" ]]; then
 fi
 
 # Create tmp dir to store data in during job run (do NOT store in $WORKSPACE)
-export TMP_JOB_DIR=$(mktemp -d -p "$HOME" -t "jenkins-${JOB_NAME}-${BUILD_NUMBER}-XXXXXX")
+TMP_JOB_DIR=$(mktemp -d -p "$HOME" -t "jenkins-${JOB_NAME}-${BUILD_NUMBER}-XXXXXX")
+export TMP_JOB_DIR
 echo "job tmp dir location: $TMP_JOB_DIR"
 
 function job_cleanup() {
     echo "cleaning up job tmp dir: $TMP_JOB_DIR"
-    rm -fr $TMP_JOB_DIR
+    if [[ -n "$TMP_JOB_DIR" && -d "$TMP_JOB_DIR" ]]; then
+        rm -fr "$TMP_JOB_DIR"
+    else
+        echo "Skipping cleanup: TMP_JOB_DIR is not set or is not a directory (TMP_JOB_DIR='$TMP_JOB_DIR')"
+    fi
 }
 
 trap job_cleanup EXIT ERR SIGINT SIGTERM
