@@ -1,6 +1,10 @@
 package mqtt
 
 import (
+	"net"
+	"net/url"
+	"strings"
+
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
@@ -11,6 +15,34 @@ type Subscriber struct {
 	Topic      string
 	EntryPoint MQTT.MessageHandler
 	Qos        byte
+}
+
+// logBrokerNode resolves the hostname in brokerUrl to an IP and reverse-DNS
+// hostname, then emits a structured log entry. This makes the actual physical
+// broker node visible in Kibana after each connect or reconnect, which is
+// otherwise obscured by the load-balanced VIP address.
+func logBrokerNode(brokerUrl string) {
+	fields := logrus.Fields{"broker_url": brokerUrl}
+
+	u, err := url.Parse(brokerUrl)
+	if err != nil {
+		logger.Log.WithFields(fields).Info("Connected to MQTT broker")
+		return
+	}
+
+	ips, err := net.LookupHost(u.Hostname())
+	if err != nil || len(ips) == 0 {
+		logger.Log.WithFields(fields).Info("Connected to MQTT broker")
+		return
+	}
+
+	fields["broker_resolved_ip"] = ips[0]
+
+	if hostnames, err := net.LookupAddr(ips[0]); err == nil && len(hostnames) > 0 {
+		fields["broker_node"] = strings.TrimSuffix(hostnames[0], ".")
+	}
+
+	logger.Log.WithFields(fields).Info("Connected to MQTT broker")
 }
 
 func CreateBrokerConnection(brokerUrl string, brokerConfigFuncs ...MqttClientOptionsFunc) (MQTT.Client, error) {
@@ -27,7 +59,7 @@ func CreateBrokerConnection(brokerUrl string, brokerConfigFuncs ...MqttClientOpt
 		return nil, token.Error()
 	}
 
-	logger.Log.Info("Connected to MQTT broker: ", brokerUrl)
+	logBrokerNode(brokerUrl)
 
 	return mqttClient, nil
 }
