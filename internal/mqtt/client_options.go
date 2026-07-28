@@ -132,7 +132,9 @@ func WithOnConnectHandler(handler func(MQTT.Client)) MqttClientOptionsFunc {
 			if len(servers) > 0 {
 				logBrokerNode(servers[0].String())
 			}
-			handler(c)
+			if handler != nil {
+				handler(c)
+			}
 		})
 		return nil
 	}
