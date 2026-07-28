@@ -221,16 +221,49 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 
 func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*logrus.Entry, *kafka.Message) error, ctx context.Context, fatalProcessingError chan struct{}) {
 
+	// Track consecutive errors to distinguish transient blips from persistent
+	// failures; only shut down after hitting the threshold.
+	const maxConsecutiveFetchErrors = 10
+	const maxConsecutiveCommitErrors = 10
+	const fetchErrorBackoff = 2 * time.Second
+	consecutiveFetchErrors := 0
+	consecutiveCommitErrors := 0
+
+	// Created once and reused across retries; started stopped so it only
+	// activates after a fetch error.
+	backoffTimer := time.NewTimer(fetchErrorBackoff)
+	backoffTimer.Stop()
+
+consumeLoop:
 	for {
 		m, err := kafkaReader.FetchMessage(ctx)
 		if err != nil {
-			if errors.Is(err, context.Canceled) != true {
-				logger.LogError("Failed to fetch message from kafka", err)
-				// Notify the main thread to shutdown
-				fatalProcessingError <- struct{}{}
+			if errors.Is(err, context.Canceled) {
+				break
 			}
-			break
+
+			consecutiveFetchErrors++
+			logger.LogError("Failed to fetch message from kafka", err)
+
+			if consecutiveFetchErrors >= maxConsecutiveFetchErrors {
+				logger.Log.Errorf("Reached %d consecutive kafka fetch errors, shutting down", maxConsecutiveFetchErrors)
+				// Signal the main goroutine to initiate process shutdown.
+				fatalProcessingError <- struct{}{}
+				break
+			}
+
+			// Cancellable sleep: wait for the backoff to expire, or exit
+			// early if the context is canceled.
+			backoffTimer.Reset(fetchErrorBackoff)
+			select {
+			case <-backoffTimer.C:
+			case <-ctx.Done():
+				break consumeLoop
+			}
+			continue
 		}
+
+		consecutiveFetchErrors = 0
 
 		log := logger.Log.WithFields(logrus.Fields{
 			"client_id": string(m.Key),
@@ -250,11 +283,24 @@ func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*logru
 		// explicitly commit the message
 		err = kafkaReader.CommitMessages(ctx, m)
 		if err != nil {
-			logger.LogWithError(log, "Failed to commit message to kafka", err)
-			// Notify the main thread to shutdown
-			fatalProcessingError <- struct{}{}
-			break
+			if errors.Is(err, context.Canceled) {
+				break
+			}
+
+			consecutiveCommitErrors++
+			logger.LogWithError(log, "Failed to commit message to kafka, will retry on next fetch", err)
+
+			if consecutiveCommitErrors >= maxConsecutiveCommitErrors {
+				logger.Log.Errorf("Reached %d consecutive kafka commit errors, shutting down", maxConsecutiveCommitErrors)
+				fatalProcessingError <- struct{}{}
+				break
+			}
+			// Continuing without committing means kafka will re-deliver
+			// this message on the next fetch (at-least-once semantics).
+			continue
 		}
+
+		consecutiveCommitErrors = 0
 	}
 
 	logger.Log.Infof("Stopped reading kafka messages")
