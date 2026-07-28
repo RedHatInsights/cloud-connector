@@ -59,7 +59,5 @@ func CreateBrokerConnection(brokerUrl string, brokerConfigFuncs ...MqttClientOpt
 		return nil, token.Error()
 	}
 
-	logBrokerNode(brokerUrl)
-
 	return mqttClient, nil
 }
