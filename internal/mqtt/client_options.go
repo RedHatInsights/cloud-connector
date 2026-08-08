@@ -126,7 +126,16 @@ func WithAutoReconnect(autoReconnect bool) MqttClientOptionsFunc {
 func WithOnConnectHandler(handler func(MQTT.Client)) MqttClientOptionsFunc {
 	return func(opts *MQTT.ClientOptions) error {
 		logger.Log.Tracef("Setting the on-connect handler")
-		opts.SetOnConnectHandler(handler)
+		opts.SetOnConnectHandler(func(c MQTT.Client) {
+			reader := c.OptionsReader()
+			servers := (&reader).Servers()
+			if len(servers) > 0 {
+				logBrokerNode(servers[0].String())
+			}
+			if handler != nil {
+				handler(c)
+			}
+		})
 		return nil
 	}
 }
