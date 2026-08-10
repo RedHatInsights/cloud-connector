@@ -23,16 +23,17 @@ type Subscriber struct {
 // otherwise obscured by the load-balanced VIP address.
 func logBrokerNode(brokerUrl string) {
 	fields := logrus.Fields{"broker_url": brokerUrl}
+	defer logger.Log.WithFields(fields).Info("Connected to MQTT broker")
 
 	u, err := url.Parse(brokerUrl)
 	if err != nil {
-		logger.Log.WithFields(fields).Info("Connected to MQTT broker")
+		logger.Log.WithFields(fields).Warn("Failed to parse broker URL for node resolution")
 		return
 	}
 
 	ips, err := net.LookupHost(u.Hostname())
 	if err != nil || len(ips) == 0 {
-		logger.Log.WithFields(fields).Info("Connected to MQTT broker")
+		logger.Log.WithFields(logrus.Fields{"error": err, "broker_url": brokerUrl}).Warn("Failed to resolve broker hostname")
 		return
 	}
 
@@ -41,8 +42,6 @@ func logBrokerNode(brokerUrl string) {
 	if hostnames, err := net.LookupAddr(ips[0]); err == nil && len(hostnames) > 0 {
 		fields["broker_node"] = strings.TrimSuffix(hostnames[0], ".")
 	}
-
-	logger.Log.WithFields(fields).Info("Connected to MQTT broker")
 }
 
 func CreateBrokerConnection(brokerUrl string, brokerConfigFuncs ...MqttClientOptionsFunc) (MQTT.Client, error) {
