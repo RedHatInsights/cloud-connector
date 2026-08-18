@@ -126,6 +126,7 @@ func WithAutoReconnect(autoReconnect bool) MqttClientOptionsFunc {
 func WithOnConnectHandler(handler func(MQTT.Client)) MqttClientOptionsFunc {
 	return func(opts *MQTT.ClientOptions) error {
 		logger.Log.Tracef("Setting the on-connect handler")
+		// Wraps the handler to perform DNS resolution and log the resolved broker node on each connect.
 		opts.SetOnConnectHandler(func(c MQTT.Client) {
 			reader := c.OptionsReader()
 			servers := (&reader).Servers()
