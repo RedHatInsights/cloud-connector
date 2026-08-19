@@ -39,8 +39,11 @@ func logBrokerNode(brokerUrl string) {
 
 	u, err := url.Parse(brokerUrl)
 	if err != nil {
+		logger.Log.WithFields(logrus.Fields{"error": err, "broker_url": brokerUrl}).Warn("Failed to parse broker URL for node resolution")
 		return
 	}
+
+	fields["broker_hostname"] = u.Hostname()
 
 	// PreferGo forces the pure Go DNS resolver, which honors context cancellation.
 	// The cgo-based resolver ignores context deadlines and can hang indefinitely.
@@ -51,14 +54,17 @@ func logBrokerNode(brokerUrl string) {
 
 	ips, err := resolver.LookupHost(ctx, u.Hostname())
 	if err != nil || len(ips) == 0 {
+		logger.Log.WithFields(logrus.Fields{"error": err, "broker_url": brokerUrl}).Warn("Failed to resolve broker hostname")
 		return
 	}
 
 	fields["broker_resolved_ip"] = ips[0]
 
-	if hostnames, err := resolver.LookupAddr(ctx, ips[0]); err == nil && len(hostnames) > 0 {
-		fields["broker_node"] = strings.TrimSuffix(hostnames[0], ".")
+	hostnames, err := resolver.LookupAddr(ctx, ips[0])
+	if err != nil || len(hostnames) == 0 {
+		return
 	}
+	fields["broker_node"] = strings.TrimSuffix(hostnames[0], ".")
 }
 
 func CreateBrokerConnection(brokerUrl string, brokerConfigFuncs ...MqttClientOptionsFunc) (MQTT.Client, error) {
