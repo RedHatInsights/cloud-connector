@@ -62,6 +62,7 @@ func logBrokerNode(brokerUrl string) {
 
 	hostnames, err := resolver.LookupAddr(ctx, ips[0])
 	if err != nil || len(hostnames) == 0 {
+		logger.Log.WithFields(logrus.Fields{"error": err, "broker_url": brokerUrl}).Warn("Failed to resolve broker node address")
 		return
 	}
 	fields["broker_node"] = strings.TrimSuffix(hostnames[0], ".")
