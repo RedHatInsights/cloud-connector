@@ -1,6 +1,6 @@
 module github.com/RedHatInsights/cloud-connector
 
-go 1.25.9
+go 1.26.0
 
 require (
 	github.com/RedHatInsights/tenant-utils v1.0.0
@@ -68,7 +68,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	golang.org/x/crypto v0.54.0 // indirect
 	golang.org/x/net v0.57.0 // indirect
-	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
