@@ -80,14 +80,9 @@ func writeTestCertificate(t *testing.T, notAfter time.Time) string {
 	}
 
 	path := filepath.Join(t.TempDir(), "cert.pem")
-	f, err := os.Create(path)
-	if err != nil {
-		t.Fatalf("unable to create cert file: %v", err)
-	}
-	defer f.Close()
-
-	if err := pem.Encode(f, &pem.Block{Type: "CERTIFICATE", Bytes: der}); err != nil {
-		t.Fatalf("unable to write cert pem: %v", err)
+	pemBytes := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+	if err := os.WriteFile(path, pemBytes, 0600); err != nil {
+		t.Fatalf("unable to write cert file: %v", err)
 	}
 
 	return path
