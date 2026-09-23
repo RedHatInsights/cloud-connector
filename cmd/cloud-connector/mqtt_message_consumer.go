@@ -209,11 +209,22 @@ func logMqttConnectionLostHandler(client MQTT.Client, err error) {
 	logger.Log.Infof("MQTT connection dropped, err: %s", err)
 }
 
+// mqttSubscribeTimeout caps the time spent waiting for MQTT topic subscription.
+// Ten seconds allows for broker processing while preventing indefinite hangs.
+const mqttSubscribeTimeout = 10 * time.Second
+
 func subscribeOnMqttConnectHandler(subscribers []mqtt.Subscriber) func(client MQTT.Client) {
 	return func(client MQTT.Client) {
 		for _, subscriber := range subscribers {
 			logger.Log.Infof("Subscribing to MQTT topic: %s - QOS: %d\n", subscriber.Topic, subscriber.Qos)
-			if token := client.Subscribe(subscriber.Topic, subscriber.Qos, subscriber.EntryPoint); token.Wait() && token.Error() != nil {
+			token := client.Subscribe(subscriber.Topic, subscriber.Qos, subscriber.EntryPoint)
+
+			if !token.WaitTimeout(mqttSubscribeTimeout) {
+				// TODO: Consider disconnect/retry instead of Fatalf to allow recovery from transient timeouts
+				logger.Log.Fatalf("Subscribing to MQTT topic (%s) timed out after %s", subscriber.Topic, mqttSubscribeTimeout)
+			}
+
+			if token.Error() != nil {
 				logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Fatalf("Subscribing to MQTT topic (%s) failed", subscriber.Topic)
 			}
 		}

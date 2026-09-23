@@ -3,6 +3,7 @@ package mqtt
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/cloud_connector/protocol"
@@ -64,7 +65,14 @@ func sendMessage(mqttClient MQTT.Client, logger *logrus.Entry, clientID domain.C
 	logger.Debug("Sending message to connected client on topic: ", topic, " qos: ", qos)
 
 	token := mqttClient.Publish(topic, qos, false, messageBuffer.Bytes())
-	if token.WaitTimeout(publishTimeout) && token.Error() != nil {
+
+	if !token.WaitTimeout(publishTimeout) {
+		logger.Error("Message publish timed out")
+		metrics.messagePublishedFailureCounter.Inc()
+		return fmt.Errorf("mqtt publish timed out after %s", publishTimeout)
+	}
+
+	if token.Error() != nil {
 		logger := logger.WithFields(logrus.Fields{"error": token.Error()})
 		logger.Error("Error sending a message to MQTT broker")
 		metrics.messagePublishedFailureCounter.Inc()
