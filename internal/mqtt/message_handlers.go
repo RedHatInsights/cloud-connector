@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
@@ -14,13 +15,31 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Note: sync.Once is imported for shutdownOnce in KafkaWriterState
+
 const (
 	TopicKafkaHeaderKey     = "topic"
 	MessageIDKafkaHeaderKey = "mqtt_message_id"
 	DateReceivedHeaderKey   = "date_received"
 )
 
-func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topicVerifier *TopicVerifier) func(MQTT.Client, MQTT.Message) {
+type KafkaWriterState struct {
+	consecutiveWriteErrors  int
+	maxConsecutiveErrors    int
+	writeErrorBackoff       time.Duration
+	fatalWriteError         chan struct{}
+	shutdownOnce            sync.Once
+}
+
+func NewKafkaWriterState(maxErrors int, backoff time.Duration, fatalChan chan struct{}) *KafkaWriterState {
+	return &KafkaWriterState{
+		maxConsecutiveErrors: maxErrors,
+		writeErrorBackoff:    backoff,
+		fatalWriteError:      fatalChan,
+	}
+}
+
+func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topicVerifier *TopicVerifier, state *KafkaWriterState) func(MQTT.Client, MQTT.Message) {
 	return func(client MQTT.Client, message MQTT.Message) {
 
 		metrics.kafkaWriterGoRoutineGauge.Inc()
@@ -53,38 +72,77 @@ func ControlMessageHandler(ctx context.Context, kafkaWriter *kafka.Writer, topic
 		// Use the client id as the message key.  All messages with the same key,
 		// get sent to the same partitions.  This is important so that the ordering
 		// of the messages is retained.
-		err = kafkaWriter.WriteMessages(ctx,
-			kafka.Message{
-				Headers: []kafka.Header{
-					{TopicKafkaHeaderKey, []byte(message.Topic())},
-					{MessageIDKafkaHeaderKey, []byte(mqttMessageID)},
-					{DateReceivedHeaderKey, []byte(time.Now().UTC().Format(time.RFC3339Nano))},
-				},
-				Key:   []byte(clientID),
-				Value: message.Payload(),
-			})
+		kafkaMsg := kafka.Message{
+			Headers: []kafka.Header{
+				{Key: TopicKafkaHeaderKey, Value: []byte(message.Topic())},
+				{Key: MessageIDKafkaHeaderKey, Value: []byte(mqttMessageID)},
+				{Key: DateReceivedHeaderKey, Value: []byte(time.Now().UTC().Format(time.RFC3339Nano))},
+			},
+			Key:   []byte(clientID),
+			Value: message.Payload(),
+		}
 
-		kafkwWriteDurationTimer.ObserveDuration()
+		// Retry loop with backoff - blocks until success or shutdown decision.
+		// NOTE: With OrderMatters=true (default), handlers block the message dispatch loop. This creates
+		// backpressure through unbuffered channels that prevents paho from reading PINGRESP from the socket,
+		// causing "pingresp not received" disconnects. This blocking behavior existed before this change
+		// (WriteMessages blocks on failure) and may be more pronounced with retry loop (~120s).
+		for {
+			err = kafkaWriter.WriteMessages(ctx, kafkaMsg)
+			if err == nil {
+				// Success - reset error counter
+				state.consecutiveWriteErrors = 0
 
-		log.Debug("MQTT message written to kafka")
-
-		if err != nil {
-			log.WithFields(logrus.Fields{"error": err}).Error("Error writing MQTT message to kafka")
-
-			if errors.Is(err, context.Canceled) == true {
-				// The context was canceled.  This likely happened due to the process shutting down,
-				// so just return and allow things to shutdown cleanly
+				kafkwWriteDurationTimer.ObserveDuration()
+				log.Debug("MQTT message written to kafka")
 				return
 			}
 
-			// This is gross, but we need to try to push the log messages to cloudwatch
-			// before the panic is triggered below.
-			logger.FlushLogger()
+			if errors.Is(err, context.Canceled) {
+				// Context canceled - clean shutdown
+				kafkwWriteDurationTimer.ObserveDuration()
+				return
+			}
 
-			// If writing to kafka fails, then just fall over and do not read anymore
-			// messages from the mqtt broker.  We need to panic here so that the mqtt broker
-			// is not sent an ACK for the message.
-			log.Fatal("Failed writing to kafka")
+			// Write failed - track consecutive errors
+			state.consecutiveWriteErrors++
+			currentErrors := state.consecutiveWriteErrors
+
+			log.WithFields(logrus.Fields{
+				"consecutive_errors": currentErrors,
+				"max_errors":         state.maxConsecutiveErrors,
+				"error":              err,
+			}).Error("Failed to write MQTT message to kafka")
+
+			if currentErrors >= state.maxConsecutiveErrors {
+				log.Errorf("Reached %d consecutive kafka write errors, shutting down", state.maxConsecutiveErrors)
+				logger.FlushLogger()
+
+				// Signal shutdown (idempotent via sync.Once - reliable signaling)
+				state.shutdownOnce.Do(func() {
+					close(state.fatalWriteError)
+				})
+
+				// CRITICAL: We must NEVER return from this handler - block forever until process exits.
+				// Returning from the handler causes the MQTT library to send PUBACK (QoS 1 ACK) to the broker,
+				// which would acknowledge a message we failed to persist to Kafka. The old code achieved this
+				// via log.Fatal() (immediate crash). The new code blocks forever - mqttClient.Disconnect() will
+				// timeout after quiesceTime, forcibly close the connection without calling m.Ack(), and the
+				// process will exit while this handler remains blocked. No PUBACK is sent.
+				kafkwWriteDurationTimer.ObserveDuration()
+				select {} // Block forever
+			}
+
+			// Backoff before retry
+			backoffTimer := time.NewTimer(state.writeErrorBackoff)
+			select {
+			case <-backoffTimer.C:
+				// Retry WriteMessages
+			case <-ctx.Done():
+				backoffTimer.Stop()
+				kafkwWriteDurationTimer.ObserveDuration()
+				return
+			}
 		}
 	}
 }
