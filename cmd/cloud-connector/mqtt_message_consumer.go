@@ -61,7 +61,18 @@ func startMqttMessageConsumer(mgmtAddr string) {
 		logger.LogFatalError("Unable to start kafka producer", err)
 	}
 
-	controlMsgHandler := mqtt.ControlMessageHandler(context.TODO(), kafkaProducer, mqttTopicVerifier)
+	// Create shutdown context for handlers - will be canceled during shutdown
+	shutdownCtx, shutdownCtxCancel := context.WithCancel(context.Background())
+
+	// Create fatal error channel for Kafka write failures
+	fatalWriteError := make(chan struct{})
+
+	// Create shared state for tracking consecutive Kafka write errors
+	const maxConsecutiveWriteErrors = 10
+	const writeErrorBackoff = 2 * time.Second
+	kafkaWriterState := mqtt.NewKafkaWriterState(maxConsecutiveWriteErrors, writeErrorBackoff, fatalWriteError)
+
+	controlMsgHandler := mqtt.ControlMessageHandler(shutdownCtx, kafkaProducer, mqttTopicVerifier, kafkaWriterState)
 	dataMsgHandler := mqtt.DataMessageHandler()
 
 	defaultMsgHandler := mqtt.DefaultMessageHandler(mqttTopicVerifier, controlMsgHandler, dataMsgHandler)
@@ -95,6 +106,16 @@ func startMqttMessageConsumer(mgmtAddr string) {
 	// See "Common Problems" here: https://github.com/eclipse/paho.mqtt.golang#common-problems
 	brokerOptions = append(brokerOptions, mqtt.WithDefaultPublishHandler(defaultMsgHandler))
 
+	// REQUIRED: OrderMatters=true ensures handlers execute serially. The Kafka write retry logic
+	// (RHINENG-29640) uses a shared consecutiveWriteErrors counter that requires serial execution
+	// to avoid race conditions. Explicitly set to true (even though it's the current default) to
+	// protect against future library changes and document the requirement.
+	// NOTE: OrderMatters=true causes blocking handlers to create backpressure through unbuffered
+	// channels, preventing paho from reading PINGRESP and causing "pingresp not received" disconnects
+	// during extended Kafka outages. Setting to false would avoid this but breaks message ordering
+	// and creates race conditions on the error counter.
+	brokerOptions = append(brokerOptions, mqtt.WithOrderMatters(true))
+
 	mqttClient, err := mqtt.CreateBrokerConnection(cfg.MqttBrokerAddress, brokerOptions...)
 	if err != nil {
 		logger.LogFatalError("Failed to connect to MQTT broker", err)
@@ -116,7 +137,12 @@ func startMqttMessageConsumer(mgmtAddr string) {
 		logger.Log.Info("Received signal to shutdown: ", sig)
 	case err = <-mqttConnectionFailedChan:
 		logger.Log.Info("MQTT connection dropped: ", err)
+	case <-fatalWriteError:
+		logger.Log.Info("Received fatal Kafka write error, shutting down")
 	}
+
+	// Cancel shutdown context to unblock any handlers waiting on ctx.Done()
+	shutdownCtxCancel()
 
 	ctx, cancel := context.WithTimeout(context.Background(), cfg.HttpShutdownTimeout)
 	defer cancel()

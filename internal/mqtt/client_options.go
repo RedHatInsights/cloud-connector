@@ -154,6 +154,17 @@ func WithConnectionLostHandler(handler func(MQTT.Client, error)) MqttClientOptio
 	}
 }
 
+// WithOrderMatters sets whether message handlers are called serially (true) or concurrently (false).
+// When true, handlers block the message dispatch loop and must not block indefinitely.
+// When false, handlers run in separate goroutines and may process messages out of order.
+func WithOrderMatters(orderMatters bool) MqttClientOptionsFunc {
+	return func(opts *MQTT.ClientOptions) error {
+		logger.Log.Tracef("Setting the order-matters flag: %v\n", orderMatters)
+		opts.SetOrderMatters(orderMatters)
+		return nil
+	}
+}
+
 func NewBrokerOptions(brokerUrl string, opts ...MqttClientOptionsFunc) (*MQTT.ClientOptions, error) {
 	connOpts := MQTT.NewClientOptions()
 
