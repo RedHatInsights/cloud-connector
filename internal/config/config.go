@@ -101,6 +101,20 @@ const (
 	TENANTLESS_CONNECTION_TIMESTAMP_OFFSET         = "Tenantless_Connection_Timestamp_Offset"
 	TENANTLESS_CONNECTION_UPDATER_CHUNK_SIZE       = "Tenantless_Connection_Updater_Chunk_Size"
 	TENANTLESS_CONNECTION_MAX_LOOKUP_FAILURES      = "Tenantless_Connection_Max_Lookup_Failures"
+
+	// Unleash feature flags configuration
+	UNLEASH_ENABLED     = "Unleash_Enabled"
+	UNLEASH_URL         = "Unleash_URL"
+	UNLEASH_API_TOKEN   = "Unleash_API_Token"
+	UNLEASH_APP_NAME    = "Unleash_App_Name"
+	UNLEASH_ENVIRONMENT = "Unleash_Environment"
+
+	// MQTT Rate Limiter configuration
+	MQTT_RATE_LIMITER_ENABLED          = "MQTT_Rate_Limiter_Enabled"
+	MQTT_RATE_LIMITER_VARIANT          = "MQTT_Rate_Limiter_Variant"
+	MQTT_RATE_LIMITER_THRESHOLD        = "MQTT_Rate_Limiter_Threshold"
+	MQTT_RATE_LIMITER_WINDOW           = "MQTT_Rate_Limiter_Window"
+	MQTT_RATE_LIMITER_UNLEASH_DISABLED = "MQTT_Rate_Limiter_Unleash_Disabled"
 )
 
 type Config struct {
@@ -191,6 +205,20 @@ type Config struct {
 	TenantlessConnectionTimestampOffset      time.Duration
 	TenantlessConnectionUpdaterChunkSize     int
 	TenantlessConnectionMaxLookupFailures    int
+
+	// Unleash feature flags
+	UnleashEnabled     bool
+	UnleashURL         string
+	UnleashAPIToken    string
+	UnleashAppName     string
+	UnleashEnvironment string
+
+	// MQTT Rate Limiter
+	MqttRateLimiterEnabled         bool
+	MqttRateLimiterVariant         string
+	MqttRateLimiterThreshold       int
+	MqttRateLimiterWindow          time.Duration
+	MqttRateLimiterUnleashDisabled bool
 }
 
 func (c Config) String() string {
@@ -272,6 +300,15 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %s\n", TENANTLESS_CONNECTION_TIMESTAMP_OFFSET, c.TenantlessConnectionTimestampOffset)
 	fmt.Fprintf(&b, "%s: %d\n", TENANTLESS_CONNECTION_UPDATER_CHUNK_SIZE, c.TenantlessConnectionUpdaterChunkSize)
 	fmt.Fprintf(&b, "%s: %d\n", TENANTLESS_CONNECTION_MAX_LOOKUP_FAILURES, c.TenantlessConnectionMaxLookupFailures)
+	fmt.Fprintf(&b, "%s: %t\n", UNLEASH_ENABLED, c.UnleashEnabled)
+	fmt.Fprintf(&b, "%s: %s\n", UNLEASH_URL, c.UnleashURL)
+	fmt.Fprintf(&b, "%s: %s\n", UNLEASH_APP_NAME, c.UnleashAppName)
+	fmt.Fprintf(&b, "%s: %s\n", UNLEASH_ENVIRONMENT, c.UnleashEnvironment)
+	fmt.Fprintf(&b, "%s: %t\n", MQTT_RATE_LIMITER_ENABLED, c.MqttRateLimiterEnabled)
+	fmt.Fprintf(&b, "%s: %s\n", MQTT_RATE_LIMITER_VARIANT, c.MqttRateLimiterVariant)
+	fmt.Fprintf(&b, "%s: %d\n", MQTT_RATE_LIMITER_THRESHOLD, c.MqttRateLimiterThreshold)
+	fmt.Fprintf(&b, "%s: %s\n", MQTT_RATE_LIMITER_WINDOW, c.MqttRateLimiterWindow)
+	fmt.Fprintf(&b, "%s: %t\n", MQTT_RATE_LIMITER_UNLEASH_DISABLED, c.MqttRateLimiterUnleashDisabled)
 
 	return b.String()
 }
@@ -354,6 +391,21 @@ func GetConfig() *Config {
 	options.SetDefault(TENANTLESS_CONNECTION_TIMESTAMP_OFFSET, 30)
 	options.SetDefault(TENANTLESS_CONNECTION_UPDATER_CHUNK_SIZE, 100)
 	options.SetDefault(TENANTLESS_CONNECTION_MAX_LOOKUP_FAILURES, 30)
+
+	// Unleash feature flags (defaults for non-Clowder environments)
+	options.SetDefault(UNLEASH_ENABLED, false)
+	options.SetDefault(UNLEASH_URL, "")
+	options.SetDefault(UNLEASH_API_TOKEN, "")
+	options.SetDefault(UNLEASH_APP_NAME, "cloud-connector")
+	options.SetDefault(UNLEASH_ENVIRONMENT, "development")
+
+	// MQTT Rate Limiter
+	options.SetDefault(MQTT_RATE_LIMITER_ENABLED, false)
+	options.SetDefault(MQTT_RATE_LIMITER_VARIANT, "test_only")
+	options.SetDefault(MQTT_RATE_LIMITER_THRESHOLD, 50)
+	options.SetDefault(MQTT_RATE_LIMITER_WINDOW, "10s")
+	options.SetDefault(MQTT_RATE_LIMITER_UNLEASH_DISABLED, false)
+
 	options.SetEnvPrefix(ENV_PREFIX)
 	options.AutomaticEnv()
 
@@ -444,6 +496,36 @@ func GetConfig() *Config {
 		TenantlessConnectionTimestampOffset:      options.GetDuration(TENANTLESS_CONNECTION_TIMESTAMP_OFFSET) * time.Minute,
 		TenantlessConnectionUpdaterChunkSize:     options.GetInt(TENANTLESS_CONNECTION_UPDATER_CHUNK_SIZE),
 		TenantlessConnectionMaxLookupFailures:    options.GetInt(TENANTLESS_CONNECTION_MAX_LOOKUP_FAILURES),
+		UnleashEnabled:                           options.GetBool(UNLEASH_ENABLED),
+		UnleashURL:                               options.GetString(UNLEASH_URL),
+		UnleashAPIToken:                          options.GetString(UNLEASH_API_TOKEN),
+		UnleashAppName:                           options.GetString(UNLEASH_APP_NAME),
+		UnleashEnvironment:                       options.GetString(UNLEASH_ENVIRONMENT),
+		MqttRateLimiterEnabled:                   options.GetBool(MQTT_RATE_LIMITER_ENABLED),
+		MqttRateLimiterVariant:                   options.GetString(MQTT_RATE_LIMITER_VARIANT),
+		MqttRateLimiterThreshold:                 options.GetInt(MQTT_RATE_LIMITER_THRESHOLD),
+		MqttRateLimiterWindow:                    options.GetDuration(MQTT_RATE_LIMITER_WINDOW),
+		MqttRateLimiterUnleashDisabled:           options.GetBool(MQTT_RATE_LIMITER_UNLEASH_DISABLED),
+	}
+
+	// Validate MQTT rate limiter configuration
+	if config.MqttRateLimiterThreshold <= 0 {
+		fmt.Printf("WARNING: Invalid MQTT_RATE_LIMITER_THRESHOLD=%d (must be > 0), using default 50\n",
+			config.MqttRateLimiterThreshold)
+		config.MqttRateLimiterThreshold = 50
+	}
+
+	if config.MqttRateLimiterWindow <= 0 {
+		fmt.Printf("WARNING: Invalid MQTT_RATE_LIMITER_WINDOW=%s (must be > 0), using default 10s\n",
+			config.MqttRateLimiterWindow)
+		config.MqttRateLimiterWindow = 10 * time.Second
+	}
+
+	validVariant := config.MqttRateLimiterVariant == "drop_message" || config.MqttRateLimiterVariant == "test_only"
+	if !validVariant {
+		fmt.Printf("WARNING: Invalid MQTT_RATE_LIMITER_VARIANT=%s (must be 'drop_message' or 'test_only'), using default 'test_only'\n",
+			config.MqttRateLimiterVariant)
+		config.MqttRateLimiterVariant = "test_only"
 	}
 
 	if clowder.IsClowderEnabled() {
@@ -489,6 +571,33 @@ func GetConfig() *Config {
 			}
 
 			config.ConnectionDatabaseSslRootCert = pathToDBCertFile
+		}
+
+		// Unleash (Feature Flags) configuration from Clowder
+		// Uses SetDefault so environment variables can override
+		if cfg.FeatureFlags != nil {
+			if cfg.FeatureFlags.Hostname != "" &&
+				cfg.FeatureFlags.Port != 0 &&
+				cfg.FeatureFlags.Scheme != "" {
+
+				options.SetDefault("unleash.enabled", true)
+				options.SetDefault("unleash.url", fmt.Sprintf("%s://%s:%d/api",
+					cfg.FeatureFlags.Scheme,
+					cfg.FeatureFlags.Hostname,
+					cfg.FeatureFlags.Port))
+			}
+
+			if cfg.FeatureFlags.ClientAccessToken != nil {
+				options.SetDefault(UNLEASH_API_TOKEN, *cfg.FeatureFlags.ClientAccessToken)
+			}
+
+			// Re-read ALL Unleash config after Clowder defaults
+			// Environment variables can still override these via viper
+			config.UnleashEnabled = options.GetBool(UNLEASH_ENABLED)
+			config.UnleashURL = options.GetString(UNLEASH_URL)
+			config.UnleashAPIToken = options.GetString(UNLEASH_API_TOKEN)
+			config.UnleashAppName = options.GetString(UNLEASH_APP_NAME)
+			config.UnleashEnvironment = options.GetString(UNLEASH_ENVIRONMENT)
 		}
 	}
 

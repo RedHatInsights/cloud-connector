@@ -14,6 +14,11 @@ type mqttMetrics struct {
 	messagePublishedFailureCounter prometheus.Counter
 	kafkaWriterGoRoutineGauge      prometheus.Gauge
 	kafkaWriterPublishDuration     prometheus.Histogram
+
+	// Rate limiter metrics
+	rateLimiterRateExceeded             *prometheus.CounterVec
+	rateLimiterMessagesDropped          *prometheus.CounterVec
+	rateLimiterMessagesAcceptedOverRate *prometheus.CounterVec
 }
 
 func newMqttMetrics() *mqttMetrics {
@@ -58,6 +63,21 @@ func newMqttMetrics() *mqttMetrics {
 		Name: "cloud_connector_mqtt_message_consumer_kafka_writer_publish_duration",
 		Help: "The amount of time the mqtt consumer spends waiting on a kafka write",
 	})
+
+	metrics.rateLimiterRateExceeded = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "cloud_connector_mqtt_rate_limiter_rate_exceeded_total",
+		Help: "Total number of rate threshold crossing incidents by variant",
+	}, []string{"variant"})
+
+	metrics.rateLimiterMessagesDropped = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "cloud_connector_mqtt_rate_limiter_messages_dropped_total",
+		Help: "Total number of messages dropped by reason",
+	}, []string{"reason"})
+
+	metrics.rateLimiterMessagesAcceptedOverRate = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "cloud_connector_mqtt_rate_limiter_messages_accepted_over_rate_total",
+		Help: "Total number of messages accepted despite being over rate threshold (test_only variant)",
+	}, []string{"variant"})
 
 	return metrics
 }
