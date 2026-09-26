@@ -16,6 +16,7 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/queue"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/tls_utils"
+	"github.com/RedHatInsights/cloud-connector/internal/unleash"
 
 	MQTT "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gorilla/mux"
@@ -43,6 +44,18 @@ func startMqttMessageConsumer(mgmtAddr string) {
 	cfg := config.GetConfig()
 	logger.Log.Info("Cloud-Connector configuration:\n", cfg)
 
+	// Initialize Unleash feature flags
+	logEntry := logger.Log.WithField("component", "unleash")
+	if err := unleash.Initialize(cfg, logEntry); err != nil {
+		logger.Log.WithError(err).Warn("Failed to initialize Unleash, feature flags will fall back to environment variables")
+	}
+
+	defer func() {
+		if err := unleash.Close(); err != nil {
+			logger.Log.WithError(err).Warn("Failed to close Unleash client")
+		}
+	}()
+
 	tlsConfigFuncs, err := buildBrokerTlsConfigFuncList(cfg)
 	if err != nil {
 		logger.LogFatalError("TLS configuration error for MQTT Broker connection", err)
@@ -61,7 +74,9 @@ func startMqttMessageConsumer(mgmtAddr string) {
 		logger.LogFatalError("Unable to start kafka producer", err)
 	}
 
-	controlMsgHandler := mqtt.ControlMessageHandler(context.TODO(), kafkaProducer, mqttTopicVerifier)
+	rateLimiter := mqtt.NewRateLimiter(cfg)
+
+	controlMsgHandler := mqtt.ControlMessageHandler(context.TODO(), kafkaProducer, mqttTopicVerifier, rateLimiter)
 	dataMsgHandler := mqtt.DataMessageHandler()
 
 	defaultMsgHandler := mqtt.DefaultMessageHandler(mqttTopicVerifier, controlMsgHandler, dataMsgHandler)
@@ -124,6 +139,8 @@ func startMqttMessageConsumer(mgmtAddr string) {
 	utils.ShutdownHTTPServer(ctx, "management", apiSrv)
 
 	mqttClient.Disconnect(cfg.MqttDisconnectQuiesceTime)
+
+	rateLimiter.Stop()
 
 	kafkaProducer.Close()
 
