@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/url"
 	"strings"
@@ -23,6 +24,11 @@ type Subscriber struct {
 // Two seconds is sufficient for a healthy resolver while keeping reconnect latency low.
 // Adjust if DNS infrastructure changes.
 const dnsLookupTimeout = 2 * time.Second
+
+// mqttConnectTimeout caps the time spent waiting for MQTT broker connection.
+// Ten seconds allows for network latency and TLS handshake while preventing
+// indefinite hangs when the broker is unresponsive.
+const mqttConnectTimeout = 10 * time.Second
 
 // logBrokerNode resolves the hostname in brokerUrl to an IP and reverse-DNS
 // hostname, then emits a structured log entry. This makes the actual physical
@@ -77,7 +83,15 @@ func CreateBrokerConnection(brokerUrl string, brokerConfigFuncs ...MqttClientOpt
 	}
 
 	mqttClient := MQTT.NewClient(connOpts)
-	if token := mqttClient.Connect(); token.Wait() && token.Error() != nil {
+	token := mqttClient.Connect()
+
+	if !token.WaitTimeout(mqttConnectTimeout) {
+		logger.Log.Error("MQTT connection timed out")
+		mqttClient.Disconnect(0) // Clean up background goroutines from timed-out connection attempt
+		return nil, fmt.Errorf("mqtt connection timed out after %s", mqttConnectTimeout)
+	}
+
+	if token.Error() != nil {
 		logger.Log.WithFields(logrus.Fields{"error": token.Error()}).Error("Unable to connect to MQTT broker")
 		return nil, token.Error()
 	}
