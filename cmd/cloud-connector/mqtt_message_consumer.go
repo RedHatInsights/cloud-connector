@@ -142,6 +142,7 @@ func buildBrokerTlsConfigFuncList(cfg *config.Config) ([]tls_utils.TlsConfigFunc
 
 	if cfg.MqttBrokerTlsCertFile != "" && cfg.MqttBrokerTlsKeyFile != "" {
 		tlsConfigFuncs = append(tlsConfigFuncs, tls_utils.WithCert(cfg.MqttBrokerTlsCertFile, cfg.MqttBrokerTlsKeyFile))
+		mqtt.RecordMqttConsumerCertificateExpiry(cfg.MqttBrokerTlsCertFile)
 	} else if cfg.MqttBrokerTlsCertFile != "" || cfg.MqttBrokerTlsKeyFile != "" {
 		return tlsConfigFuncs, errors.New("Cert or key file specified without the other")
 	}

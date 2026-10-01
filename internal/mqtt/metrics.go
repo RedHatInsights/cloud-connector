@@ -14,6 +14,7 @@ type mqttMetrics struct {
 	messagePublishedFailureCounter prometheus.Counter
 	kafkaWriterGoRoutineGauge      prometheus.Gauge
 	kafkaWriterPublishDuration     prometheus.Histogram
+	certificateExpiryDays          *prometheus.GaugeVec
 }
 
 func newMqttMetrics() *mqttMetrics {
@@ -58,6 +59,11 @@ func newMqttMetrics() *mqttMetrics {
 		Name: "cloud_connector_mqtt_message_consumer_kafka_writer_publish_duration",
 		Help: "The amount of time the mqtt consumer spends waiting on a kafka write",
 	})
+
+	metrics.certificateExpiryDays = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "cloud_connector_certificate_expiry_days",
+		Help: "Whole days remaining until a configured certificate expires (negative if expired)",
+	}, []string{"certificate_label"})
 
 	return metrics
 }
