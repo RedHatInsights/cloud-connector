@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/RedHatInsights/tenant-utils v1.0.0
-	github.com/Unleash/unleash-go-sdk/v5 v5.1.0
+	github.com/Unleash/unleash-go-sdk/v6 v6.5.1
 	github.com/aws/aws-sdk-go v1.55.8
 	github.com/eclipse/paho.mqtt.golang v1.5.1
 	github.com/go-playground/assert/v2 v2.2.0
@@ -35,7 +35,7 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
 	github.com/google/pprof v0.0.0-20260926063103-aaccee046517 // indirect
-	github.com/launchdarkly/eventsource v1.10.0 // indirect
+	github.com/launchdarkly/eventsource v1.11.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
 	github.com/pierrec/lz4/v4 v4.1.33 // indirect
