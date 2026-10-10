@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/RedHatInsights/cloud-connector/internal/config"
-	"github.com/Unleash/unleash-go-sdk/v5"
-	"github.com/Unleash/unleash-go-sdk/v5/api"
-	ucontext "github.com/Unleash/unleash-go-sdk/v5/context"
+	"github.com/Unleash/unleash-go-sdk/v6"
+	"github.com/Unleash/unleash-go-sdk/v6/api"
+	ucontext "github.com/Unleash/unleash-go-sdk/v6/context"
 	"github.com/sirupsen/logrus"
 )
 
