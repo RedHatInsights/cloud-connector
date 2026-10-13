@@ -16,6 +16,8 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
+	"github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus/hooks/test"
 )
 
 func init() {
@@ -27,14 +29,32 @@ func TestRecordMqttConsumerCertificateExpiry(t *testing.T) {
 
 	RecordMqttConsumerCertificateExpiry(certPath)
 
-	value := testutil.ToFloat64(metrics.certificateExpiryDays.WithLabelValues(mqttConsumerCertificateLabel))
+	value := testutil.ToFloat64(metrics.certificateExpiryDays)
 	if value < 44 || value > 45 {
 		t.Fatalf("expected ~45 days remaining, got %v", value)
 	}
 }
 
 func TestRecordMqttConsumerCertificateExpiryEmptyPath(t *testing.T) {
+	hook := test.NewLocal(logger.Log)
+	defer hook.Reset()
+
+	metrics.certificateExpiryDays.Set(99)
+
 	RecordMqttConsumerCertificateExpiry("")
+
+	if got := testutil.ToFloat64(metrics.certificateExpiryDays); got != 99 {
+		t.Fatalf("empty path should not change gauge, got %v", got)
+	}
+
+	if len(hook.Entries) == 0 {
+		t.Fatal("expected error log for empty cert path")
+	}
+
+	last := hook.LastEntry()
+	if last.Level != logrus.ErrorLevel {
+		t.Fatalf("expected error level log, got %s", last.Level)
+	}
 }
 
 func writeMqttTestCertificate(t *testing.T, notAfter time.Time) string {

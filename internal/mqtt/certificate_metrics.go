@@ -4,11 +4,8 @@ import (
 	"github.com/RedHatInsights/cloud-connector/internal/platform/logger"
 	"github.com/RedHatInsights/cloud-connector/internal/platform/utils/tls_utils"
 
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
-
-const mqttConsumerCertificateLabel = "mqtt_consumer"
 
 // RecordMqttConsumerCertificateExpiry reads the MQTT broker client certificate
 // and updates the cloud_connector_certificate_expiry_days gauge. Failures are
@@ -16,6 +13,7 @@ const mqttConsumerCertificateLabel = "mqtt_consumer"
 // whether the cert is usable.
 func RecordMqttConsumerCertificateExpiry(certFilePath string) {
 	if certFilePath == "" {
+		logger.Log.Error("MQTT consumer certificate path is empty; expiry metric not recorded")
 		return
 	}
 
@@ -26,13 +24,10 @@ func RecordMqttConsumerCertificateExpiry(certFilePath string) {
 		return
 	}
 
-	metrics.certificateExpiryDays.With(prometheus.Labels{
-		"certificate_label": mqttConsumerCertificateLabel,
-	}).Set(days)
+	metrics.certificateExpiryDays.Set(days)
 
 	logger.Log.WithFields(logrus.Fields{
-		"cert_file":         certFilePath,
-		"certificate_label": mqttConsumerCertificateLabel,
-		"days_remaining":    days,
+		"cert_file":      certFilePath,
+		"days_remaining": days,
 	}).Info("Recorded MQTT consumer certificate expiry metric")
 }

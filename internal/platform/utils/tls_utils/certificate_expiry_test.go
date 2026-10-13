@@ -41,7 +41,7 @@ func TestCertificateExpiryDaysExpired(t *testing.T) {
 }
 
 func TestCertificateNotAfterMissingFile(t *testing.T) {
-	_, err := CertificateNotAfter(filepath.Join(t.TempDir(), "missing.pem"))
+	_, err := certificateNotAfter(filepath.Join(t.TempDir(), "missing.pem"))
 	if err == nil {
 		t.Fatal("expected error for missing certificate file")
 	}
@@ -53,7 +53,7 @@ func TestCertificateNotAfterNoCertificateBlock(t *testing.T) {
 		t.Fatalf("unable to write test file: %v", err)
 	}
 
-	_, err := CertificateNotAfter(path)
+	_, err := certificateNotAfter(path)
 	if err == nil {
 		t.Fatal("expected error when PEM has no certificate block")
 	}

@@ -82,7 +82,7 @@ func newMqttMetrics() *mqttMetrics {
 
 	metrics.certificateExpiryDays = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "cloud_connector_certificate_expiry_days",
-		Help: "Whole days remaining until a configured certificate expires (negative if expired)",
+		Help: "Whole days remaining until the MQTT consumer certificate expires (negative if expired)",
 	})
 
 	return metrics
