@@ -19,6 +19,7 @@ type mqttMetrics struct {
 	rateLimiterRateExceeded             *prometheus.CounterVec
 	rateLimiterMessagesDropped          *prometheus.CounterVec
 	rateLimiterMessagesAcceptedOverRate *prometheus.CounterVec
+	certificateExpiryDays               prometheus.GaugeFunc
 }
 
 func newMqttMetrics() *mqttMetrics {
@@ -78,6 +79,11 @@ func newMqttMetrics() *mqttMetrics {
 		Name: "cloud_connector_mqtt_rate_limiter_messages_accepted_over_rate_total",
 		Help: "Total number of messages accepted despite being over rate threshold (test_only variant)",
 	}, []string{"variant"})
+
+	metrics.certificateExpiryDays = promauto.NewGaugeFunc(prometheus.GaugeOpts{
+		Name: "cloud_connector_certificate_expiry_days",
+		Help: "Whole days remaining until the MQTT consumer certificate expires (negative if expired); recomputed on each scrape",
+	}, mqttConsumerCertificateExpiryDays)
 
 	return metrics
 }
