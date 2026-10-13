@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"math"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -22,6 +23,7 @@ func TestCertificateExpiryDays(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	assertWholeDays(t, days)
 	if days < 9 || days > 10 {
 		t.Fatalf("expected ~10 days remaining, got %v", days)
 	}
@@ -35,8 +37,16 @@ func TestCertificateExpiryDaysExpired(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	assertWholeDays(t, days)
 	if days >= 0 {
 		t.Fatalf("expected negative days for expired cert, got %v", days)
+	}
+}
+
+func assertWholeDays(t *testing.T, days float64) {
+	t.Helper()
+	if days != math.Trunc(days) {
+		t.Fatalf("expected whole days, got %v", days)
 	}
 }
 

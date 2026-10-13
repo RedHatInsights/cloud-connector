@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"math"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -30,6 +31,7 @@ func TestRecordMqttConsumerCertificateExpiry(t *testing.T) {
 	RecordMqttConsumerCertificateExpiry(certPath)
 
 	value := testutil.ToFloat64(metrics.certificateExpiryDays)
+	assertWholeDays(t, value)
 	if value < 44 || value > 45 {
 		t.Fatalf("expected ~45 days remaining, got %v", value)
 	}
@@ -39,12 +41,14 @@ func TestRecordMqttConsumerCertificateExpiryEmptyPath(t *testing.T) {
 	hook := test.NewLocal(logger.Log)
 	defer hook.Reset()
 
-	metrics.certificateExpiryDays.Set(99)
+	certPath := writeMqttTestCertificate(t, time.Now().Add(45*24*time.Hour))
+	RecordMqttConsumerCertificateExpiry(certPath)
+	before := testutil.ToFloat64(metrics.certificateExpiryDays)
 
 	RecordMqttConsumerCertificateExpiry("")
 
-	if got := testutil.ToFloat64(metrics.certificateExpiryDays); got != 99 {
-		t.Fatalf("empty path should not change gauge, got %v", got)
+	if got := testutil.ToFloat64(metrics.certificateExpiryDays); got != before {
+		t.Fatalf("empty path should not change gauge, before=%v got=%v", before, got)
 	}
 
 	if len(hook.Entries) == 0 {
@@ -54,6 +58,29 @@ func TestRecordMqttConsumerCertificateExpiryEmptyPath(t *testing.T) {
 	last := hook.LastEntry()
 	if last.Level != logrus.ErrorLevel {
 		t.Fatalf("expected error level log, got %s", last.Level)
+	}
+}
+
+func TestMqttConsumerCertificateExpiryDaysTracksTime(t *testing.T) {
+	certPath := writeMqttTestCertificate(t, time.Now().Add(10*24*time.Hour))
+	RecordMqttConsumerCertificateExpiry(certPath)
+
+	// Advance the cert's recorded path evaluation by replacing the file with one
+	// that expires sooner; GaugeFunc should reflect the new NotAfter on scrape.
+	shorterPath := writeMqttTestCertificate(t, time.Now().Add(3*24*time.Hour))
+	mqttConsumerCertFile.Store(shorterPath)
+
+	value := testutil.ToFloat64(metrics.certificateExpiryDays)
+	assertWholeDays(t, value)
+	if value < 2 || value > 3 {
+		t.Fatalf("expected ~3 days remaining after cert replacement, got %v", value)
+	}
+}
+
+func assertWholeDays(t *testing.T, days float64) {
+	t.Helper()
+	if days != math.Trunc(days) {
+		t.Fatalf("expected whole days, got %v", days)
 	}
 }
 
