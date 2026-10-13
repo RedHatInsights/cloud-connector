@@ -14,7 +14,7 @@ import (
 // first certificate in the PEM file expires. Negative values mean the
 // certificate has already expired.
 func CertificateExpiryDays(certFilePath string) (float64, error) {
-	notAfter, err := CertificateNotAfter(certFilePath)
+	notAfter, err := certificateNotAfter(certFilePath)
 	if err != nil {
 		return 0, err
 	}
@@ -22,9 +22,9 @@ func CertificateExpiryDays(certFilePath string) (float64, error) {
 	return math.Floor(time.Until(notAfter).Hours() / 24), nil
 }
 
-// CertificateNotAfter returns the NotAfter timestamp of the first certificate
+// certificateNotAfter returns the NotAfter timestamp of the first certificate
 // found in the PEM file at certFilePath.
-func CertificateNotAfter(certFilePath string) (time.Time, error) {
+func certificateNotAfter(certFilePath string) (time.Time, error) {
 	certFilePath = filepath.Clean(certFilePath)
 
 	pemCerts, err := os.ReadFile(certFilePath)
