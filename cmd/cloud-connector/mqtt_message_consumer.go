@@ -238,8 +238,16 @@ func subscribeOnMqttConnectHandler(subscribers []mqtt.Subscriber) func(client MQ
 			token := client.Subscribe(subscriber.Topic, subscriber.Qos, subscriber.EntryPoint)
 
 			if !token.WaitTimeout(mqttSubscribeTimeout) {
-				// TODO: Consider disconnect/retry instead of Fatalf to allow recovery from transient timeouts
-				logger.Log.Fatalf("Subscribing to MQTT topic (%s) timed out after %s", subscriber.Topic, mqttSubscribeTimeout)
+				// A slow SUBACK does not necessarily mean the broker is dead - e.g. a
+				// resumed session (MQTT_Resume_Subs/MQTT_Clean_Session=false) can cause
+				// the broker to replay a backlog before acking a new subscription made
+				// on reconnect. Disconnect and let AutoReconnect retry instead of killing
+				// the process, so a transient/backlog-related delay doesn't crash-loop
+				// the pod (and pile more reconnect load onto an already-busy broker).
+				logger.Log.WithFields(logrus.Fields{"topic": subscriber.Topic}).Errorf(
+					"Subscribing to MQTT topic timed out after %s, forcing reconnect to retry", mqttSubscribeTimeout)
+				client.Disconnect(0)
+				return
 			}
 
 			if token.Error() != nil {
