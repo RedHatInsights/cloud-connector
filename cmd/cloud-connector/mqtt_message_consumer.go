@@ -103,7 +103,7 @@ func startMqttMessageConsumer(mgmtAddr string) {
 
 	brokerOptions = buildOnConnectionLostMqttOptions(cfg, mqttConnectionFailedChan, brokerOptions)
 
-	brokerOptions = append(brokerOptions, mqtt.WithOnConnectHandler(subscribeOnMqttConnectHandler(subscribers)))
+	brokerOptions = append(brokerOptions, mqtt.WithOnConnectHandler(subscribeOnMqttConnectHandler(subscribers, cfg.MqttSubscribeTimeout)))
 
 	// Add a default publish message handler as some messages will get delivered before the topic
 	// subscriptions are setup completely
@@ -227,19 +227,19 @@ func logMqttConnectionLostHandler(client MQTT.Client, err error) {
 	logger.Log.Infof("MQTT connection dropped, err: %s", err)
 }
 
-// mqttSubscribeTimeout caps the time spent waiting for MQTT topic subscription.
-// Ten seconds allows for broker processing while preventing indefinite hangs.
-const mqttSubscribeTimeout = 10 * time.Second
-
-func subscribeOnMqttConnectHandler(subscribers []mqtt.Subscriber) func(client MQTT.Client) {
+// subscribeOnMqttConnectHandler builds the OnConnect handler that (re-)subscribes to
+// all topics whenever the client connects or reconnects. subscribeTimeout caps how
+// long we wait for each subscription's SUBACK; it is configurable (CLOUD_CONNECTOR_MQTT_SUBSCRIBE_TIMEOUT,
+// default 60s) since broker-side session/backlog processing after a reconnect - or planned
+// broker maintenance - can legitimately push SUBACK latency higher than a fixed default allows.
+func subscribeOnMqttConnectHandler(subscribers []mqtt.Subscriber, subscribeTimeout time.Duration) func(client MQTT.Client) {
 	return func(client MQTT.Client) {
 		for _, subscriber := range subscribers {
 			logger.Log.Infof("Subscribing to MQTT topic: %s - QOS: %d\n", subscriber.Topic, subscriber.Qos)
 			token := client.Subscribe(subscriber.Topic, subscriber.Qos, subscriber.EntryPoint)
 
-			if !token.WaitTimeout(mqttSubscribeTimeout) {
-				// TODO: Consider disconnect/retry instead of Fatalf to allow recovery from transient timeouts
-				logger.Log.Fatalf("Subscribing to MQTT topic (%s) timed out after %s", subscriber.Topic, mqttSubscribeTimeout)
+			if !token.WaitTimeout(subscribeTimeout) {
+				logger.Log.Fatalf("Subscribing to MQTT topic (%s) timed out after %s", subscriber.Topic, subscribeTimeout)
 			}
 
 			if token.Error() != nil {

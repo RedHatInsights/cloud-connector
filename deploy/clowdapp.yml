@@ -255,6 +255,8 @@ objects:
           value: ${MQTT_CONSUMER_SHUTDOWN_ON_MQTT_CONNECTION_LOST}
         - name: CLOUD_CONNECTOR_MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME
           value: ${MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME}
+        - name: CLOUD_CONNECTOR_MQTT_SUBSCRIBE_TIMEOUT
+          value: ${MQTT_CONSUMER_MQTT_SUBSCRIBE_TIMEOUT}
 
         - name: CLOUD_CONNECTOR_RHC_MESSAGE_KAFKA_BATCH_SIZE
           value: ${RHC_MESSAGE_KAFKA_BATCH_SIZE}
@@ -750,6 +752,10 @@ parameters:
   value: "60"
 - name: MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME
   value: "2"
+- name: MQTT_CONSUMER_MQTT_SUBSCRIBE_TIMEOUT
+  # Seconds to wait for a topic subscription SUBACK before giving up (CLOUD_CONNECTOR_MQTT_SUBSCRIBE_TIMEOUT).
+  # Override from app-interface ahead of known broker maintenance windows where SUBACKs are expected to be slower.
+  value: "60"
 
 - name: RHC_MESSAGE_KAFKA_TOPIC
   required: true

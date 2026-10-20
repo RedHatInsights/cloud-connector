@@ -41,6 +41,7 @@ const (
 	MQTT_DATA_PUBLISH_QOS                          = "MQTT_Data_Publish_QoS"
 	MQTT_DISCONNECT_QUIESCE_TIME                   = "MQTT_Disconnect_Quiesce_Time"
 	MQTT_PUBLISH_TIMEOUT                           = "MQTT_Publish_Timeout"
+	MQTT_SUBSCRIBE_TIMEOUT                         = "MQTT_Subscribe_Timeout"
 	MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME              = "MQTT_Consumer_Shutdown_Sleep_Time"
 	SHUTDOWN_ON_MQTT_CONNECTION_LOST               = "Shutdown_On_MQTT_Connection_Lost"
 	INVALID_HANDSHAKE_RECONNECT_DELAY              = "Invalid_Handshake_Reconnect_Delay"
@@ -146,6 +147,7 @@ type Config struct {
 	MqttDataPublishQoS                       byte
 	MqttDisconnectQuiesceTime                uint
 	MqttPublishTimeout                       time.Duration
+	MqttSubscribeTimeout                     time.Duration
 	MqttConsumerShutdownSleepTime            time.Duration
 	ShutdownOnMqttConnectionLost             bool
 	InvalidHandshakeReconnectDelay           int
@@ -249,6 +251,7 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %d\n", MQTT_DATA_PUBLISH_QOS, c.MqttDataPublishQoS)
 	fmt.Fprintf(&b, "%s: %d\n", MQTT_DISCONNECT_QUIESCE_TIME, c.MqttDisconnectQuiesceTime)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_PUBLISH_TIMEOUT, c.MqttPublishTimeout)
+	fmt.Fprintf(&b, "%s: %s\n", MQTT_SUBSCRIBE_TIMEOUT, c.MqttSubscribeTimeout)
 	fmt.Fprintf(&b, "%s: %s\n", MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME, c.MqttConsumerShutdownSleepTime)
 	fmt.Fprintf(&b, "%s: %t\n", SHUTDOWN_ON_MQTT_CONNECTION_LOST, c.ShutdownOnMqttConnectionLost)
 	fmt.Fprintf(&b, "%s: %d\n", INVALID_HANDSHAKE_RECONNECT_DELAY, c.InvalidHandshakeReconnectDelay)
@@ -337,6 +340,7 @@ func GetConfig() *Config {
 	options.SetDefault(MQTT_DATA_PUBLISH_QOS, 1)
 	options.SetDefault(MQTT_DISCONNECT_QUIESCE_TIME, 1000)
 	options.SetDefault(MQTT_PUBLISH_TIMEOUT, 2)
+	options.SetDefault(MQTT_SUBSCRIBE_TIMEOUT, 60)
 	options.SetDefault(MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME, 2)
 	options.SetDefault(SHUTDOWN_ON_MQTT_CONNECTION_LOST, false)
 	options.SetDefault(INVALID_HANDSHAKE_RECONNECT_DELAY, 60)
@@ -438,6 +442,7 @@ func GetConfig() *Config {
 		MqttDataPublishQoS:                       byte(options.GetInt(MQTT_DATA_PUBLISH_QOS)),
 		MqttDisconnectQuiesceTime:                options.GetUint(MQTT_DISCONNECT_QUIESCE_TIME),
 		MqttPublishTimeout:                       options.GetDuration(MQTT_PUBLISH_TIMEOUT) * time.Second,
+		MqttSubscribeTimeout:                     options.GetDuration(MQTT_SUBSCRIBE_TIMEOUT) * time.Second,
 		MqttConsumerShutdownSleepTime:            options.GetDuration(MQTT_CONSUMER_SHUTDOWN_SLEEP_TIME) * time.Second,
 		ShutdownOnMqttConnectionLost:             options.GetBool(SHUTDOWN_ON_MQTT_CONNECTION_LOST),
 		InvalidHandshakeReconnectDelay:           options.GetInt(INVALID_HANDSHAKE_RECONNECT_DELAY),
