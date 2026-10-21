@@ -25,6 +25,11 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal
 
 RUN microdnf update -y
 
+# Mitigate the eMudhra intermediate CA compromise (RHSB-2026-012) by
+# distrusting the affected root CAs - see https://access.redhat.com/solutions/7149312
+COPY scripts/disable-compromised-ca-certs.sh /tmp/disable-compromised-ca-certs.sh
+RUN /tmp/disable-compromised-ca-certs.sh
+
 WORKDIR /
 
 # Copy executable files from the builder image
