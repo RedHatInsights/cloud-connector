@@ -106,13 +106,13 @@ func IsInitialized() bool {
 // IsEnabled checks if a feature flag is enabled
 // Returns false if Unleash is not initialized
 func IsEnabled(featureName string) bool {
-	return unleash.IsEnabled(featureName)
+	return unleash.IsEnabled(featureName, unleash.FeatureOptions{})
 }
 
 // IsEnabledWithContext checks if a feature flag is enabled with Unleash context
 // Context allows for per-organization gradual rollout and targeting
 func IsEnabledWithContext(featureName string, uctx ucontext.Context) bool {
-	return unleash.IsEnabled(featureName, unleash.WithContext(uctx))
+	return unleash.IsEnabled(featureName, unleash.FeatureOptions{Ctx: uctx})
 }
 
 // GetVariant gets a variant for a feature flag without context
@@ -121,11 +121,11 @@ func IsEnabledWithContext(featureName string, uctx ucontext.Context) bool {
 //   - Feature flag doesn't exist
 //   - Feature flag is disabled
 func GetVariant(featureName string) *api.Variant {
-	return unleash.GetVariant(featureName)
+	return unleash.GetVariant(featureName, unleash.VariantOptions{})
 }
 
 // GetVariantWithContext gets a variant for a feature flag with Unleash context
 // Context allows for per-organization gradual rollout and targeting
 func GetVariantWithContext(featureName string, uctx ucontext.Context) *api.Variant {
-	return unleash.GetVariant(featureName, unleash.WithVariantContext(uctx))
+	return unleash.GetVariant(featureName, unleash.VariantOptions{Ctx: uctx})
 }
