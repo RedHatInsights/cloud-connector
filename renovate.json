@@ -3,20 +3,106 @@
   "extends": [
     "github>RedHatInsights/konflux-pipelines//renovate/foreman_satellite/renovate.json"
   ],
+  "updateNotScheduled": false,
+  "prConcurrentLimit": 10,
   "tekton": {
-    "schedule": ["at any time"]
+    "schedule": [
+      "at any time"
+    ]
+  },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "* * 1 * *"
+    ]
   },
   "vulnerabilityAlerts": {
-    "enabled": true
+    "enabled": true,
+    "labels": [
+      "SECURITY"
+    ]
   },
   "osvVulnerabilityAlerts": true,
   "packageRules": [
     {
-      "description": "Automerge Tekton pipeline updates on master",
-      "matchBaseBranches": ["master"],
-      "matchManagers": ["tekton"],
+      "description": "Automerge Tekton pipeline updates on master as soon as they publish.",
+      "matchBaseBranches": [
+        "master"
+      ],
+      "matchManagers": [
+        "tekton"
+      ],
+      "schedule": [
+        "at any time"
+      ],
       "automerge": true,
       "autoApprove": true
+    },
+    {
+      "description": "One non-major maintenance pull request on the 1st (UTC). Tekton is excluded and updates any time.",
+      "matchBaseBranches": [
+        "master",
+        "main"
+      ],
+      "matchManagers": [
+        "!tekton"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
+      "matchJsonata": [
+        "$not($exists(isVulnerabilityAlert)) or isVulnerabilityAlert = false"
+      ],
+      "groupName": "monthly maintenance",
+      "groupSlug": "monthly-maintenance",
+      "schedule": [
+        "* * 1 * *"
+      ]
+    },
+    {
+      "description": "Majors stay one pull request each, and only refresh on the 1st, so a breaking bump cannot take the monthly rollup down.",
+      "matchBaseBranches": [
+        "master",
+        "main"
+      ],
+      "matchManagers": [
+        "!tekton"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "matchJsonata": [
+        "$not($exists(isVulnerabilityAlert)) or isVulnerabilityAlert = false"
+      ],
+      "schedule": [
+        "* * 1 * *"
+      ]
+    },
+    {
+      "description": "Label every non-security update, including Tekton, lockfile maintenance, and the monthly rollup.",
+      "matchJsonata": [
+        "$not($exists(isVulnerabilityAlert)) or isVulnerabilityAlert = false"
+      ],
+      "addLabels": [
+        "dependencies"
+      ]
+    },
+    {
+      "description": "CVE and OSV fixes stay immediate, ungrouped, and labeled SECURITY. Vulnerability alerts already skip schedule and minimumReleaseAge.",
+      "matchJsonata": [
+        "$exists(isVulnerabilityAlert) and isVulnerabilityAlert = true"
+      ],
+      "enabled": true,
+      "schedule": [
+        "at any time"
+      ],
+      "addLabels": [
+        "SECURITY"
+      ],
+      "prPriority": 10
     }
   ]
 }
