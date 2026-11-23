@@ -117,7 +117,7 @@ func startKafkaMessageConsumer(mgmtAddr string) {
 	// main thread so that it can shutdown the process
 	fatalProcessingError := make(chan struct{})
 
-	go consumeMqttMessagesFromKafka(kafkaReader, messageProcessor, shutdownCtx, fatalProcessingError)
+	go consumeMqttMessagesFromKafka(cfg, kafkaReader, messageProcessor, shutdownCtx, fatalProcessingError)
 
 	apiMux := mux.NewRouter()
 
@@ -219,13 +219,13 @@ func handleMessage(cfg *config.Config, mqttClient MQTT.Client, topicVerifier *mq
 	}
 }
 
-func consumeMqttMessagesFromKafka(kafkaReader *kafka.Reader, process func(*logrus.Entry, *kafka.Message) error, ctx context.Context, fatalProcessingError chan struct{}) {
+func consumeMqttMessagesFromKafka(cfg *config.Config, kafkaReader *kafka.Reader, process func(*logrus.Entry, *kafka.Message) error, ctx context.Context, fatalProcessingError chan struct{}) {
 
 	// Track consecutive errors to distinguish transient blips from persistent
 	// failures; only shut down after hitting the threshold.
-	const maxConsecutiveFetchErrors = 10
-	const maxConsecutiveCommitErrors = 10
-	const fetchErrorBackoff = 2 * time.Second
+	maxConsecutiveFetchErrors := cfg.RhcMessageKafkaMaxFetchErrors
+	maxConsecutiveCommitErrors := cfg.RhcMessageKafkaMaxCommitErrors
+	fetchErrorBackoff := cfg.RhcMessageKafkaFetchErrorBackoff
 	const commitErrorBackoff = 2 * time.Second
 	consecutiveFetchErrors := 0
 	consecutiveCommitErrors := 0

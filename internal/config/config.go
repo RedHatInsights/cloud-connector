@@ -116,6 +116,11 @@ const (
 	MQTT_RATE_LIMITER_THRESHOLD        = "MQTT_Rate_Limiter_Threshold"
 	MQTT_RATE_LIMITER_WINDOW           = "MQTT_Rate_Limiter_Window"
 	MQTT_RATE_LIMITER_UNLEASH_DISABLED = "MQTT_Rate_Limiter_Unleash_Disabled"
+
+	// Kafka consumer failover. Defaults match the previous hardcoded values.
+	RHC_MESSAGE_KAFKA_MAX_CONSECUTIVE_FETCH_ERRORS  = "RHC_Message_Kafka_Max_Consecutive_Fetch_Errors"
+	RHC_MESSAGE_KAFKA_MAX_CONSECUTIVE_COMMIT_ERRORS = "RHC_Message_Kafka_Max_Consecutive_Commit_Errors"
+	RHC_MESSAGE_KAFKA_FETCH_ERROR_BACKOFF           = "RHC_Message_Kafka_Fetch_Error_Backoff"
 )
 
 type Config struct {
@@ -193,6 +198,9 @@ type Config struct {
 	RhcMessageKafkaBatchSize                 int
 	RhcMessageKafkaBatchBytes                int
 	RhcMessageKafkaConsumerGroup             string
+	RhcMessageKafkaMaxFetchErrors            int
+	RhcMessageKafkaMaxCommitErrors           int
+	RhcMessageKafkaFetchErrorBackoff         time.Duration
 	PendoApiEndpoint                         string
 	PendoRequestTimeout                      time.Duration
 	PendoIntegrationKey                      string
@@ -293,6 +301,9 @@ func (c Config) String() string {
 	fmt.Fprintf(&b, "%s: %d\n", RHC_MESSAGE_KAFKA_BATCH_SIZE, c.RhcMessageKafkaBatchSize)
 	fmt.Fprintf(&b, "%s: %d\n", RHC_MESSAGE_KAFKA_BATCH_BYTES, c.RhcMessageKafkaBatchBytes)
 	fmt.Fprintf(&b, "%s: %s\n", RHC_MESSAGE_KAFKA_CONSUMER_GROUP, c.RhcMessageKafkaConsumerGroup)
+	fmt.Fprintf(&b, "%s: %d\n", RHC_MESSAGE_KAFKA_MAX_CONSECUTIVE_FETCH_ERRORS, c.RhcMessageKafkaMaxFetchErrors)
+	fmt.Fprintf(&b, "%s: %d\n", RHC_MESSAGE_KAFKA_MAX_CONSECUTIVE_COMMIT_ERRORS, c.RhcMessageKafkaMaxCommitErrors)
+	fmt.Fprintf(&b, "%s: %s\n", RHC_MESSAGE_KAFKA_FETCH_ERROR_BACKOFF, c.RhcMessageKafkaFetchErrorBackoff)
 	fmt.Fprintf(&b, "%s: %s\n", API_SERVER_CONNECTION_LOOKUP_IMPL, c.ApiServerConnectionLookupImpl)
 	fmt.Fprintf(&b, "%s: %s\n", TENANT_TRANSLATOR_IMPL, c.TenantTranslatorImpl)
 	fmt.Fprintf(&b, "%s: %s\n", TENANT_TRANSLATOR_MOCK_MAPPING, c.TenantTranslatorMockMapping)
@@ -381,6 +392,9 @@ func GetConfig() *Config {
 	options.SetDefault(RHC_MESSAGE_KAFKA_BATCH_SIZE, 1)
 	options.SetDefault(RHC_MESSAGE_KAFKA_BATCH_BYTES, 1048576)
 	options.SetDefault(RHC_MESSAGE_KAFKA_CONSUMER_GROUP, "cloud-connector-rhc-message-consumer")
+	options.SetDefault(RHC_MESSAGE_KAFKA_MAX_CONSECUTIVE_FETCH_ERRORS, 10)
+	options.SetDefault(RHC_MESSAGE_KAFKA_MAX_CONSECUTIVE_COMMIT_ERRORS, 10)
+	options.SetDefault(RHC_MESSAGE_KAFKA_FETCH_ERROR_BACKOFF, 2*time.Second)
 	options.SetDefault(PENDO_API_ENDPOINT, "https://app.pendo.io/api/v1")
 	options.SetDefault(PENDO_REQUEST_TIMEOUT, 5)
 	options.SetDefault(PENDO_INTEGRATION_KEY, "")
@@ -487,6 +501,9 @@ func GetConfig() *Config {
 		RhcMessageKafkaBatchSize:                 options.GetInt(RHC_MESSAGE_KAFKA_BATCH_SIZE),
 		RhcMessageKafkaBatchBytes:                options.GetInt(RHC_MESSAGE_KAFKA_BATCH_BYTES),
 		RhcMessageKafkaConsumerGroup:             options.GetString(RHC_MESSAGE_KAFKA_CONSUMER_GROUP),
+		RhcMessageKafkaMaxFetchErrors:            options.GetInt(RHC_MESSAGE_KAFKA_MAX_CONSECUTIVE_FETCH_ERRORS),
+		RhcMessageKafkaMaxCommitErrors:           options.GetInt(RHC_MESSAGE_KAFKA_MAX_CONSECUTIVE_COMMIT_ERRORS),
+		RhcMessageKafkaFetchErrorBackoff:         options.GetDuration(RHC_MESSAGE_KAFKA_FETCH_ERROR_BACKOFF),
 		PendoApiEndpoint:                         options.GetString(PENDO_API_ENDPOINT),
 		PendoRequestTimeout:                      options.GetDuration(PENDO_REQUEST_TIMEOUT) * time.Second,
 		PendoIntegrationKey:                      options.GetString(PENDO_INTEGRATION_KEY),
@@ -524,6 +541,24 @@ func GetConfig() *Config {
 		fmt.Printf("WARNING: Invalid MQTT_RATE_LIMITER_WINDOW=%s (must be > 0), using default 10s\n",
 			config.MqttRateLimiterWindow)
 		config.MqttRateLimiterWindow = 10 * time.Second
+	}
+
+	if config.RhcMessageKafkaMaxFetchErrors <= 0 {
+		fmt.Printf("WARNING: Invalid RHC_MESSAGE_KAFKA_MAX_CONSECUTIVE_FETCH_ERRORS=%d (must be > 0), using default 10\n",
+			config.RhcMessageKafkaMaxFetchErrors)
+		config.RhcMessageKafkaMaxFetchErrors = 10
+	}
+
+	if config.RhcMessageKafkaMaxCommitErrors <= 0 {
+		fmt.Printf("WARNING: Invalid RHC_MESSAGE_KAFKA_MAX_CONSECUTIVE_COMMIT_ERRORS=%d (must be > 0), using default 10\n",
+			config.RhcMessageKafkaMaxCommitErrors)
+		config.RhcMessageKafkaMaxCommitErrors = 10
+	}
+
+	if config.RhcMessageKafkaFetchErrorBackoff <= 0 {
+		fmt.Printf("WARNING: Invalid RHC_MESSAGE_KAFKA_FETCH_ERROR_BACKOFF=%s (must be > 0), using default 2s\n",
+			config.RhcMessageKafkaFetchErrorBackoff)
+		config.RhcMessageKafkaFetchErrorBackoff = 2 * time.Second
 	}
 
 	validVariant := config.MqttRateLimiterVariant == "drop_message" || config.MqttRateLimiterVariant == "test_only"
